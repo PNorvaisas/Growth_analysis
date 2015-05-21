@@ -51,6 +51,7 @@ Flags:
 Arguments:
 	-c <file>    Name of control file
 	-e <file>    Name of experiment
+	-d <file>    CSV file with data labels
 
 Options:
 
@@ -80,13 +81,14 @@ def main(argv=None):
 
 	cfile=""
 	efile=""
+	dfile=""
 	freq=0.0005
 	mode="Zaslaver"
 	if argv is None:
 		argv = sys.argv
 	try:
 		try:
-			opts, args = getopt.getopt(argv[1:], "hc:e:f:", ["help"])
+			opts, args = getopt.getopt(argv[1:], "hc:e:f:d:", ["help"])
 		except getopt.error, msg:
 			raise Usage(msg)
 
@@ -99,6 +101,8 @@ def main(argv=None):
 				cfile=value
 			if option in ("-e", "--exp"):
 				efile=value
+			if option in ("-d", "--db"):
+				dfile=value
 			if option in ("-f", "--freq"):
 				freq=float(value)
 	
@@ -120,11 +124,15 @@ def main(argv=None):
 
 	try:
 		if cfile!="":
-			ipath, iname, itype = filename(cfile)			
+			cpath, cname, ctype = filename(cfile)			
 		else:
 			raise Exception("No control file specified.")
 		if efile!="":
-			ipath, iname, itype = filename(efile)			
+			epath, ename, etype = filename(efile)			
+		else:
+			raise Exception("No experiment file specified.")
+		if dfile!="":
+			dpath, dname, dtype = filename(dfile)			
 		else:
 			raise Exception("No experiment file specified.")
 
@@ -144,19 +152,20 @@ def main(argv=None):
 	print optionsset %vars()
 	
 	modes={'Zaslaver':['600nm','535nm'],'Biolog':['600nm','700nm']}
-
+	genes=csvreader(dfile)
+	#sys.exit(1)
 	#ilist=[ifile]
 	waves=modes[mode]
 	#ilist=genlist(ifile)
 	ilist=[cfile,efile]	
 	data=collect(ilist)
 	data,figures=analyze(data,waves,mode,freq)
-	plate='-'.join(cfile.split('_')[:2])
-	dirn=dircheck('UAL')	
+	plate=cfile.split('_')[1]
+	#dirn=dircheck('UAL')	
 	print plate
 	for nm in figures:
 		print "Plotting %(nm)s..." %vars()
-		plt, plots=plot_2D(nm,data['Control'][nm],data['Experiment'][nm],data['Control']['Time'],data['Control']['Labels'],data['Control']['Wells'])
+		plt, plots=plot_2D(nm,data['Control'][nm],data['Experiment'][nm],data['Control']['Time'],data['Control']['Labels'],data['Control']['Wells'],genes[plate])
 		data['Joint'][nm]=plt
 		plt.savefig('{}/{}.pdf'.format('UAL',plate+'_'+nm))
 	
@@ -172,7 +181,7 @@ def main(argv=None):
 
 #-------------Functions------------
 
-def plot_2D(title,datac,datae,time,labels,plate_size):
+def plot_2D(title,datac,datae,time,labels,plate_size,genes):
 	fig=plt.figure(figsize=(11.69,8.27), dpi=100)
 	fig.suptitle(title)
 	plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.1)
@@ -222,7 +231,7 @@ def plot_2D(title,datac,datae,time,labels,plate_size):
 		plt.xticks(np.linspace(0, max(x), 4),['']+list(np.linspace(0, max(x), 4).astype(int)[1:]), rotation='vertical')	
 		plt.yticks(np.linspace(ymin, totalmax, 5),['']+list(np.around(np.linspace(ymin, totalmax, 5),2)[1:]))
 		plt.ylim([ymin,totalmax])
-		plots[l].text(0.1, 0.8, "test", fontsize=15, transform=plots[l].transAxes)
+		plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
 		#exec(l+"='plt.subplot(8,12,{},sharex={},sharey={})'".format(v,,sh_y))
 
 		plt.plot(x,yc,'r-',x,ye,'b-')
@@ -244,7 +253,7 @@ def analyze(data,waves,mode,freq):
 				#fluor_lp=fft(fluor,time/3600,freq)
 				fluor_min=min(fluor)
 				fluor_max=max(fluor)
-				data[tp]['Fluor'][well]=fluor
+				data[tp]['Fluorescence'][well]=fluor
 				#data[tp]['Fluor_lp'][well]=fluor_lp
 				#fluor_lp_min=min(fluor_lp)
 				#fluor_lp_max=max(fluor_lp)
@@ -266,10 +275,24 @@ def analyze(data,waves,mode,freq):
 				
 					
 
-			data[tp]['Figures']=data[tp]['Figures']+['600nm_zero','Fluor'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
+			data[tp]['Figures']=data[tp]['Figures']+['600nm_zero','Fluorescence'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
 		if mode=='Biolog' and len([nm for nm in waves if nm in data[tp]['Waves']])==2:
 			print "Not yet developed"
-	return data, ['600nm_zero','Fluor']
+	return data, ['600nm_zero','Fluorescence']
+
+def csvreader(dfile):
+	genes=NestedDict()
+	rdr=csv.reader(open(dfile,'r'), delimiter=',')
+	data=[ln for ln in rdr]
+	headers=data[0]
+	for ln in data[1:]:
+		#print ln
+		genes[ln[0]][ln[1]]['Gene']=ln[2]
+		genes[ln[0]][ln[1]]['Description']=ln[3]
+	
+	#print genes
+	return genes
+
 
 def collect(ilist):
 	data=NestedDict()

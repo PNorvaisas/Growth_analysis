@@ -165,7 +165,7 @@ def main(argv=None):
 	print plate
 	for nm in figures:
 		print "Plotting %(nm)s..." %vars()
-		plt, plots=plot_2D(nm,data['Control'][nm],data['Experiment'][nm],data['Control']['Time'],data['Control']['Labels'],data['Control']['Wells'],genes[plate])
+		plt, plots=plot_2D(plate+"-"+nm,data['Control'][nm],data['Experiment'][nm],data['Control']['Time'],data['Control']['Labels'],data['Control']['Wells'],genes[plate])
 		data['Joint'][nm]=plt
 		plt.savefig('{}/{}.pdf'.format('UAL',plate+'_'+nm))
 	
@@ -246,14 +246,19 @@ def analyze(data,waves,mode,freq):
 			time=data[tp]['Time']
 			dt=data[tp]['Time'][1]-data[tp]['Time'][0]
 			data[tp]['Time_dt']=(time+dt/2)[:-1]
+			Ufluor=data[tp]['535nm']['C10']/data[tp]['600nm']['C10']
 			for well in data[tp]['Labels']:
 				data[tp]['600nm_zero'][well]=data[tp]['600nm'][well]-data[tp]['600nm'][well+'_min']
 				#data[tp]['600nm_norm'][well]=data[tp]['600nm_zero'][well]/(data[tp]['600nm'][well+'_max']-data[tp]['600nm'][well+'_min'])
 				fluor=data[tp]['535nm'][well]/data[tp]['600nm'][well]
+				
 				#fluor_lp=fft(fluor,time/3600,freq)
 				fluor_min=min(fluor)
 				fluor_max=max(fluor)
+				fluor_norm=fluor-Ufluor
+				
 				data[tp]['Fluorescence'][well]=fluor
+				data[tp]['Fluorescence_norm'][well]=fluor_norm
 				#data[tp]['Fluor_lp'][well]=fluor_lp
 				#fluor_lp_min=min(fluor_lp)
 				#fluor_lp_max=max(fluor_lp)
@@ -275,10 +280,10 @@ def analyze(data,waves,mode,freq):
 				
 					
 
-			data[tp]['Figures']=data[tp]['Figures']+['600nm_zero','Fluorescence'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
+			data[tp]['Figures']=data[tp]['Figures']+['600nm_zero','Fluorescence', 'Fluorescence_norm'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
 		if mode=='Biolog' and len([nm for nm in waves if nm in data[tp]['Waves']])==2:
 			print "Not yet developed"
-	return data, ['600nm_zero','Fluorescence']
+	return data, ['600nm_zero','Fluorescence','Fluorescence_norm']
 
 def csvreader(dfile):
 	genes=NestedDict()

@@ -178,7 +178,6 @@ def main(argv=None):
 	data=collect(ilist)
 	data=analyze(data,waves,filterf)
 	plate=cfile.split('_')[1]
-	dirn=dircheck(odir)
 	dirh=dircheck(odir+'/Huge')
 	zoom=['B1','B2','B3']
 	print plate
@@ -191,12 +190,12 @@ def main(argv=None):
 		data['Joint'][fg]=plt
 		plt.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg))
 
-		if 'dt' in fg:
-			plotsh=plothuge(plate+'_'+fg,data['Control'][fg],data['Experiment'][fg],data['Control']['Time_dt'],zoom,genes[plate])
-		else:
-			plotsh=plothuge(plate+'_'+fg,data['Control'][fg],data['Experiment'][fg],data['Control']['Time'],zoom,genes[plate])
-		for l in zoom:
-			plotsh[l].savefig('{}/{}.pdf'.format(dirh,plate+'_'+fg+'_'+l))
+		#if 'dt' in fg:
+		#	plotsh=plothuge(plate+'_'+fg,data['Control'][fg],data['Experiment'][fg],data['Control']['Time_dt'],zoom,genes[plate])
+		#else:
+		#	plotsh=plothuge(plate+'_'+fg,data['Control'][fg],data['Experiment'][fg],data['Control']['Time'],zoom,genes[plate])
+		#for l in zoom:
+		#	plotsh[l].savefig('{}/{}.pdf'.format(dirh,plate+'_'+fg+'_'+l))
 	
 
 	

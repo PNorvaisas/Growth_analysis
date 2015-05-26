@@ -178,7 +178,7 @@ def main(argv=None):
 	data=collect(ilist)
 	data=analyze(data,waves,filterf)
 	plate=cfile.split('_')[1]
-	dirh=dircheck(odir+'/Huge')
+	dirn=dircheck(odir)
 	zoom=['B1','B2','B3']
 	print plate
 	for fg in data['Control']['Figures']:
@@ -275,8 +275,8 @@ def Wiener(y, n):
 	wi = sig.wiener(y, mysize=n)
 	return wi
 
-def Butter(x, y, nyf, par1, par2):	
-	b, a = sig.butter(par1, par2/nyf)
+def Butter(x, y, par1, par2):	
+	b, a = sig.butter(par1, par2)
 	fl = sig.filtfilt(b, a, y)
 	return fl
 
@@ -306,7 +306,7 @@ def plothuge(title,datac,datae,time,labels,genes):
 def analyze(data,waves,filterf):
 	msize=20
 	par1=4
-	par2=1.5
+	par2=0.1
 	for tp in data.keys():		
 		if len([nm for nm in waves if nm in data[tp]['Waves']])==2:
 			time=data[tp]['Time']
@@ -331,10 +331,10 @@ def analyze(data,waves,filterf):
 					fluor_norm=fluor-Ufluor
 					fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
 				elif filterf=='butter':
-					growth=Butter(time,growth-growth[0],nyf,par1,par2)
-					fluor=Butter(time,fluor-fluor[0],nyf,par1,par2)
+					growth=Butter(time,growth-growth[0],par1,par2)
+					fluor=Butter(time,fluor-fluor[0],par1,par2)
 					fluor_norm=fluor-Ufluor
-					fluor_norm=Butter(time,fluor_norm-fluor_norm[0],nyf,par1,par2)
+					fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
 				else:
 					fluor_norm=fluor-Ufluor
 								

@@ -275,7 +275,7 @@ def Wiener(y, n):
 	wi = sig.wiener(y, mysize=n)
 	return wi
 
-def Butter(x, y, nyf, par1, par2):
+def Butter(x, y, nyf, par1, par2):	
 	b, a = sig.butter(par1, par2/nyf)
 	fl = sig.filtfilt(b, a, y)
 	return fl
@@ -306,14 +306,18 @@ def plothuge(title,datac,datae,time,labels,genes):
 def analyze(data,waves,filterf):
 	msize=20
 	par1=4
-	par2=1.57
+	par2=1.5
 	for tp in data.keys():		
 		if len([nm for nm in waves if nm in data[tp]['Waves']])==2:
 			time=data[tp]['Time']
 			dt=data[tp]['Time'][1]-data[tp]['Time'][0]
 			npts=len(time)
 			dtm=time[-1]/npts
-			nyf=0.5/dtm
+			nyf=0.5/dt
+			print nyf
+			print dt
+			print dtm
+			
 			data[tp]['Time_dt']=(time+dt/2)[:-1]
 			Ufluor=data[tp]['535nm']['C10']/data[tp]['600nm']['C10']
 			for well in data[tp]['Labels']:

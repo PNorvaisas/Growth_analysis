@@ -184,9 +184,11 @@ def main(argv=None):
 	data=collect(ilist)
 	data=analyze(data,waves,filterf)
 	dirn=dircheck(odir)
-	print data.keys()
-	plotall(data,'Growth') #'Fluorescence_norm'
-	#data=plot96(data,genes,dirn)
+	#print data.keys()
+	data=growthfit(data)
+	plotall(data,'Growth')
+	plotall(data,'Fluorescence_norm')
+
 	
 	
 
@@ -211,99 +213,161 @@ def plot96(data,genes,dirn):
 	return data
 
 def plotall(data,fg):
-	
-	timec=[]
-	ac=[]
-	timee=[]
-	ae=[]
-	base=0.02
-	top=0.07
+	align=True
 	ts=5
-	y0=np.average([base,top])
 	for plate in data.keys():
-
+		print 'Plate number {}'.format(plate)
 		for tp in data[plate].keys():
 			#x=data[plate][tp]['Time']
 			labels=data[plate][tp]['Labels']
-			labels.remove('A12')
+			if 'A12' in labels:
+				labels.remove('A12')
 			if plate=='21':
 				labels=labels[:9]
 			if tp=='Control':
 				plt.figure(0)
-				plt.title('Control')
-				#plt.yscale('log')
+				plt.title(fg+' without Metformin')
+
 			
 			elif tp=='Experiment':
 				plt.figure(1)
-				plt.title('Experiment')
+				plt.title(fg+' with Metformin')
+
+			if fg in ['Growth','600nm']:
+				if norm:
+					plt.ylim([0,1])
+				else:			
+					plt.ylim([0,0.4])
+				plt.ylabel('OD')
 				#plt.yscale('log')
-			if fg in ['Growth','600nm']:			
-				plt.ylim([1E-3,0.5])
+			else:
+				#plt.ylim([0,3000])
+				plt.ylabel('Fluorescence, a.u.')
+				#plt.yscale('log')
 			
 			plt.xlim([0,20])
+			plt.xlabel('Time, h')
 			
 			for l in labels:
 				x=data[plate][tp]['Time']
 				y=data[plate][tp][fg][l]
-				yfl=data[plate][tp]['Fluorescence_norm'][l]
-				
-				if fg in ['Growth','600nm']:
-					x2,y2=cut(x, y, base, top)
-					y2l=np.log(y2)
+				if norm and fg in ['Growth','600nm']:
+					y=(y-min(y))/max(y)
+				if align==True:
+					a,c,t0=data[plate][tp]['GrowthFit'][l]['Log']
+					x=(x+(ts*3600-t0*60))/3600
+				else:
+					x=x/3600
+				plt.plot(x,y,label=plate+l )
+
+	plt.show()
+
+def growthfit(data):
+	norm=True
+	allfit=NestedDict()
+	if norm:
+		base=0.1
+		top=0.2
+		y0=0.2
+	else:
+		base=0.02
+		top=0.07
+		y0=0.1
+	
+	for plate in data.keys():
+		for tp in data[plate].keys():
+			x=data[plate][tp]['Time']
+			labels=data[plate][tp]['Labels']
+			if plate=='21':
+				labels=labels[:9]
+			if tp=='Control':
+				plt.figure(0)
+				plt.title('Growth without Metformin')
+
+			
+			elif tp=='Experiment':
+				plt.figure(1)
+				plt.title('Growth with Metformin')
+
+			plt.xlim([0,20])
+			if norm:
+				plt.ylim([0,1])
+			else:
+				plt.ylim([0,0.4])
+			
+			for l in labels:
+				y=data[plate][tp]['Growth'][l]
+				if norm:
+					y=(y-min(y))/max(y)
+				x2,y2=cut(x, y, base, top)
+				plt.plot(x/3600,y,label=plate+l)
+				y2l=np.log(y2)
+				for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
 					try:
-						popt, pcov = curve_fit(growth, x2, y2)
+						popt, pcov = curve_fit(growth, x2, ydata)
 					except TypeError:
 						'Curve_fit encountered an error!'
 						continue
-					yf=growth(x,popt[0],popt[1])
-					yf=np.power(np.e,yf)
 					a=popt[0]
 					c=popt[1]
-					t0=(y0-c)/(a*60)
-					print 'Growth rate: {}, start: {}'.format(a*3600,t0)
-					if tp =='Control':
-						timec.append(t0)
-						ac.append(a)
-					elif tp=='Experiment':
-						timee.append(t0)
-						ae.append(a)
-
-					x=(x+(ts*3600-t0*60))/3600
-					x2=(x2+(ts*3600-t0*60))/3600
-					#plt.plot(x,yf,label=plate+l+'fit')
-					#plt.plot(x2,y2,label=plate+l )
-					plt.plot(x,y,label=plate+l )
-				else:
-					plt.plot(x/3600,y,label=plate+l )
+					if ynm=='Log':
+						t0=(np.log(y0)-c)/(a*60)
+					else:
+						t0=(y0-c)/(a*60)
+					print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
+					for par,nm in IT.izip([a,t0],['a','t0']):
+						if allfit[tp][ynm][nm]:
+							allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
+						else:
+							allfit[tp][ynm][nm]=[par]
+					
+					data[plate][tp]['GrowthFit'][l][ynm]=[a,c,t0]
 	
-	if fg in ['Growth','600nm']:
-		plt.figure(2)
-		#bins=np.linspace(0,600,11)
-		#hist, bin_edges=np.histogram(times, bins)
-		sbn=np.arange(0,1000,10)
-		plt.hist(timec,bins=sbn,label='Without metformin')
-		plt.hist(timee,bins=sbn,label='With metformin')
-		plt.xlabel('Start, min')
-		plt.ylabel('Number')
-		plt.title('Growth start time with/without metformin')
-		plt.legend()
+	plt.figure(2)
+	sbn=np.arange(0,1000,10)
+	plt.hist(allfit['Control']['Log']['t0'],bins=sbn,label='Without metformin - Log')
+	plt.hist(allfit['Experiment']['Log']['t0'],bins=sbn,label='With metformin - Log')
+	plt.xlabel('Start, min')
+	plt.ylabel('Number')
+	plt.title('Growth start time with/without metformin - Log')
+	plt.legend()
+	
+	plt.figure(3)
+	slbn=np.arange(0,1000,10)
+	plt.hist(allfit['Control']['Linear']['t0'],bins=sbn,label='Without metformin - Linear')
+	plt.hist(allfit['Experiment']['Linear']['t0'],bins=slbn,label='With metformin - Linear')
+	plt.xlabel('Start, min')
+	plt.ylabel('Number')
+	plt.title('Growth start time with/without metformin - Linear')
+	plt.legend()
 
-		plt.figure(3)
-		#bins=np.linspace(0,600,11)
-		abn=np.arange(0,0.1,0.005)
-		ac=np.asarray(ac)*3600
-		ae=np.asarray(ae)*3600
-		plt.hist(ac,bins=abn,label='Without metformin')
-		plt.hist(ae,bins=abn,label='With metformin')
-		plt.xlabel('Growth rate, OD/h')
-		plt.xlim([1E-3,1E-2])
-		plt.ylabel('Number')
-		#plt.xscale('log')
-		plt.title('Growth rate with/without metformin')
-		#plt.xscale('log')
-		plt.legend()
+	plt.figure(4)
+	abn=np.arange(0,2.5,0.1)
+	ac=np.asarray(allfit['Control']['Log']['a'])*3600
+	ae=np.asarray(allfit['Experiment']['Log']['a'])*3600
+	plt.hist(ac,bins=abn,label='Without metformin - Log')
+	plt.hist(ae,bins=abn,label='With metformin - Log')
+	plt.xlabel('Growth rate, ln(OD)/h')
+	plt.xlim([0,2.5])
+	plt.ylabel('Number')
+	plt.title('Growth rate with/without metformin - Log')
+	plt.legend()
+
+	plt.figure(5)
+	albn=np.arange(0,0.04,0.005)
+	alc=np.asarray(allfit['Control']['Linear']['a'])*3600
+	ale=np.asarray(allfit['Experiment']['Linear']['a'])*3600
+	plt.hist(alc,label='Without metformin - Linear')
+	plt.hist(ale,label='With metformin - Linear')
+	plt.xlabel('Growth rate, OD/h')
+	#plt.xlim([0,0.04])
+	plt.ylabel('Number')
+	plt.title('Growth rate with/without metformin - Linear')
+	plt.legend()
 
 	plt.show()
+
+	return data
 
 def plot_2D(title,datac,datae,time,labels,plate_size,genes):
 	#print title
@@ -386,9 +450,9 @@ def cut(x, y, a,b):
 	for xt, yt in IT.izip(enumerate(x),enumerate(y)):
 		#print xt, yt	
 		if yt[1]>=a and yt[1]<=b:
-			if y[yt[0]+1]>=a and y[yt[0]+2]>=a: 
-				x2.append(xt[1])
-				y2.append(yt[1])
+			#if y[yt[0]+1]>=a and y[yt[0]+2]>=a: 
+			x2.append(xt[1])
+			y2.append(yt[1])
 	#print grouper(x2)		
 	return np.asarray(x2), np.asarray(y2)
 
@@ -554,7 +618,7 @@ def collect(ilist):
 		timemax_h=time_t[length-1]/3600
 		timestep=time_t[length-1]/(length-1)
 		time=np.linspace(0,timemax_h*3600,length)
-		labels=sheet.col_values(length*2)
+		labels=sheet.col_values(length*2)		
 		data[plate][tp]['Labels']=labels[3:]
 		data[plate][tp]['Waves']=waves
 		data[plate][tp]['Time']=time

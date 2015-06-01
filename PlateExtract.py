@@ -62,6 +62,7 @@ Arguments:
 	-o <dir>     directory to write output to
 
 Options:
+	load	     Load pickled data
 
 '''
 
@@ -82,6 +83,7 @@ Options:
 	 DB:	%(dfile)s
      Filter:	%(filterf)s
         Out:	%(odir)s
+       Load:	%(load)s
 <--------------------------------------------->
 	'''
 
@@ -95,6 +97,7 @@ def main(argv=None):
 	mode="Zaslaver"
 	filterf=''
 	odir='Output'
+	load=False
 	if argv is None:
 		argv = sys.argv
 	try:
@@ -119,8 +122,8 @@ def main(argv=None):
 	
 	
 		for argument in args:		
-			if argument in ("pqr", "--onlypqr"):
-				pqr = True
+			if argument in ("load", "--load"):
+				load = True
 			
 
 
@@ -132,62 +135,69 @@ def main(argv=None):
 	#Check for the input integrity
 
 	print '''\n\n---------------------------\n\n'''
-
-	try:
-		if ifile!="":
-			ifiles=ifile.split(',')
-			for ifl in ifiles:
-				print '{} {}'.format(ifl,os.path.isfile(ifl))
-				ipath, iname, itype = filename(ifile)			
-		else:
-			raise Exception("No files specified.")
-		if dfile!="":
-			dpath, dname, dtype = filename(dfile)			
-		else:
-			raise Exception("No experiment file specified.")
-		if filterf!='' and filterf in ['wiener','butter']:
-			if filterf=='butter':
-				print "Butterfield filter selected!"
-			elif filterf=='wiener':
-				print "Wiener filter selected!"
-		else:
-			print "Unknown filter {}, not using.".format(filterf)
-			filterf=''
-			
-		
-
-
-		
+	
+	if not load:
+		try:
+			if ifile!="":
+				ifiles=ifile.split(',')
+				for ifl in ifiles:
+					print '{} {}'.format(ifl,os.path.isfile(ifl))
+					ipath, iname, itype = filename(ifile)			
+			else:
+				raise Exception("No files specified.")
+			if dfile!="":
+				dpath, dname, dtype = filename(dfile)			
+			else:
+				raise Exception("No experiment file specified.")
+			if filterf!='' and filterf in ['wiener','butter']:
+				if filterf=='butter':
+					print "Butterfield filter selected!"
+				elif filterf=='wiener':
+					print "Wiener filter selected!"
+			else:
+				print "Unknown filter {}, not using.".format(filterf)
+				filterf=''
+				
 			
 	
-	except Exception, e:
-		print e
-		#print "!!!-------------------------------------------!!!"
-		sys.exit(1)
+		except Exception, e:
+			print e
+			#print "!!!-------------------------------------------!!!"
+			sys.exit(1)
 
-
+		print optionsset %vars()
 	#----------------------------
 
 
-	print optionsset %vars()
+	
 
+
+	if load:
+		f = open('UAL_data.pckl','rb')
+		data,genes,odir = pickle.load(f)
+		f.close()
+	else:	
+		modes={'Zaslaver':['600nm','535nm'],'Biolog':['600nm','700nm']}
+		genes=csvreader(dfile)
+		#sys.exit(1)
+		#ilist=[ifile]
+		waves=modes[mode]
+		ilist=genlist(ifile)
+		#ilist=[cfile,efile]
+		checkfiles(ilist)	
+		data=collect(ilist)
+		data=analyze(data,waves,filterf)
+		dirn=dircheck(odir)	
+		data=growthfit(data)
+		f = open('UAL_data.pckl', 'w')
+		pickle.dump([data,genes,odir], f)
+		f.close()
 
 	
-	modes={'Zaslaver':['600nm','535nm'],'Biolog':['600nm','700nm']}
-	genes=csvreader(dfile)
-	#sys.exit(1)
-	#ilist=[ifile]
-	waves=modes[mode]
-	ilist=genlist(ifile)
-	#ilist=[cfile,efile]
-	checkfiles(ilist)	
-	data=collect(ilist)
-	data=analyze(data,waves,filterf)
-	dirn=dircheck(odir)
-	#print data.keys()
-	data=growthfit(data)
-	plotall(data,'Growth')
-	plotall(data,'Fluorescence_norm')
+	#plotall(data,'Growth')
+	#plotall(data,'Fluorescence_norm')
+	plt,plots=plot_2Dplates('Fluorescence_norm','Experiment',data,data[data.keys()[0]]['Control']['Labels'])
+	plt.show()
 
 	
 	
@@ -369,14 +379,15 @@ def growthfit(data):
 
 	return data
 
-def plot_2D(title,datac,datae,time,labels,plate_size,genes):
+def plot_2D(title,datac,datae,time,labels,genes):
+	plate_size=96
 	#print title
 	plate,fg=title.split('-')
 	fig=plt.figure(figsize=(11.69,8.27), dpi=100)
 	fig.suptitle(title)
 	plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.1)
 	plots={}
-	#Need to check for both datasets
+
 	if fg in ['Fluorescence','Fluorescence_norm']:
 		rnd=1
 	else:
@@ -408,6 +419,8 @@ def plot_2D(title,datac,datae,time,labels,plate_size,genes):
 		x=time/3600
 		yc=datac[l]
 		ye=datae[l]
+
+
 		if row==1 and col==1:
 			plots[l]=plt.subplot(8,12,v)			
 		elif row==1 and col!=1:
@@ -439,6 +452,100 @@ def plot_2D(title,datac,datae,time,labels,plate_size,genes):
 		#plt.title(l)
 
 	return plt, plots
+
+
+def plot_2Dplates(fg,tp,data,labels):
+	align=True
+	ts=5
+	title=fg+'_'+tp
+	plate_size=96
+	fig=plt.figure(figsize=(11.69,8.27), dpi=100)
+	fig.suptitle(title)
+	plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.1)
+	plots={}
+	#Need to check for both datasets
+	
+	if '_dt' in fg:
+		time=data[data.keys()[0]][tp]['Time_dt']
+	else:
+		time=data[data.keys()[0]][tp]['Time']
+	x=time/3600
+
+
+	if fg in ['Growth','600nm']:
+		totalmax=1
+		totalmin=0
+	elif fg in ['535nm','Fluorescence']:
+		totalmax=300
+		totalmin=0
+	elif fg in ['Fluorescence_norm']:
+		totalmax=3000
+		totalmin=0			
+	elif fg in ['Fluorescence_dt']:
+		totalmax=0.1
+		totalmin=-totalmax
+
+	ymin=totalmin
+	#print totalmax
+	#print list(np.linspace(0, 24, 4)[1:])
+	for v,l in IT.izip(range(plate_size),labels):
+
+		row=string.uppercase.index(l[0])+1
+		col=int(l.replace(l[0],''))
+		#print (row,col)
+		if divmod(float(v)/12,1)[1]==0:
+			sh_y=l
+		#print sh_y
+		v=v+1
+	
+
+
+		#setting arrangement
+		if row==1 and col==1:
+			plots[l]=plt.subplot(8,12,v)			
+		elif row==1 and col!=1:
+			plots[l]=plt.subplot(8,12,v,sharey=plots['A1'])
+		elif col==1 and row!=1:
+			plots[l]=plt.subplot(8,12,v,sharex=plots['A1'])
+		else:
+			plots[l]=plt.subplot(8,12,v,sharex=plots['A'+str(col)],sharey=plots[l[0]+'1'])
+		
+		if row!=8:
+			setp( plots[l].get_xticklabels(), visible=False)
+		if col!=1:
+			setp( plots[l].get_yticklabels(), visible=False)
+
+		if col==12:
+			plots[l].yaxis.set_label_position("right")
+			plt.ylabel(l[0],rotation='horizontal')
+		if row==1:
+			plt.title(col)
+
+		plt.xticks(np.linspace(0, max(x), 3),['']+list(np.linspace(0, max(x), 3).astype(int)[1:]), rotation='vertical')	
+		plt.yticks(np.linspace(ymin, totalmax, 3),['']+list(np.around(np.linspace(totalmin, totalmax, 3),1)[1:]))
+		plt.ylim([totalmin,totalmax])
+		#plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
+		for plate in data.keys():
+			if plate!='21' or (plate=='21' and l in labels[:9]):
+				y=data[plate][tp][fg][l]
+			
+				if align==True and l!='A12':
+					a, c, t0=data[plate][tp]['GrowthFit'][l]['Log']
+					if '_dt' in fg:
+						xl=data[plate][tp]['Time_dt']
+					else:
+						xl=data[plate][tp]['Time']
+						xl=(xl+(ts*3600-t0*60))/3600
+					plt.plot(xl,y,'r-')
+				else:
+					plt.plot(x,y,'r-')
+
+
+		
+		#plt.title(l)
+
+	return plt, plots
+
 
 def growth(x,a,c):
 	y=x*a+c

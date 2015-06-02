@@ -197,15 +197,18 @@ def main(argv=None):
 		pickle.dump([data,genes,odir], f)
 		f.close()
 
-
+	sheets=makesheets(data,genes)
+	writesheets(sheets,odir)
 	#data,allfit=growthfit(data,False)
-	#sys.exit(1)
 	#data,shifts=datashift(data,'all','all','all','all')
-	#plotall(data,'all','all','Growth','all',False,True)
-	plotall(data,'1','Experiment','Fluorescence_norm','all',False,True)
+	#plotall(data,'all','Control','Growth','C10',False,True)
+	#plotall(data,'all','Control','Growth','C10',False,False)
+	#plotall(data,'1','Experiment','Fluorescence_norm','all',False,True)
 	#plotall(data,'Fluorescence_norm')
 	#plt,plots=plot_2Dplates(data,'Growth','Experiment',True)
 	#plt.show()
+
+
 
 
 	
@@ -892,27 +895,59 @@ def tableout(inp):
 
 	return table
 
+def makesheets(data,genes):
+	sheets=NestedDict()
+	plates=data.keys()
+	labels=data[plates[0]]['Control']['Labels']
+	output=data[plates[0]]['Control']['Figures']
+	time_dt=data[plates[0]]['Control']['Time_dt']
+	time_lin=data[plates[0]]['Control']['Time']
 
+	for tp in ['Control','Experiment']:
+		for out in output:
+			sheet=[]
+			sheet_sh=[]
+			if '_dt' in out:
+				time=time_dt
+			else:
+				time=time_lin
+			sheet.append(['Gene']+time.tolist())
+			sheet_sh.append(['Gene']+time.tolist())
+			for plate in plates:
+				for l in labels:
+					if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:9]):
+						sheet.append([genes[plate][l]['Gene']]+data[plate][tp][out][l].tolist())
+						sheet_sh.append([genes[plate][l]['Gene']]+data[plate][tp]['Shift'][out][l].tolist())
 
-def writesheets(sheets):
+			sheets[tp][out]['Shift']=sheet_sh
+			sheets[tp][out]['Raw']=sheet
+	
+	for out in ['Fluorescence', 'Fluorescence_norm']:
+		sheet=[]
+		time=time_lin
+		sheet.append(['Gene']+time.tolist())
+		for plate in plates:
+			for l in labels:
+				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:9]):
+					sheet.append([genes[plate][l]['Gene']]+(data[plate]['Experiment'][out][l]-data[plate]['Control'][out][l]).tolist())
+		sheets['Difference'][out]['Diff']=sheet
+
+	return sheets
+
+def writesheets(sheets,odir):
 	#Writes organized data to file.
 	#odir=dircheck('Split')
-	for i in sheets.keys():
-		if i=='Summary':
-			oname=i+".csv"
-		else:
-			if '_' in i:
-				tp=i.split('_')[1]
-				nm=i.split('_')[0]
-			else:
-				nm=i
-				tp='results'	
-			oname="{}/{}_{}.csv".format(nm,nm,tp)
-		ofile=csv.writer(open(oname,"wb"), dialect='excel') #,delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
-		for row in sheets[i]:
-			row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
-			ofile.writerow(row)
-		#ofile.close()
+	for tp in sheets.keys():
+		for fig in sheets[tp].keys():
+			for form in sheets[tp][fig].keys():
+				oname='{}/{}_{}_{}.csv'.format(odir,tp,fig,form)		
+				sheet=sheets[tp][fig][form]
+				f=open(oname,"wb")
+				ofile=csv.writer(f, dialect='excel') #,delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
+				for row in sheet:
+					#row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
+					ofile.writerow(row)
+				f.close()
 	
 
 def runcmd(cmd):

@@ -177,8 +177,10 @@ def main(argv=None):
 
 	if load:
 		f = open('UAL_data.pckl','rb')
-		data,genes,odir = pickle.load(f)
+		data,genes,odir,filterf = pickle.load(f)
 		f.close()
+
+		
 	else:	
 		modes={'Zaslaver':['600nm','535nm'],'Biolog':['600nm','700nm']}
 		genes=csvreader(dfile)
@@ -189,14 +191,17 @@ def main(argv=None):
 		checkfiles(ilist)	
 		data=collect(ilist)
 		data=analyze(data,waves,filterf)
-		dirn=dircheck(odir)	
-		data,allfit=growthfit(data,True)
-		growthplot(allfit)
-		data,shifts=datashift(data,'all','all','all','all')
-		f = open('UAL_data.pckl', 'w')
-		pickle.dump([data,genes,odir], f)
-		f.close()
+		dirn=dircheck(odir)
+		data,allfit=growthfit(data,False)
+		growthplot(allfit)		
+		data=datashift(data,'all','all','all','all')
+		data=analyze2(data,filterf)	
 
+		f = open('UAL_data.pckl', 'w')
+		pickle.dump([data,genes,odir,filterf], f)
+		f.close()
+	
+	
 	sheets=makesheets(data,genes)
 	writesheets(sheets,odir)
 	#data,allfit=growthfit(data,False)
@@ -285,7 +290,7 @@ def plotall(data,plsel,tpsel,fg,lsel,norm,shifted):
 			elif isinstance(lsel, str) or isinstance(lsel, unicode):
 				labels=[lsel] 
 			for l in labels:
-				if (plate!='21' and l!='A12' ) or (plate=='21' and l in labels[:9]):
+				if (plate!='21' and l!='A12' ) or (plate=='21' and l in labels[:10]):
 					if shifted:
 						y=data[plate][tp]['Shift'][fg][l]
 					else:
@@ -307,42 +312,40 @@ def growthfit(data,norm):
 	else:
 		base=0.02
 		top=0.07
-		y0=0.1
+		y0=0.05
 	
 	for plate in data.keys():
 		for tp in data[plate].keys():
 			x=data[plate][tp]['Time']
 			labels=data[plate][tp]['Labels']
-			if plate=='21':
-				labels=labels[:9]
-
-			
+	
 			for l in labels:
-				y=data[plate][tp]['Growth'][l]
-				if norm:
-					y=(y-min(y))/max(y)
-				x2,y2=cut(x, y, base, top)
-				y2l=np.log(y2)
-				for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
-					try:
-						popt, pcov = curve_fit(growth, x2, ydata)
-					except TypeError:
-						'Curve_fit encountered an error!'
-						continue
-					a=popt[0]
-					c=popt[1]
-					if ynm=='Log':
-						t0=(np.log(y0)-c)/(a*60)
-					else:
-						t0=(y0-c)/(a*60)
-					#print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
-					for par,nm in IT.izip([a,c,t0],['a','c','t0']):
-						if allfit[tp][ynm][nm]:
-							allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
+				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
+					y=data[plate][tp]['Growth'][l]
+					if norm:
+						y=(y-min(y))/max(y)
+					x2,y2=cut(x, y, base, top)
+					y2l=np.log(y2)
+					for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
+						try:
+							popt, pcov = curve_fit(growth, x2, ydata)
+						except TypeError:
+							'Curve_fit encountered an error!'
+							continue
+						a=popt[0]
+						c=popt[1]
+						if ynm=='Log':
+							t0=(np.log(y0)-c)/(a*60)
 						else:
-							allfit[tp][ynm][nm]=[par]
+							t0=(y0-c)/(a*60)
+						#print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
+						for par,nm in IT.izip([a,c,t0],['a','c','t0']):
+							if allfit[tp][ynm][nm]:
+								allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
+							else:
+								allfit[tp][ynm][nm]=[par]
 					
-					data[plate][tp]['GrowthFit'][l][ynm]=[a,c,t0]
+						data[plate][tp]['GrowthFit'][l][ynm]=[a,c,t0]
 
 	return data,allfit
 
@@ -354,7 +357,6 @@ def interp(x,y,x2):
 	return y2
 
 def datashift(data,plsel,tpsel,fgsel,lbsel):
-	shifts=NestedDict()
 	ts=5
 	if plsel=='all':
 		plates=data.keys()
@@ -380,7 +382,7 @@ def datashift(data,plsel,tpsel,fgsel,lbsel):
 				elif isinstance(lbsel, str) or isinstance(lbsel, unicode):
 					labels=[lbsel]
 				for l in labels:
-					if (plate!='21' and l!='A12') or (plate=='21' and l in data[plate][tp]['Labels'][:9]):
+					if (plate!='21' and l!='A12') or (plate=='21' and l in data[plate][tp]['Labels'][:10]):
 						#print plate,tp,fg,l
 						a, c, t0=data[plate][tp]['GrowthFit'][l]['Log']
 						y=data[plate][tp][fg][l]
@@ -390,13 +392,21 @@ def datashift(data,plsel,tpsel,fgsel,lbsel):
 							x=data[plate][tp]['Time']
 						xs=(x+(ts*3600-t0*60))
 						y2=interp(xs,y,x)
+						shift=ts*3600-t0*60
+						if shift<0:
+							steps=int(-shift/300)
+							y2[-steps:]=y2[-steps-1]
+						elif shift>0:
+							steps=int(shift/300)
+							y2[:steps]=y2[steps+1]
+							
+							
 					else:
 						y2=data[plate][tp][fg][l]
 					data[plate][tp]['Shift'][fg][l]=y2
-					shifts[plate][tp][fg][l]=y2
 				
 
-	return data, shifts	
+	return data	
 
 
 def meansd(data,plsel,tpsel,fgsel,lbsel,shifted):
@@ -465,7 +475,7 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	if fg in ['Growth','600nm','535nm','Fluorescence','Fluorescence_norm']:
 		totalmax=max([totalmaxc,totalmaxe])
 		totalmin=0
-	elif fg in ['Fluorescence_dt']:
+	elif '_dt' in fg:
 		totalmax=0.1#max([totalmaxc,totalmaxe])
 		totalmin=-totalmax
 
@@ -598,7 +608,7 @@ def plot_2Dplates(data,fg,tp,means):
 			plt.plot(x,mean,'white')
 		else:		
 			for plate in data.keys():
-				if plate!='21' or (plate=='21' and l in labels[:9]):
+				if plate!='21' or (plate=='21' and l in labels[:10]):
 					y=data[plate][tp]['Shift'][fg][l]
 					plt.plot(x,y,'r-')
 
@@ -710,7 +720,35 @@ def checkfiles(ilist):
 		print 'File list integrity check failed!'
 		sys.exit(1)
 
+def analyze2(data,filterf):
+	msize=20
+	par1=4
+	par2=0.1
+	for plate in sorted(data.keys()):
+		for tp in data[plate].keys():
+			Ufluor=data[plate][tp]['Shift']['Fluorescence']['C10']
+			time=data[plate][tp]['Time']
+			dt=time[1]-time[0]
+			for well in data[plate][tp]['Labels']:
+				if (plate!='21' and well!='A12') or (plate=='21' and well in data[plate][tp]['Labels'][:10]):
+					fluor=data[plate][tp]['Shift']['Fluorescence'][well]
+					if filterf=='wiener':
+						fluor_norm=fluor-Ufluor
+						fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
+					elif filterf=='butter':
+						fluor_norm=fluor-Ufluor
+						fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
+					else:
+						fluor_norm=fluor-Ufluor				
 
+					data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm
+					data[plate][tp]['Shift']['Fluorescence_norm_scaled'][well]=scale(fluor_norm,'positive')
+					fluor_norm_dt=np.diff(fluor_norm)/dt
+					data[plate][tp]['Shift']['Fluorescence_norm_dt'][well]=fluor_norm_dt
+					data[plate][tp]['Shift']['Fluorescence_norm_scaled_dt'][well]=scale(fluor_norm_dt,'both')
+					
+
+	return data
 
 def analyze(data,waves,filterf):
 	msize=20
@@ -720,7 +758,7 @@ def analyze(data,waves,filterf):
 		for tp in data[plate].keys():		
 			if len([nm for nm in waves if nm in data[plate][tp]['Waves']])==2:
 				time=data[plate][tp]['Time']
-				dt=data[plate][tp]['Time'][1]-data[plate][tp]['Time'][0]
+				dt=time[1]-time[0]
 				npts=len(time)
 				nyf=0.5/dt
 			
@@ -753,25 +791,22 @@ def analyze(data,waves,filterf):
 					fluor_min=min(fluor)
 				
 					data[plate][tp]['Growth'][well]=growth
+					data[plate][tp]['Growth_scaled'][well]=scale(growth,'positive')
 					data[plate][tp]['Fluorescence'][well]=fluor
+					data[plate][tp]['Fluorescence_scaled'][well]=scale(fluor,'positive')
 					data[plate][tp]['Fluorescence_norm'][well]=fluor_norm
+					data[plate][tp]['Fluorescence_norm_scaled'][well]=scale(fluor_norm,'positive')		
 
-					data[plate][tp]['Fluor'][well+'_max']=fluor_max
-					data[plate][tp]['Fluor'][well+'_min']=fluor_min
-					#data[plate][tp]['Fluor_lp'][well+'_max']=fluor_lp_max
-					#data[plate][tp]['Fluor_lp'][well+'_min']=fluor_lp_min
+					data[plate][tp]['Fluorescence_dt'][well]=np.diff(fluor)/dt
+					data[plate][tp]['Fluorescence_scaled_dt'][well]=scale(np.diff(fluor)/dt,'both')
+					data[plate][tp]['Fluorescence_norm_dt'][well]=np.diff(fluor_norm)/dt
+					data[plate][tp]['Fluorescence_norm_scaled_dt'][well]=scale(np.diff(fluor_norm)/dt,'both')
 
-					#data[plate][tp]['Fluor_lp_norm'][well]=(data[plate][tp]['Fluor_lp'][well]-fluor_lp_min)/(fluor_lp_max-fluor_lp_min)
-
-				
-
-					data[plate][tp]['Fluorescence_dt'][well]=np.diff(fluor_norm)/dt
-					#data[plate][tp]['Fluor_lp_dt'][well]=np.diff(fluor_lp)/dt
 				
 				
 					
 
-				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Fluorescence', 'Fluorescence_norm','Fluorescence_dt'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
+				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Growth_scaled','Fluorescence', 'Fluorescence_scaled','Fluorescence_norm','Fluorescence_dt','Fluorescence_norm_dt','Fluorescence_norm_scaled','Fluorescence_scaled_dt','Fluorescence_norm_scaled_dt'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
 
 	return data
 
@@ -787,6 +822,19 @@ def csvreader(dfile):
 	
 	#print genes
 	return genes
+
+
+def scale(data,tp):	
+	start=data[0]
+	dmin=min(data)
+	dmax=max(data)
+	if tp=='positive':
+		scaled=(data-dmin)/(dmax-dmin)
+	elif tp=='both':
+		start_scaled=(start-dmin)/(dmax-dmin)
+		scaled=(data-dmin)/(dmax-dmin)+start_scaled
+
+	return scaled
 
 
 def collect(ilist):
@@ -915,7 +963,8 @@ def makesheets(data,genes):
 			sheet_sh.append(['Gene']+time.tolist())
 			for plate in plates:
 				for l in labels:
-					if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:9]):
+					if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
+						#print plate,tp,l,out
 						sheet.append([genes[plate][l]['Gene']]+data[plate][tp][out][l].tolist())
 						sheet_sh.append([genes[plate][l]['Gene']]+data[plate][tp]['Shift'][out][l].tolist())
 
@@ -928,7 +977,7 @@ def makesheets(data,genes):
 		sheet.append(['Gene']+time.tolist())
 		for plate in plates:
 			for l in labels:
-				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:9]):
+				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
 					sheet.append([genes[plate][l]['Gene']]+(data[plate]['Experiment'][out][l]-data[plate]['Control'][out][l]).tolist())
 		sheets['Difference'][out]['Diff']=sheet
 
@@ -943,7 +992,7 @@ def writesheets(sheets,odir):
 				oname='{}/{}_{}_{}.csv'.format(odir,tp,fig,form)		
 				sheet=sheets[tp][fig][form]
 				f=open(oname,"wb")
-				ofile=csv.writer(f, dialect='excel') #,delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
+				ofile=csv.writer(f, delimiter='\t') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
 				for row in sheet:
 					#row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
 					ofile.writerow(row)

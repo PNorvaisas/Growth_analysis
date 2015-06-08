@@ -201,16 +201,22 @@ def main(argv=None):
 		pickle.dump([data,genes,odir,filterf], f)
 		f.close()
 	
-	
-	sheets=makesheets(data,genes)
-	writesheets(sheets,odir)
+	#sheets=makesheets(data,genes)
+	#writesheets(sheets,odir)
 	#data,allfit=growthfit(data,False)
-	#data,shifts=datashift(data,'all','all','all','all')
-	#plotall(data,'all','Control','Growth','C10',False,True)
-	#plotall(data,'all','Control','Growth','C10',False,False)
-	#plotall(data,'1','Experiment','Fluorescence_norm','all',False,True)
-	#plotall(data,'Fluorescence_norm')
-	#plt,plots=plot_2Dplates(data,'Growth','Experiment',True)
+	#growthplot(allfit)
+	#data=datashift(data,'all','all','all','all')
+	#data=analyze2(data,filterf)
+	plotall(data,'all','Experiment','Fluorescence','C3',False,False)
+	plotall(data,'all','Control','Fluorescence','C3',False,False)
+	plotall(data,'all','Experiment','Fluorescence','C3',True,False)
+	plotall(data,'all','Control','Fluorescence','C3',True,False)
+
+	#plotall(data,'all','Experiment','Growth','all',True,False) #plotall(data,plsel,tpsel,fg,lsel,shifted,norm)
+	#plotall(data,'all','Control','Growth','all',True,False) #plotall(data,plsel,tpsel,fg,lsel,shifted,norm)
+
+
+	#plt,plots=plot_2Dplates(data,'Experiment','Growth',True,True) #plot_2Dplates(data,tp,fg,shifted,means):
 	#plt.show()
 
 
@@ -240,7 +246,7 @@ def plot96(data,genes,dirn):
 			plt.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg))
 	return data
 
-def plotall(data,plsel,tpsel,fg,lsel,norm,shifted):
+def plotall(data,plsel,tpsel,fg,lsel,shifted,norm):
 	ts=5
 	if plsel=='all':
 		plates=data.keys()
@@ -310,9 +316,9 @@ def growthfit(data,norm):
 		top=0.2
 		y0=0.2
 	else:
-		base=0.02
-		top=0.07
-		y0=0.05
+		base=0.01
+		top=0.05
+		y0=0.03
 	
 	for plate in data.keys():
 		for tp in data[plate].keys():
@@ -393,12 +399,19 @@ def datashift(data,plsel,tpsel,fgsel,lbsel):
 						xs=(x+(ts*3600-t0*60))
 						y2=interp(xs,y,x)
 						shift=ts*3600-t0*60
+						#print shift
 						if shift<0:
 							steps=int(-shift/300)
-							y2[-steps:]=y2[-steps-1]
+							#print steps
+							if steps>0:
+								y2[-steps:]=y2[-steps-1]
+							#print y2
 						elif shift>0:
 							steps=int(shift/300)
-							y2[:steps]=y2[steps+1]
+							#print steps
+							if steps>0:
+								y2[:steps]=y2[steps+1]	
+							#print y2
 							
 							
 					else:
@@ -530,7 +543,7 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	return plt, plots
 
 
-def plot_2Dplates(data,fg,tp,means):
+def plot_2Dplates(data,tp,fg,shifted,means):
 	labels=data[data.keys()[0]][tp]['Labels']
 	title=fg+'_'+tp
 	plate_size=96
@@ -602,14 +615,17 @@ def plot_2Dplates(data,fg,tp,means):
 		#plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
 
 		if means:
-			mean, sd=meansd(data,'all',tp,fg,l,True)
+			mean, sd=meansd(data,'all',tp,fg,l,shifted)
 			RMSD=sum(sd)/len(sd)
 			plt.fill_between(x, mean - sd, mean + sd, color="red")
 			plt.plot(x,mean,'white')
 		else:		
 			for plate in data.keys():
 				if plate!='21' or (plate=='21' and l in labels[:10]):
-					y=data[plate][tp]['Shift'][fg][l]
+					if shifted:
+						y=data[plate][tp]['Shift'][fg][l]
+					else:
+						y=data[plate][tp][fg][l]
 					plt.plot(x,y,'r-')
 
 

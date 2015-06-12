@@ -12,10 +12,12 @@ try:
 	import pip
 except ImportError, e:
 	print "Module pip not found!"
+	print "Please install pip manually to proceed!"
+	sys.exit(1)
 def install(package):
 	pip.main(['install', package])
 
-for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','operator','getopt','subprocess','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils']:
+for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','operator','getopt','subprocess','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types']:
 	try:
 		exec "import %(mod)s" % vars()
 	except ImportError, e:
@@ -97,7 +99,6 @@ def main(argv=None):
 	ifile=""
 	dfile=""
 	msize=20
-	mode="Zaslaver"
 	filterf=''
 	odir='Output'
 	load=False
@@ -182,35 +183,49 @@ def main(argv=None):
 
 		
 	else:	
-		modes={'Zaslaver':['600nm','535nm'],'Biolog':['600nm','700nm']}
-		genes=csvreader(dfile)
-
-		waves=modes[mode]
+		genes=genereader(dfile)
 		ilist=genlist(ifile)
 
 		checkfiles(ilist)	
 		data=collect(ilist)
-		data=analyze(data,waves,filterf)
+
+
+		data=analyze(data,filterf)
 		dirn=dircheck(odir)
 		data,allfit=growthfit(data,False)
 		growthplot(allfit)		
 		data=datashift(data,'all','all','all','all')
-		data=analyze2(data,filterf)	
-
+		data=analyze_shift(data,filterf)
+		data=differences(data)	
+		sheets=makesheets(data,genes)
+		writesheets(sheets,odir)
 		f = open('UAL_data.pckl', 'w')
 		pickle.dump([data,genes,odir,filterf], f)
 		f.close()
 	
+
+	#data=differences(data)	
+	#sheets=makesheets(data,genes)
+	#writesheets(sheets,odir)
 	#sheets=makesheets(data,genes)
 	#writesheets(sheets,odir)
 	#data,allfit=growthfit(data,False)
 	#growthplot(allfit)
 	#data=datashift(data,'all','all','all','all')
 	#data=analyze2(data,filterf)
-	plotall(data,'all','Experiment','Fluorescence','C3',False,False)
-	plotall(data,'all','Control','Fluorescence','C3',False,False)
-	plotall(data,'all','Experiment','Fluorescence','C3',True,False)
-	plotall(data,'all','Control','Fluorescence','C3',True,False)
+	#plotall(data,'all','Experiment','Growth','C3',False,False)
+	#plotall(data,'all','Control','Growth','C3',False,False)
+	#plotall(data,'all','Experiment','Growth','C3',True,False)
+	#plotall(data,'all','Control','Growth','C3',True,False)
+	plot_comparison(data,genes,odir,True)
+
+
+	#plotall(data,'all','Experiment','Fluorescence','C10',True,False)
+	#plotall(data,'all','Control','Fluorescence','C10',True,False)
+
+
+	#plotall(data,'all','Experiment','535nm','F10',True,False)
+	#plotall(data,'all','Control','535nm','F10',True,False)
 
 	#plotall(data,'all','Experiment','Growth','all',True,False) #plotall(data,plsel,tpsel,fg,lsel,shifted,norm)
 	#plotall(data,'all','Control','Growth','all',True,False) #plotall(data,plsel,tpsel,fg,lsel,shifted,norm)
@@ -234,16 +249,27 @@ def main(argv=None):
 #-------------Functions------------
 
 
-def plot96(data,genes,dirn):
-	for plate in sorted(data.keys()):		
-		for fg in data[plate]['Control']['Figures']:
-			print "Plotting plate {} {}...".format(plate,fg)
+def plot_comparison(data,genes,dirn,shifted):
+	for plate in sorted(data.keys()):
+		if shifted:
+			ref=data[plate]['Control']['Shift']
+			exp=data[plate]['Experiment']['Shift']
+			shift='_Shift'
+			figures=data[plate]['Control']['Shift']['Figures']
+		else:
+			ref=data[plate]['Control']
+			exp=data[plate]['Experiment']
+			shift='_Raw'	
+			figures=data[plate]['Control']['Figures']		
+		for fg in figures:
+			print "Plotting plate {} {}...".format(plate,fg+shift)
 			if 'dt' in fg:
-				plt, plots=plot_2D(plate+"-"+fg,data[plate]['Control'][fg],data[plate]['Experiment'][fg],data[plate]['Control']['Time_dt'],data[plate]['Control']['Labels'],data[plate]['Control']['Wells'],genes[plate])
+				plot=plot_2D(plate+"-"+fg,ref[fg],exp[fg],data[plate]['Control']['Time_dt'], data[plate]['Control']['Labels'], genes[plate])
 			else:
-				plt, plots=plot_2D(plate+"-"+fg,data[plate]['Control'][fg],data[plate]['Experiment'][fg],data[plate]['Control']['Time'],data[plate]['Control']['Labels'],data[plate]['Control']['Wells'],genes[plate])
-			data[plate]['Joint'][fg]=plt
-			plt.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg))
+				plot=plot_2D(plate+"-"+fg,ref[fg],exp[fg],data[plate]['Control']['Time'], data[plate]['Control']['Labels'], genes[plate])
+			#data[plate]['Joint'][fg]=plt
+			plot.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg+shift))
+			plot.close()
 	return data
 
 def plotall(data,plsel,tpsel,fg,lsel,shifted,norm):
@@ -269,6 +295,12 @@ def plotall(data,plsel,tpsel,fg,lsel,shifted,norm):
 			elif tp=='Experiment':
 				plt.figure(1)
 				plt.title(fg+' with Metformin')
+			elif tp=='Difference':
+				plt.figure(0)
+				plt.title(fg+' difference')
+			elif tp=='Ratio':
+				plt.figure(0)
+				plt.title(fg+' ratio')
 
 			if fg in ['Growth','600nm']:
 				if norm:
@@ -318,7 +350,7 @@ def growthfit(data,norm):
 	else:
 		base=0.01
 		top=0.05
-		y0=0.03
+		y0=0.02
 	
 	for plate in data.keys():
 		for tp in data[plate].keys():
@@ -485,12 +517,14 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	totalmaxe=round_to(max([max(datae[l]) for l in labels]),rnd)
 	totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
 	totalmine=round_to(min([min(datae[l]) for l in labels]),rnd)
-	if fg in ['Growth','600nm','535nm','Fluorescence','Fluorescence_norm']:
-		totalmax=max([totalmaxc,totalmaxe])
-		totalmin=0
-	elif '_dt' in fg:
+	#if fg in ['Growth','600nm','535nm','Fluorescence','Fluorescence_norm']:
+	totalmax=max([totalmaxc,totalmaxe])
+	totalmin=0
+	if '_dt' in fg:
 		totalmax=0.1#max([totalmaxc,totalmaxe])
 		totalmin=-totalmax
+	if 'Growth' in fg:
+		totalmax=0.4
 
 
 	ymin=totalmin
@@ -540,7 +574,7 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		
 		#plt.title(l)
 
-	return plt, plots
+	return plt
 
 
 def plot_2Dplates(data,tp,fg,shifted,means):
@@ -716,7 +750,7 @@ def Butter(x, y, par1, par2):
 
 
 def checkfiles(ilist):
-	print '\n\n-------------Checking integrity of file list!-------------'
+	print '\n\n-------------Checking integrity of the file list!-------------'
 	Pass=False
 	allUAL=[fl for fl in ilist if 'UAL_' in fl ]
 	Control=[fl for fl in ilist if '_NoMetf_' in fl ]
@@ -736,37 +770,70 @@ def checkfiles(ilist):
 		print 'File list integrity check failed!'
 		sys.exit(1)
 
-def analyze2(data,filterf):
+
+def differences(data):
+	
+	for plate in sorted(data.keys()):
+		labels=data[plate]['Control']['Labels']
+		#for fg in data[plate]['Control']['Figures']:
+		#	#print plate, fg
+		#	for well in data[plate]['Control']['Labels']:
+		#		data[plate]['Differences']['Shift'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]-data[plate]['Control']['Shift'][fg][well]				
+		#		data[plate]['Ratios']['Shift'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]/data[plate]['Control']['Shift'][fg][well]
+		for fg in data[plate]['Control']['Shift']['Figures']:
+	
+			for well in labels:
+				#print plate, fg, well
+				#if (plate!='21' and well!='A12') or (plate=='21' and well in labels[:10]):
+				data[plate]['Differences'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]-data[plate]['Control']['Shift'][fg][well]				
+				data[plate]['Ratios'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]/data[plate]['Control']['Shift'][fg][well]
+		data[plate]['Differences']['Figures']=data[plate]['Control']['Shift']['Figures']
+		data[plate]['Ratios']['Figures']=data[plate]['Control']['Shift']['Figures']
+	return data
+
+def analyze_shift(data,filterf):
 	msize=20
 	par1=4
 	par2=0.1
 	for plate in sorted(data.keys()):
 		for tp in data[plate].keys():
-			Ufluor=data[plate][tp]['Shift']['Fluorescence']['C10']
+			if plate!='21':
+				Ufluor=data[plate][tp]['Shift']['Fluorescence']['C10']
+			else:
+				Ufluor=data['20'][tp]['Shift']['Fluorescence']['C10']
 			time=data[plate][tp]['Time']
 			dt=time[1]-time[0]
 			for well in data[plate][tp]['Labels']:
-				if (plate!='21' and well!='A12') or (plate=='21' and well in data[plate][tp]['Labels'][:10]):
-					fluor=data[plate][tp]['Shift']['Fluorescence'][well]
-					if filterf=='wiener':
-						fluor_norm=fluor-Ufluor
-						fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
-					elif filterf=='butter':
-						fluor_norm=fluor-Ufluor
-						fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
-					else:
-						fluor_norm=fluor-Ufluor				
+				#if (plate!='21' and well!='A12') or (plate=='21' and well in data[plate][tp]['Labels'][:10]):
+				fluor=data[plate][tp]['Shift']['Fluorescence'][well]
+				fluor_norm=fluor-Ufluor
+				#fluor_U139=np.log10(fluor)-np.log10(Ufluor)
+				if filterf=='wiener':
+					#fluor_U139=Wiener(fluor_U139-fluor_U139[0],msize)
+					fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
+				elif filterf=='butter':
+					#fluorU139=Butter(time,fluor_U139-fluor_U139[0],par1,par2)
+					fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
 
-					data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm
-					data[plate][tp]['Shift']['Fluorescence_norm_scaled'][well]=scale(fluor_norm,'positive')
-					fluor_norm_dt=np.diff(fluor_norm)/dt
-					data[plate][tp]['Shift']['Fluorescence_norm_dt'][well]=fluor_norm_dt
-					data[plate][tp]['Shift']['Fluorescence_norm_scaled_dt'][well]=scale(fluor_norm_dt,'both')
+
+		
+				fluor_norm_dt=np.diff(fluor_norm)/dt
+				#fluor_U139_dt=np.diff(fluor_U139)/dt
+				data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm
+				data[plate][tp]['Shift']['Fluorescence_norm_dt'][well]=fluor_norm_dt
+				#data[plate][tp]['Shift']['Fluorescence_U139'][well]=fluor_U139
+				#data[plate][tp]['Shift']['Fluorescence_U139_dt'][well]=fluor_U139_dt
+
 					
+					#print plate,tp,well   ,'Fluorescence_U139','Fluorescence_U139_dt'
+			data[plate][tp]['Shift']['Figures']=data[plate][tp]['Figures']+['Fluorescence_norm','Fluorescence_norm_dt']
 
 	return data
 
-def analyze(data,waves,filterf):
+
+
+def analyze(data,filterf):
+	waves=['600nm','535nm']
 	msize=20
 	par1=4
 	par2=0.1
@@ -780,8 +847,9 @@ def analyze(data,waves,filterf):
 			
 				data[plate][tp]['Time_dt']=(time+dt/2)[:-1]
 				Ufluor=data[plate][tp]['535nm']['C10']/data[plate][tp]['600nm']['C10']
+				
 				for well in data[plate][tp]['Labels']:
-					growth=data[plate][tp]['600nm'][well]-data[plate][tp]['600nm'][well+'_min']
+					growth=data[plate][tp]['600nm'][well]-min(data[plate][tp]['600nm'][well])
 					fluor=data[plate][tp]['535nm'][well]/data[plate][tp]['600nm'][well]
 
 
@@ -801,32 +869,22 @@ def analyze(data,waves,filterf):
 					#growth=growth-min(growth)
 					#fluor=fluor-min(fluor)
 					#fluor_norm=fluor_norm-min(fluor_norm)
+			
 				
-
-					fluor_max=max(fluor)
-					fluor_min=min(fluor)
-				
-					data[plate][tp]['Growth'][well]=growth
-					data[plate][tp]['Growth_scaled'][well]=scale(growth,'positive')
+					data[plate][tp]['Growth'][well]=growth					
 					data[plate][tp]['Fluorescence'][well]=fluor
-					data[plate][tp]['Fluorescence_scaled'][well]=scale(fluor,'positive')
-					data[plate][tp]['Fluorescence_norm'][well]=fluor_norm
-					data[plate][tp]['Fluorescence_norm_scaled'][well]=scale(fluor_norm,'positive')		
-
+					#data[plate][tp]['Fluorescence_norm'][well]=fluor_norm	
 					data[plate][tp]['Fluorescence_dt'][well]=np.diff(fluor)/dt
-					data[plate][tp]['Fluorescence_scaled_dt'][well]=scale(np.diff(fluor)/dt,'both')
-					data[plate][tp]['Fluorescence_norm_dt'][well]=np.diff(fluor_norm)/dt
-					data[plate][tp]['Fluorescence_norm_scaled_dt'][well]=scale(np.diff(fluor_norm)/dt,'both')
-
+					#data[plate][tp]['Fluorescence_norm_dt'][well]=np.diff(fluor_norm)/dt
 				
 				
 					
 
-				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Growth_scaled','Fluorescence', 'Fluorescence_scaled','Fluorescence_norm','Fluorescence_dt','Fluorescence_norm_dt','Fluorescence_norm_scaled','Fluorescence_scaled_dt','Fluorescence_norm_scaled_dt'] #'Fluor_norm','Fluor_lp','Fluor_lp_norm','Fluor_dt','Fluor_lp_dt'
+				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Fluorescence','Fluorescence_dt']
 
 	return data
 
-def csvreader(dfile):
+def genereader(dfile):
 	genes=NestedDict()
 	rdr=csv.reader(open(dfile,'r'), delimiter=',')
 	data=[ln for ln in rdr]
@@ -835,7 +893,15 @@ def csvreader(dfile):
 		#print ln
 		genes[ln[0]][ln[1]]['Gene']=ln[2]
 		genes[ln[0]][ln[1]]['Description']=ln[3]
-	
+		if isinstance(genes['Genes'][ln[2]]['Address'], list):
+			genes['Genes'][ln[2]]['Address']=genes['Genes'][ln[2]]['Address']+[[ln[0],ln[1]]]
+		else:
+			genes['Genes'][ln[2]]['Address']=[[ln[0],ln[1]]]
+
+		if isinstance(genes['Genes'][ln[2]]['Description'], str):
+			continue
+		else:
+			genes['Genes'][ln[2]]['Description']=ln[3]
 	#print genes
 	return genes
 
@@ -844,11 +910,18 @@ def scale(data,tp):
 	start=data[0]
 	dmin=min(data)
 	dmax=max(data)
-	if tp=='positive':
-		scaled=(data-dmin)/(dmax-dmin)
-	elif tp=='both':
-		start_scaled=(start-dmin)/(dmax-dmin)
-		scaled=(data-dmin)/(dmax-dmin)+start_scaled
+	if tp=='start':
+		if (dmax-start)!=0:
+			scaled=(data-start)/(dmax-start)
+		else:
+			print "Zero divider: {}-{}".format(dmax,start)
+			scaled=data
+	elif tp=='min':
+		if (dmax-dmin)!=0:
+			scaled=(data-dmin)/(dmax-dmin)
+		else:
+			print "Zero divider: {}-{}".format(dmax,dmin)
+			scaled=data
 
 	return scaled
 
@@ -963,39 +1036,50 @@ def makesheets(data,genes):
 	sheets=NestedDict()
 	plates=data.keys()
 	labels=data[plates[0]]['Control']['Labels']
-	output=data[plates[0]]['Control']['Figures']
+	
 	time_dt=data[plates[0]]['Control']['Time_dt']
 	time_lin=data[plates[0]]['Control']['Time']
 
-	for tp in ['Control','Experiment']:
-		for out in output:
-			sheet=[]
-			sheet_sh=[]
-			if '_dt' in out:
-				time=time_dt
+	for tp in ['Differences','Ratios','Control','Experiment']:
+		for algn in ['Raw','Shift']:
+			if algn=='Shift' and tp in ['Control','Experiment']:
+				output=data[plates[0]][tp]['Shift']['Figures']
 			else:
-				time=time_lin
-			sheet.append(['Gene']+time.tolist())
-			sheet_sh.append(['Gene']+time.tolist())
-			for plate in plates:
-				for l in labels:
-					if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-						#print plate,tp,l,out
-						sheet.append([genes[plate][l]['Gene']]+data[plate][tp][out][l].tolist())
-						sheet_sh.append([genes[plate][l]['Gene']]+data[plate][tp]['Shift'][out][l].tolist())
+				output=data[plates[0]][tp]['Figures']	
+			for out in output:			
+				sheet=[]
 
-			sheets[tp][out]['Shift']=sheet_sh
-			sheets[tp][out]['Raw']=sheet
-	
-	for out in ['Fluorescence', 'Fluorescence_norm']:
-		sheet=[]
-		time=time_lin
-		sheet.append(['Gene']+time.tolist())
-		for plate in plates:
-			for l in labels:
-				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-					sheet.append([genes[plate][l]['Gene']]+(data[plate]['Experiment'][out][l]-data[plate]['Control'][out][l]).tolist())
-		sheets['Difference'][out]['Diff']=sheet
+				if '_dt' in out:
+					time=time_dt
+				else:
+					time=time_lin
+				sheet.append(['Gene']+time.tolist())
+				#print tp, algn, out
+				#print output
+			
+				for plate in plates:
+					#print data[plate][tp].keys()
+					for l in labels:
+						if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
+							if algn=='Shift' and tp in ['Control','Experiment']:
+								sheet.append([genes[plate][l]['Gene']]+data[plate][tp]['Shift'][out][l].tolist())
+							else:
+								sheet.append([genes[plate][l]['Gene']]+data[plate][tp][out][l].tolist())
+
+
+					sheets[tp][out][algn]=sheet
+
+
+	##Implement Difference art in analysis function
+	#for out in ['Fluorescence', 'Fluorescence_norm']:
+	#	sheet=[]
+	#	time=time_lin
+	#	sheet.append(['Gene']+time.tolist())
+	#	for plate in plates:
+	#		for l in labels:
+	#			if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
+	#				sheet.append([genes[plate][l]['Gene']]+(data[plate]['Experiment'][out][l]-data[plate]['Control'][out][l]).tolist())
+	#	sheets['Difference'][out]['Diff']=sheet
 
 	return sheets
 

@@ -218,11 +218,22 @@ def main(argv=None):
 	#plotall(data,'all','Experiment','Growth','C3',True,False)
 	#plotall(data,'all','Control','Growth','C3',True,False)
 	#plot_comparison(data,genes,odir,True,'all')
-	plot_comparison(data,genes,odir,True,['Growth_dt','Fluorescence_norm_log10'])
+	plot_comparison(data,genes,odir,True,'all') #['Growth_dt','Fluorescence_norm_log10']
+	#plotall(data,'all','Experiment','Growth','C3',False,False)
+	#plotall(data,'all','Control','Growth','C3',False,False)
 
+	plotall(data,'all','Experiment','Growth_dt','C3',True,False)
+	plotall(data,'all','Control','Growth_dt','C3',True,False)
 
-	plotall(data,'all','Experiment','Fluorescence_norm','C3',True,False)
-	plotall(data,'all','Control','Fluorescence_norm','C3',True,False)
+	#plotall(data,'all','Experiment','Fluorescence','C3',False,False)
+	#plotall(data,'all','Control','Fluorescence','C3',False,False)
+
+	plotall(data,'all','Experiment','Fluorescence_norm_log10','C3',True,False)
+	plotall(data,'all','Control','Fluorescence_norm_log10','C3',True,False)
+
+	plotall(data,'all','Experiment','Fluorescence_norm_log10_dt','C3',True,False)
+	plotall(data,'all','Control','Fluorescence_norm_log10_dt','C3',True,False)
+
 
 
 	#plotall(data,'all','Experiment','535nm','F10',True,False)
@@ -367,7 +378,7 @@ def growthfit(data,norm):
 	else:
 		base=0.01
 		top=0.05
-		y0=0.02
+		y0=0.005
 	
 	for plate in data.keys():
 		for tp in data[plate].keys():
@@ -412,7 +423,7 @@ def interp(x,y,x2):
 	return y2
 
 def datashift(data,plsel,tpsel,fgsel,lbsel):
-	ts=5
+	ts=3
 	if plsel=='all':
 		plates=data.keys()
 	elif plsel in data.keys():
@@ -518,6 +529,7 @@ def meansd(data,plsel,tpsel,fgsel,lbsel,shifted):
 
 
 def plot_2D(title,datac,datae,time,labels,genes):
+	xmax=20
 	plate_size=96
 	#print title
 	plate,fg=title.split('-')
@@ -537,13 +549,28 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	#if fg in ['Growth','600nm','535nm','Fluorescence','Fluorescence_norm']:
 	totalmax=max([totalmaxc,totalmaxe])
 	totalmin=0
+	ticks=3
 	if fg=='Growth':
 		totalmax=0.4
+		ticks=4
 	if ('_dt' in fg) and fg!='Growth_dt':
 		totalmax=0.1#max([totalmaxc,totalmaxe])
 		totalmin=-totalmax
+		ticks=4
 	if fg=='Growth_dt':
-		totalmin=-totalmax
+		totalmax=0.000015
+		totalmin=0
+		ticks=3
+
+	if fg=='Fluorescence_norm_log10':
+		totalmax=3
+		totalmin=0
+		ticks=4
+
+	if fg=='Fluorescence_norm_log10_dt':
+		totalmax=0.0005
+		totalmin=-totalmax/2
+		ticks=4
 
 
 
@@ -584,8 +611,8 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		if row==1:
 			plt.title(col)
 
-		plt.xticks(np.linspace(0, max(x), 3),['']+list(np.linspace(0, max(x), 3).astype(int)[1:]), rotation='vertical')	
-		plt.yticks(np.linspace(ymin, totalmax, 3),['']+list(np.around(np.linspace(totalmin, totalmax, 3),1)[1:]))
+		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
+		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(np.around(np.linspace(totalmin, totalmax, ticks),1)[1:]))
 		plt.ylim([totalmin,totalmax])
 		plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
 		#exec(l+"='plt.subplot(8,12,{},sharex={},sharey={})'".format(v,,sh_y))
@@ -822,7 +849,8 @@ def analyze_shift(data,filterf):
 	msize=20
 	par1=4
 	par2=0.1
-	bar=5
+	bar=10
+	window=10
 	for plate in sorted(data.keys()):
 		for tp in data[plate].keys():
 			if plate!='21':
@@ -835,6 +863,7 @@ def analyze_shift(data,filterf):
 				#if (plate!='21' and well!='A12') or (plate=='21' and well in data[plate][tp]['Labels'][:10]):
 				fluor=data[plate][tp]['Shift']['Fluorescence'][well]
 				fluor_norm=fluor-Ufluor
+				fluor_norm=fluor_norm-np.mean(fluor_norm[:window])
 				fluor_U139=ratio(fluor,Ufluor,bar)
 				#if filterf=='wiener':
 					#fluor_U139=Wiener(fluor_U139-fluor_U139[0],msize)
@@ -842,7 +871,6 @@ def analyze_shift(data,filterf):
 				#elif filterf=='butter':
 					#fluorU139=Butter(time,fluor_U139-fluor_U139[0],par1,par2)
 				#	fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
-
 
 		
 				fluor_norm_dt=np.diff(fluor_norm)/dt
@@ -909,11 +937,11 @@ def analyze(data,filterf):
 						if filterf=='wiener':
 							growth=Wiener(data[plate][tp]['600nm'][well]-gs,msize)
 							fluor=(Wiener(data[plate][tp]['535nm'][well]-fs,msize)+fs)/(Wiener(data[plate][tp]['600nm'][well]-gs,msize)+gs)
-
+							fluor=fluor-np.mean(fluor[:window])
 						elif filterf=='butter':
 							growth=Butter(time,data[plate][tp]['600nm'][well]-gs,par1,par2)
 							fluor=(Butter(time,data[plate][tp]['535nm'][well]-fs,par1,par2)+fs)/(Butter(time,data[plate][tp]['600nm'][well]-gs,par1,par2)+gs)
-
+							fluor=fluor-np.mean(fluor[:window])
 						else:
 							fluor_norm=fluor-Ufluor
 

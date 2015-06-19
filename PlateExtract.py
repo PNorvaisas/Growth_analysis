@@ -223,7 +223,7 @@ def main(argv=None):
 	#plot=plot_2D('1'+"-"+'Fluorescence_norm',data['1']['Control']['Shift']['Fluorescence_norm'],data['1']['Experiment']['Shift']['Fluorescence_norm'],data['1']['Control']['Time'], data['1']['Control']['Labels'], genes['1'])
 
 
-	#plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
+	plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
 	plot_comparison(data,genes,odir,'Shift','all')
 	
 	#plotall(data,'all','Experiment','Growth','C3',False,False)
@@ -731,7 +731,7 @@ def plot_2Ddiff(title,datac,time,labels,genes):
 		ticks=4
 
 	if fg=='Fluorescence_norm_log10':
-		totalmax=1.5
+		totalmax=1
 		ticks=3
 		ylabel='Log10(GFP/OD)'
 		decimals=2

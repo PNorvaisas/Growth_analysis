@@ -27,7 +27,7 @@ for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','o
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from pylab import *
+#from pylab import *
 
 import scipy.signal as sig
 from scipy.fftpack import rfft, irfft, fftfreq
@@ -218,21 +218,28 @@ def main(argv=None):
 	#plotall(data,'all','Experiment','Growth','C3',True,False)
 	#plotall(data,'all','Control','Growth','C3',True,False)
 	#plot_comparison(data,genes,odir,True,'all')
-	plot_comparison(data,genes,odir,True,'all') #['Growth_dt','Fluorescence_norm_log10']
+
+
+	#plot=plot_2D('1'+"-"+'Fluorescence_norm',data['1']['Control']['Shift']['Fluorescence_norm'],data['1']['Experiment']['Shift']['Fluorescence_norm'],data['1']['Control']['Time'], data['1']['Control']['Labels'], genes['1'])
+
+
+	#plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
+	plot_comparison(data,genes,odir,'Shift','all')
+	
 	#plotall(data,'all','Experiment','Growth','C3',False,False)
 	#plotall(data,'all','Control','Growth','C3',False,False)
 
-	plotall(data,'all','Experiment','Growth_dt','C3',True,False)
-	plotall(data,'all','Control','Growth_dt','C3',True,False)
+	#plotall(data,'all','Experiment','Growth_dt','C3',True,False)
+	#plotall(data,'all','Control','Growth_dt','C3',True,False)
 
 	#plotall(data,'all','Experiment','Fluorescence','C3',False,False)
 	#plotall(data,'all','Control','Fluorescence','C3',False,False)
 
-	plotall(data,'all','Experiment','Fluorescence_norm_log10','C3',True,False)
-	plotall(data,'all','Control','Fluorescence_norm_log10','C3',True,False)
+	#plotall(data,'all','Experiment','Fluorescence_norm_log10','C3',True,False)
+	#plotall(data,'all','Control','Fluorescence_norm_log10','C3',True,False)
 
-	plotall(data,'all','Experiment','Fluorescence_norm_log10_dt','C3',True,False)
-	plotall(data,'all','Control','Fluorescence_norm_log10_dt','C3',True,False)
+	#plotall(data,'all','Experiment','Fluorescence_norm_log10_dt','C3',True,False)
+	#plotall(data,'all','Control','Fluorescence_norm_log10_dt','C3',True,False)
 
 
 
@@ -261,14 +268,27 @@ def main(argv=None):
 #-------------Functions------------
 
 
-def plot_comparison(data,genes,dirn,shifted,figs):
+def plot_comparison(data,genes,dirn,dataset,figs):
 
 	for plate in sorted(data.keys()):
-		if shifted:
+		labels=data[plate]['Control']['Labels']
+		if dataset=='Shift':
 			ref=data[plate]['Control']['Shift']
 			exp=data[plate]['Experiment']['Shift']
 			shift='_Shift'
 			figures_temp=data[plate]['Control']['Shift']['Figures']
+		elif dataset=='Differences':
+			ref=data[plate]['Differences']
+			shift='_Differences'
+			figures_temp=data[plate]['Differences']['Figures']
+		elif dataset=='Ratios':
+			ref=data[plate]['Ratios']
+			shift='_Ratios'
+			figures_temp=data[plate]['Ratios']['Figures']
+		elif dataset=='LogRatios':
+			ref=data[plate]['LogRatios']
+			shift='_LogRatios'
+			figures_temp=data[plate]['LogRatios']['Figures']
 		else:
 			ref=data[plate]['Control']
 			exp=data[plate]['Experiment']
@@ -289,12 +309,18 @@ def plot_comparison(data,genes,dirn,shifted,figs):
 				figures=[figs]
 			else:
 				print 'Figures {} not found'.format(figs)
+
+
 		for fg in figures:
 			print "Plotting plate {} {}...".format(plate,fg+shift)
-			if 'dt' in fg:
-				plot=plot_2D(plate+"-"+fg,ref[fg],exp[fg],data[plate]['Control']['Time_dt'], data[plate]['Control']['Labels'], genes[plate])
+			if '_dt' in fg:
+				time=data[plate]['Control']['Time_dt']
 			else:
-				plot=plot_2D(plate+"-"+fg,ref[fg],exp[fg],data[plate]['Control']['Time'], data[plate]['Control']['Labels'], genes[plate])
+				time=data[plate]['Control']['Time']
+			if dataset in ['Differences','Ratios','LogRatios']:
+				plot=plot_2Ddiff('{}-{}{}'.format(plate,fg,shift),ref[fg],time, labels, genes[plate])
+			else:
+				plot=plot_2D('{}-{}{}'.format(plate,fg,shift),ref[fg],exp[fg],time, labels, genes[plate])
 			#data[plate]['Joint'][fg]=plt
 			plot.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg+shift))
 			plot.close()
@@ -532,11 +558,15 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	xmax=20
 	plate_size=96
 	#print title
-	plate,fg=title.split('-')
-	fig=plt.figure(figsize=(11.69,8.27), dpi=100)
+	plate,fg_temp=title.split('-')
+	fg='_'.join(fg_temp.split('_')[:-1])
+	shift=fg_temp.split('_')[-1]
+	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
+	
+	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
 	fig.suptitle(title)
-	plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.1)
-	plots={}
+	plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
+	
 
 	if fg in ['Fluorescence','Fluorescence_norm']:
 		rnd=1
@@ -546,37 +576,69 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	totalmaxe=round_to(max([max(datae[l]) for l in labels]),rnd)
 	totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
 	totalmine=round_to(min([min(datae[l]) for l in labels]),rnd)
-	#if fg in ['Growth','600nm','535nm','Fluorescence','Fluorescence_norm']:
 	totalmax=max([totalmaxc,totalmaxe])
 	totalmin=0
 	ticks=3
+	xlabel='Time, h'
+	ylabel=''
+	decimals=1
+	if fg=='600nm':
+		totalmax=0.6
+		ticks=3
+		ylabel='OD@600nm'
+		decimals=1
+	if fg=='535nm':
+		ylabel='GFP@535nm'
+		decimals=0
+
+
+	if fg=='Fluorescence_U139':
+		ylabel='(GFP/OD)/U139_fluor'		
 	if fg=='Growth':
 		totalmax=0.4
 		ticks=4
-	if ('_dt' in fg) and fg!='Growth_dt':
-		totalmax=0.1#max([totalmaxc,totalmaxe])
-		totalmin=-totalmax
-		ticks=4
+		ylabel='Growth@600nm'
+		decimals=1
 	if fg=='Growth_dt':
 		totalmax=0.000015
 		totalmin=0
 		ticks=3
+		ylabel='OD/dt'
+		decimals=6
+
+	if fg in ['Fluorescence','Fluorescence_norm']:
+		ylabel='GFP/OD'
+		decimals=-1
+
+	if fg in ['Fluorescence_dt','Fluorescence_norm_dt']:
+		ylabel='GFP/dt/OD'
+		totalmax=0.1#max([totalmaxc,totalmaxe])
+		totalmin=-totalmax
+		ticks=4
+		decimals=1
 
 	if fg=='Fluorescence_norm_log10':
 		totalmax=3
 		totalmin=0
 		ticks=4
+		ylabel='Log10(GFP/OD)'
+		decimals=0
 
 	if fg=='Fluorescence_norm_log10_dt':
 		totalmax=0.0005
 		totalmin=-totalmax/2
 		ticks=4
+		ylabel='Log10(GFP/OD)/dt'
+		decimals=4
+
+
 
 
 
 	ymin=totalmin
-	#print totalmax
-	#print list(np.linspace(0, 24, 4)[1:])
+	fig.text(0.5, 0.04, xlabel, ha='center')
+	fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
+
 	for v,l in IT.izip(range(plate_size),labels):
 		row=string.uppercase.index(l[0])+1
 		col=int(l.replace(l[0],''))
@@ -589,40 +651,137 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		x=time/3600
 		yc=datac[l]
 		ye=datae[l]
-
-
-		if row==1 and col==1:
-			plots[l]=plt.subplot(8,12,v)			
-		elif row==1 and col!=1:
-			plots[l]=plt.subplot(8,12,v,sharey=plots['A1'])
-		elif col==1 and row!=1:
-			plots[l]=plt.subplot(8,12,v,sharex=plots['A1'])
-		else:
-			plots[l]=plt.subplot(8,12,v,sharex=plots['A'+str(col)],sharey=plots[l[0]+'1'])
-		
-		if row!=8:
-			setp( plots[l].get_xticklabels(), visible=False)
-		if col!=1:
-			setp( plots[l].get_yticklabels(), visible=False)
-
+		plt.sca(axes[row-1,col-1])
+		ax=axes[row-1,col-1]
 		if col==12:
-			plots[l].yaxis.set_label_position("right")
+			ax.yaxis.set_label_position("right")
 			plt.ylabel(l[0],rotation='horizontal')
 		if row==1:
-			plt.title(col)
+			plt.title(col)    				
+
+		if col>1 and row<11:
+			plt.setp(ax.get_yticklabels(), visible=False)
 
 		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
-		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(np.around(np.linspace(totalmin, totalmax, ticks),1)[1:]))
+		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
 		plt.ylim([totalmin,totalmax])
-		plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
-		#exec(l+"='plt.subplot(8,12,{},sharex={},sharey={})'".format(v,,sh_y))
+		plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)
+		plt.text(0.15, 0.75, genes[l]['Gene'], fontsize=10,transform=ax.transAxes)
+		#if fg=='Fluorescence_norm_log10':
+		#	plt.axhline(y=1.2, xmin=0, xmax=20,c='green', hold=None)
 
-		plt.plot(x,yc,'r-',x,ye,'b-')
 		
-		#plt.title(l)
+		plt.plot(x,yc,'r-',x,ye,'b-')
 
 	return plt
 
+def myround(a, decimals=1):
+     return np.around(a-10**(-(decimals+5)), decimals=decimals)
+
+def plot_2Ddiff(title,datac,time,labels,genes):
+	xmax=20
+	plate_size=96
+	#print title
+	plate,fg_temp=title.split('-')
+	fg='_'.join(fg_temp.split('_')[:-1])
+	shift=fg_temp.split('_')[-1]
+	#print fg,shift
+	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
+	decimals=1
+	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
+	fig.suptitle(title)
+	plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
+	
+
+	if fg in ['Fluorescence','Fluorescence_norm']:
+		rnd=1
+	else:
+		rnd=0.1
+	totalmaxc=round_to(max([max(datac[l]) for l in labels]),rnd)
+
+	totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
+	
+	totalmax=totalmaxc/2
+
+	ticks=3
+	xlabel='Time, h'
+	ylabel=''
+
+	if fg=='Growth':
+		totalmax=0.2
+
+		ticks=4
+		ylabel='Growth@600nm'
+		decimals=1
+
+	if fg=='Growth_dt':
+		totalmax=0.000015
+		ticks=3
+		ylabel='OD/dt'
+		decimals=4
+
+	if fg in ['Fluorescence','Fluorescence_norm']:
+		ylabel='GFP/OD'
+		decimals=0
+
+	if fg in ['Fluorescence_dt','Fluorescence_norm_dt']:
+		ylabel='GFP/dt/OD'
+		totalmax=0.1#max([totalmaxc,totalmaxe])
+		totalmin=-totalmax
+		ticks=4
+
+	if fg=='Fluorescence_norm_log10':
+		totalmax=1.5
+		ticks=3
+		ylabel='Log10(GFP/OD)'
+		decimals=2
+
+	if fg=='Fluorescence_norm_log10_dt':
+		totalmax=0.0005
+		ticks=4
+		ylabel='Log10(GFP/OD)/dt'
+		decimals=5
+
+
+	totalmin=-totalmax
+
+
+	ymin=totalmin
+	fig.text(0.5, 0.04, xlabel, ha='center')
+	fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
+
+	for v,l in IT.izip(range(plate_size),labels):
+		row=string.uppercase.index(l[0])+1
+		col=int(l.replace(l[0],''))
+		v=v+1
+	
+		x=time/3600
+		yc=datac[l]
+		plt.sca(axes[row-1,col-1])
+		ax=axes[row-1,col-1]
+		if col==12:
+			ax.yaxis.set_label_position("right")
+			plt.ylabel(l[0],rotation='horizontal')
+		if row==1:
+			plt.title(col)    				
+
+		if col>1 and row<11:
+			plt.setp(ax.get_yticklabels(), visible=False)
+
+		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
+		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(np.around(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
+		plt.ylim([totalmin,totalmax])
+		plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)
+		plt.text(0.15, 0.75, genes[l]['Gene'], fontsize=10,transform=ax.transAxes)
+		#if shift=='Differences':
+		#	plt.axhline(y=0, xmin=0, xmax=20,c='green', hold=None)
+
+		
+		plt.plot(x,yc,'k-')
+		plt.fill_between(x, 0, yc, where=yc>=0, facecolor='blue', interpolate=True)
+		plt.fill_between(x, 0, yc, where=yc<=0, facecolor='red', interpolate=True)
+
+	return plt
 
 def plot_2Dplates(data,tp,fg,shifted,means):
 	labels=data[data.keys()[0]][tp]['Labels']
@@ -693,6 +852,7 @@ def plot_2Dplates(data,tp,fg,shifted,means):
 		plt.xticks(np.linspace(0, max(x), 3),['']+list(np.linspace(0, max(x), 3).astype(int)[1:]), rotation='vertical')	
 		plt.yticks(np.linspace(ymin, totalmax, 3),['']+list(np.around(np.linspace(totalmin, totalmax, 3),1)[1:]))
 		plt.ylim([totalmin,totalmax])
+		
 		#plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
 
 		if means:
@@ -708,8 +868,6 @@ def plot_2Dplates(data,tp,fg,shifted,means):
 					else:
 						y=data[plate][tp][fg][l]
 					plt.plot(x,y,'r-')
-
-
 		
 		#plt.title(l)
 

@@ -1032,7 +1032,7 @@ def analyze_shift(data,filterf):
 
 		
 				fluor_norm_dt=np.diff(fluor_norm)/dt
-				fluor_norm_log=log10(setbar(fluor_norm,bar))
+				fluor_norm_log=np.log10(setbar(fluor_norm,bar))
 				fluor_norm_log_dt=np.diff(fluor_norm_log)/dt
 				#fluor_U139_dt=np.diff(fluor_U139)/dt
 				data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm

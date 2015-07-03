@@ -68,6 +68,7 @@ Arguments:
 
 Options:
 	load	     Load pickled data
+	comparison   Compare experiments
 
 '''
 
@@ -102,6 +103,7 @@ def main(argv=None):
 	filterf=''
 	odir='Output'
 	load=False
+	comparison=False
 	if argv is None:
 		argv = sys.argv
 	try:
@@ -128,6 +130,8 @@ def main(argv=None):
 		for argument in args:		
 			if argument in ("load", "--load"):
 				load = True
+			if argument in ("comparison", "--comparison"):
+				comparison = True
 			
 
 
@@ -185,8 +189,7 @@ def main(argv=None):
 	else:	
 		genes=genereader(dfile)
 		ilist=genlist(ifile)
-
-		checkfiles(ilist)	
+		checkfiles(ilist,comparison)	
 		data=collect(ilist)
 
 
@@ -954,7 +957,8 @@ def Butter(x, y, par1, par2):
 
 
 
-def checkfiles(ilist):
+def checkfiles(ilist,comparison):
+	
 	print '\n\n-------------Checking integrity of the file list!-------------'
 	Pass=False
 	allUAL=[fl for fl in ilist if 'UAL_' in fl ]
@@ -962,15 +966,17 @@ def checkfiles(ilist):
 	Experiment=[fl for fl in ilist if '_Metf_' in fl ]
 	CPlates=[fl.split('_')[1] for fl in Control]
 	EPlates=[fl.split('_')[1] for fl in Experiment]
-	
-	if len(allUAL)==len(ilist):
-		print 'All files UAL!'
-		if len(Control)==len(Experiment):
-			print 'Same number of control and experiment files!'
-			if compare(CPlates,EPlates):
-				print 'Corresponding plate indexes found!'
-				print '-----------------File list check passed!-------------\n\n'
-				Pass=True
+	if comparison:
+		Pass=True
+	else:	
+		if len(allUAL)==len(ilist):
+			print 'All files UAL!'
+			if len(Control)==len(Experiment):
+				print 'Same number of control and experiment files!'
+				if compare(CPlates,EPlates):
+					print 'Corresponding plate indexes found!'
+					print '-----------------File list check passed!-------------\n\n'
+					Pass=True
 	if not Pass:
 		print 'File list integrity check failed!'
 		sys.exit(1)

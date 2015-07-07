@@ -1205,7 +1205,13 @@ def collect(ilist):
 		waves=[wlen for wlen in nm_labels if wlen[:2].isdigit()]
 		lengths=[sheet.row_values(0).index(wave) for wave in waves]
 		length=lengths[1]
-		time_t=[int(t.replace('s','')) for t in sheet.row_values(1)[:length]]
+		time_row=sheet.row_values(1)[:length]
+		check=list(set([s for s in time_row if isinstance(s,float)]))
+		if check:
+			time_t=time_row
+		else:
+			time_t=[int(t.replace('s','')) for t in time_row]
+		
 		temp=[float(t.split()[0]) for t in sheet.row_values(2)[:length]]
 		timemax_h=time_t[length-1]/3600
 		timestep=time_t[length-1]/(length-1)

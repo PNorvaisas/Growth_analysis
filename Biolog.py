@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #sys.setdefaultencoding('iso-8859-1')
 """
-PlateExtract.py
+Biolog.py
 
 Created by Povilas Norvaisas on 2015-02-26.
 Copyright (c) 2015. All rights reserved.
@@ -55,7 +55,7 @@ except ImportError, e:
 
 
 help_message = '''
-Preparation of UAL data
+Biolog data preparation
 
 Flags:
 	-h  Display this help message
@@ -63,12 +63,10 @@ Flags:
 Arguments:
 	-i <files>   Input files, list separated by comma, file with list
 	-d <file>    CSV file with data labels
-	-f <filter>  wiener,butter
 	-o <dir>     directory to write output to
 
 Options:
 	load	     Load pickled data
-	comparison   Compare experiments
 
 '''
 
@@ -87,7 +85,6 @@ Options:
 <--------------------------------------------->
       Files:	%(ifile)s
 	 DB:	%(dfile)s
-     Filter:	%(filterf)s
         Out:	%(odir)s
        Load:	%(load)s
 <--------------------------------------------->
@@ -100,7 +97,6 @@ def main(argv=None):
 	ifile=""
 	dfile=""
 	msize=20
-	filterf=''
 	odir='Output'
 	load=False
 	comparison=False
@@ -121,8 +117,6 @@ def main(argv=None):
 				ifile=value
 			if option in ("-d", "--db"):
 				dfile=value
-			if option in ("-f", "--filter"):
-				filterf=value
 			if option in ("-o", "--out"):
 				odir=value
 	
@@ -130,8 +124,6 @@ def main(argv=None):
 		for argument in args:		
 			if argument in ("load", "--load"):
 				load = True
-			if argument in ("comparison", "--comparison"):
-				comparison = True
 			
 
 
@@ -153,18 +145,10 @@ def main(argv=None):
 					ipath, iname, itype = filename(ifile)			
 			else:
 				raise Exception("No files specified.")
-			if dfile!="":
-				dpath, dname, dtype = filename(dfile)			
-			else:
-				raise Exception("No database file specified.")
-			if filterf!='' and filterf in ['wiener','butter']:
-				if filterf=='butter':
-					print "Butterfield filter selected!"
-				elif filterf=='wiener':
-					print "Wiener filter selected!"
-			else:
-				print "Unknown filter {}, not using.".format(filterf)
-				filterf=''
+			#if dfile!="":
+			#	dpath, dname, dtype = filename(dfile)			
+			#else:
+			#	raise Exception("No database file specified.")
 				
 			
 	
@@ -181,87 +165,36 @@ def main(argv=None):
 
 
 	if load:
-		f = open('UAL_data.pckl','rb')
+		f = open('Biolog_data.pckl','rb')
 		data,genes,odir,filterf = pickle.load(f)
 		f.close()
 
 		
 	else:	
-		genes=genereader(dfile)
+		#genes=genereader(dfile)
 		ilist=genlist(ifile)
-		checkfiles(ilist,comparison)	
+		print ilist
+				
+		
+		#checkfiles(ilist)	
 		data=collect(ilist)
-
-
-		data=analyze(data,filterf)
+		print data.keys()
+		sys.exit(1)
+		data=analyze(data)
 		dirn=dircheck(odir)
 		data,allfit=growthfit(data,False)
 		growthplot(allfit)		
-		data=datashift(data,'all','all','all','all')
-		data=analyze_shift(data,filterf)
+		
+	
 		data=differences(data)	
 		sheets=makesheets(data,genes)
 		writesheets(sheets,odir)
-		f = open('UAL_data.pckl', 'w')
-		pickle.dump([data,genes,odir,filterf], f)
+		f = open('Biolog_data.pckl', 'w')
+		pickle.dump([data,genes,odir], f)
 		f.close()
 	
 
-	#data=differences(data)	
-	#sheets=makesheets(data,genes)
-	#writesheets(sheets,odir)
-	#sheets=makesheets(data,genes)
-	#writesheets(sheets,odir)
-	#data,allfit=growthfit(data,False)
-	#growthplot(allfit)
-	#data=datashift(data,'all','all','all','all')
-	#data=analyze2(data,filterf)
-	#plotall(data,'all','Experiment','Growth','C3',False,False)
-	#plotall(data,'all','Control','Growth','C3',False,False)
-	#plotall(data,'all','Experiment','Growth','C3',True,False)
-	#plotall(data,'all','Control','Growth','C3',True,False)
-	#plot_comparison(data,genes,odir,True,'all')
 
-
-	#plot=plot_2D('1'+"-"+'Fluorescence_norm',data['1']['Control']['Shift']['Fluorescence_norm'],data['1']['Experiment']['Shift']['Fluorescence_norm'],data['1']['Control']['Time'], data['1']['Control']['Labels'], genes['1'])
-
-
-	plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
-	plot_comparison(data,genes,odir,'Shift','all')
-	
-	#plotall(data,'all','Experiment','Growth','C3',False,False)
-	#plotall(data,'all','Control','Growth','C3',False,False)
-
-	#plotall(data,'all','Experiment','Growth_dt','C3',True,False)
-	#plotall(data,'all','Control','Growth_dt','C3',True,False)
-
-	#plotall(data,'all','Experiment','Fluorescence','C3',False,False)
-	#plotall(data,'all','Control','Fluorescence','C3',False,False)
-
-	#plotall(data,'all','Experiment','Fluorescence_norm_log10','C3',True,False)
-	#plotall(data,'all','Control','Fluorescence_norm_log10','C3',True,False)
-
-	#plotall(data,'all','Experiment','Fluorescence_norm_log10_dt','C3',True,False)
-	#plotall(data,'all','Control','Fluorescence_norm_log10_dt','C3',True,False)
-
-
-
-	#plotall(data,'all','Experiment','535nm','F10',True,False)
-	#plotall(data,'all','Control','535nm','F10',True,False)
-
-	#plotall(data,'all','Experiment','Growth','all',True,False) #plotall(data,plsel,tpsel,fg,lsel,shifted,norm)
-	#plotall(data,'all','Control','Growth','all',True,False) #plotall(data,plsel,tpsel,fg,lsel,shifted,norm)
-
-
-	#plt,plots=plot_2Dplates(data,'Experiment','Growth',True,True) #plot_2Dplates(data,tp,fg,shifted,means):
-	#plt.show()
-
-
-
-
-	
-
-	
 
 	
 	
@@ -451,108 +384,7 @@ def interp(x,y,x2):
 	y2=ip.splev(x2, tck, der=0)
 	return y2
 
-def datashift(data,plsel,tpsel,fgsel,lbsel):
-	ts=3
-	if plsel=='all':
-		plates=data.keys()
-	elif plsel in data.keys():
-		plates=plsel
-	for plate in plates:
-		if tpsel=='all':
-			types=data[plate].keys()
-		elif tpsel in data[plate].keys():
-			types=[tpsel]
-		for tp in types:
-			if fgsel=='all':
-				figures=data[plate][tp]['Figures']
-			elif fgsel in data[plate][tp]['Figures']:
-				figures=[fgsel]
-			else:
-				print 'Unknown figure!'
-			for fg in figures:
-				if lbsel=='all':
-					labels=data[plate][tp]['Labels']
-				elif isinstance(lbsel, list):
-					labels=lbsel
-				elif isinstance(lbsel, str) or isinstance(lbsel, unicode):
-					labels=[lbsel]
-				for l in labels:
-					if (plate!='21' and l!='A12') or (plate=='21' and l in data[plate][tp]['Labels'][:10]):
-						#print plate,tp,fg,l
-						a, c, t0=data[plate][tp]['GrowthFit'][l]['Log']
-						y=data[plate][tp][fg][l]
-						if '_dt' in fg:
-							x=data[plate][tp]['Time_dt']
-						else:
-							x=data[plate][tp]['Time']
-						xs=(x+(ts*3600-t0*60))
-						y2=interp(xs,y,x)
-						shift=ts*3600-t0*60
-						#print shift
-						if shift<0:
-							steps=int(-shift/300)
-							#print steps
-							if steps>0:
-								y2[-steps:]=y2[-steps-1]
-							#print y2
-						elif shift>0:
-							steps=int(shift/300)
-							#print steps
-							if steps>0:
-								y2[:steps]=y2[steps+1]	
-							#print y2
-							
-							
-					else:
-						y2=data[plate][tp][fg][l]
-					data[plate][tp]['Shift'][fg][l]=y2
-				
 
-	return data	
-
-
-def meansd(data,plsel,tpsel,fgsel,lbsel,shifted):
-	alldata=[]
-	ts=5
-	if plsel=='all':
-		plates=data.keys()
-	elif plsel in data.keys():
-		plates=[plsel]
-	for plate in plates:
-		if tpsel=='all':
-			types=data[plate].keys()
-		elif tpsel in data[plate].keys():
-			types=[tpsel]
-		for tp in types:
-			if fgsel=='all':
-				figures=data[plate][tp]['Figures']
-			elif fgsel in data[plate][tp]['Figures']:
-				figures=[fgsel]
-			else:
-				print 'Unknown figure!'
-			for fg in figures:
-				if shifted:
-					raw=data[plate][tp]['Shift'][fg]
-				else:
-					raw=data[plate][tp][fg]
-
-				if lbsel=='all':
-					labels=data[plate][tp]['Labels']
-				elif isinstance(lbsel, list):
-					labels=lbsel
-				elif isinstance(lbsel, str) or isinstance(lbsel, unicode):
-					labels=[lbsel]
-				for l in labels:
-					if plate!='21' or (plate=='21' and l in data[plate][tp]['Labels'][:9]):
-						alldata.append(raw[l])
-
-	
-	
-	alldata=np.array(alldata)
-	mean=alldata.mean(axis=0)
-	sd=alldata.std(axis=0)
-
-	return mean, sd		
 				 
 	
 
@@ -957,7 +789,7 @@ def Butter(x, y, par1, par2):
 
 
 
-def checkfiles(ilist,comparison):
+def checkfiles(ilist):
 	
 	print '\n\n-------------Checking integrity of the file list!-------------'
 	Pass=False
@@ -1009,50 +841,6 @@ def differences(data):
 		data[plate]['LogRatios']['Figures']=data[plate]['Control']['Shift']['Figures']
 	return data
 
-def analyze_shift(data,filterf):
-	msize=20
-	par1=4
-	par2=0.1
-	bar=10
-	window=10
-	for plate in sorted(data.keys()):
-		for tp in data[plate].keys():
-			if plate!='21':
-				Ufluor=data[plate][tp]['Shift']['Fluorescence']['C10']
-			else:
-				Ufluor=data['20'][tp]['Shift']['Fluorescence']['C10']
-			time=data[plate][tp]['Time']
-			dt=time[1]-time[0]
-			for well in data[plate][tp]['Labels']:
-				#if (plate!='21' and well!='A12') or (plate=='21' and well in data[plate][tp]['Labels'][:10]):
-				fluor=data[plate][tp]['Shift']['Fluorescence'][well]
-				fluor_norm=fluor-Ufluor
-				fluor_norm=fluor_norm-np.mean(fluor_norm[:window])
-				fluor_U139=ratio(fluor,Ufluor,bar)
-				#if filterf=='wiener':
-					#fluor_U139=Wiener(fluor_U139-fluor_U139[0],msize)
-				#	fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
-				#elif filterf=='butter':
-					#fluorU139=Butter(time,fluor_U139-fluor_U139[0],par1,par2)
-				#	fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
-
-		
-				fluor_norm_dt=np.diff(fluor_norm)/dt
-				fluor_norm_log=np.log10(setbar(fluor_norm,bar))
-				fluor_norm_log_dt=np.diff(fluor_norm_log)/dt
-				#fluor_U139_dt=np.diff(fluor_U139)/dt
-				data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm
-				data[plate][tp]['Shift']['Fluorescence_norm_log10'][well]=fluor_norm_log
-				data[plate][tp]['Shift']['Fluorescence_norm_log10_dt'][well]=fluor_norm_log_dt
-				data[plate][tp]['Shift']['Fluorescence_norm_dt'][well]=fluor_norm_dt
-				data[plate][tp]['Shift']['Fluorescence_U139'][well]=fluor_U139
-				#data[plate][tp]['Shift']['Fluorescence_U139_dt'][well]=fluor_U139_dt
-
-					
-					#print plate,tp,well   ,'Fluorescence_U139','Fluorescence_U139_dt'
-			data[plate][tp]['Shift']['Figures']=data[plate][tp]['Figures']+['Fluorescence_norm','Fluorescence_norm_log10','Fluorescence_norm_log10_dt','Fluorescence_norm_dt','Fluorescence_U139']
-
-	return data
 
 
 def setbar(x,bar):
@@ -1074,8 +862,9 @@ def ratio(x,y,bar):
 
 
 
-def analyze(data,filterf):
-	waves=['600nm','535nm']
+def analyze(data):
+	filterf='wiener'
+	waves=['590nm','750nm']
 	msize=20
 	par1=4
 	par2=0.1
@@ -1169,56 +958,43 @@ def genereader(dfile):
 	return genes
 
 
-def scale(data,tp):	
-	start=data[0]
-	dmin=min(data)
-	dmax=max(data)
-	if tp=='start':
-		if (dmax-start)!=0:
-			scaled=(data-start)/(dmax-start)
-		else:
-			print "Zero divider: {}-{}".format(dmax,start)
-			scaled=data
-	elif tp=='min':
-		if (dmax-dmin)!=0:
-			scaled=(data-dmin)/(dmax-dmin)
-		else:
-			print "Zero divider: {}-{}".format(dmax,dmin)
-			scaled=data
-
-	return scaled
-
 
 def collect(ilist):
 	data=NestedDict()
 	for ifl in sorted(ilist):		
 		ipt, inm, itp = filename(ifl)	
-		plate=inm.split('_')[1]
-		if '_NoMetf_' in ifl:
-			tp='Control'
-		elif '_Metf_' in ifl:
-			tp='Experiment'
-		print "File: {}\nPlate: {}\nType: {}".format(ifl,plate,tp)
+		plate=inm.split('_')[2]
+		strain=inm.split('_')[3]
+		tp=inm.split('_')[4]
+		print "File: {}\nPlate: {}\nStrain: {}\nType: {}".format(ifl,plate,strain,tp)
+
 		sheet=readxls(ifl)
+
+
 		nrows=sheet.nrows
 		nm_labels=list(set(sheet.row_values(0)))
-		waves=[wlen for wlen in nm_labels if wlen[:2].isdigit()]
+		#print nm_labels
+
+		
+		waves=[wlen for wlen in nm_labels if str(wlen)[:2].isdigit()]
 		lengths=[sheet.row_values(0).index(wave) for wave in waves]
-		length=lengths[1]
+		#Selection of time cells does not depend om the order of wavelengths		
+		length=max(lengths)
+
+		#print waves, lengths
 		time_row=sheet.row_values(1)[:length]
 		check=list(set([s for s in time_row if isinstance(s,float)]))
 		if check:
 			time_t=time_row
 		else:
 			time_t=[int(t.replace('s','')) for t in time_row]
-		
 		temp=[float(t.split()[0]) for t in sheet.row_values(2)[:length]]
 		timemax_h=time_t[length-1]/3600
 		timestep=time_t[length-1]/(length-1)
 		time=np.linspace(0,timemax_h*3600,length)
 		labels=sheet.col_values(length*2)		
 		data[plate][tp]['Labels']=labels[3:]
-		data[plate][tp]['Waves']=waves
+		data[plate][tp]['Spectra']=waves
 		data[plate][tp]['Time']=time
 		data[plate][tp]['Temp']=temp
 		data[plate][tp]['Time_max']=timemax_h
@@ -1232,9 +1008,9 @@ def collect(ilist):
 		for row in range(3,sheet.nrows):
 			for wave in waves:
 				data_row=[60000 if val=="Overflow" else val for val in sheet.row_values(row)[length*(waves.index(wave)):length*(waves.index(wave)+1)]]
-				data[plate][tp][wave][labels[row]]=np.array(data_row)
-				data[plate][tp][wave][labels[row]+'_max']=max(data_row)
-				data[plate][tp][wave][labels[row]+'_min']=min(data_row)
+				data[plate][strain][tp][wave][labels[row]]=np.array(data_row)
+				data[plate][strain][tp][wave][labels[row]+'_max']=max(data_row)
+				data[plate][strain][tp][wave][labels[row]+'_min']=min(data_row)
 
 	return data
 
@@ -1270,16 +1046,6 @@ def genlist(ifile):
 				print "Bad file type %(inp)s!" % vars()	
 	return ilist
 
-def axisadjust(ax, xres=4, yres=4):
-	"""Send in an axis and I fix the resolution as desired."""
-
-	start, stop = ax.get_xlim()
-	ticks = np.arange(start, stop + xres, xres)
-	ax.set_xticks(ticks)
-	start, stop = ax.get_ylim()
-	ticks = np.arange(start, stop + yres, yres)
-	ax.set_yticks(ticks)
-	return ax
 
 
 def round_to(n, precission):

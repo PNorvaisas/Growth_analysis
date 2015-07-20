@@ -166,31 +166,30 @@ def main(argv=None):
 
 	if load:
 		f = open('Biolog_data.pckl','rb')
-		data,genes,odir,filterf = pickle.load(f)
+		data = pickle.load(f)
 		f.close()
 
 		
 	else:	
-		#genes=genereader(dfile)
+		#metabolites=labelreader(dfile)
+		metabolites=NestedDict()
 		ilist=genlist(ifile)
 		print ilist
 				
 		
 		#checkfiles(ilist)	
-		data=collect(ilist)
-		print data.keys()
-		sys.exit(1)
+		data=collect(ilist)		
 		data=analyze(data)
 		dirn=dircheck(odir)
-		data,allfit=growthfit(data,False)
-		growthplot(allfit)		
-		
+		#data,allfit=growthfit(data)
+		#growthplot(allfit)		
+		plot_comparison(data,metabolites,odir,['Growth','Respiration'])
 	
-		data=differences(data)	
-		sheets=makesheets(data,genes)
-		writesheets(sheets,odir)
+		
+		#sheets=makesheets(data,genes)
+		#writesheets(sheets,odir)
 		f = open('Biolog_data.pckl', 'w')
-		pickle.dump([data,genes,odir], f)
+		pickle.dump(data, f)
 		f.close()
 	
 
@@ -204,198 +203,51 @@ def main(argv=None):
 #-------------Functions------------
 
 
-def plot_comparison(data,genes,dirn,dataset,figs):
+
+def plot_comparison(data,metabolites,dirn,figs):
 
 	for plate in sorted(data.keys()):
-		labels=data[plate]['Control']['Labels']
-		if dataset=='Shift':
-			ref=data[plate]['Control']['Shift']
-			exp=data[plate]['Experiment']['Shift']
-			shift='_Shift'
-			figures_temp=data[plate]['Control']['Shift']['Figures']
-		elif dataset=='Differences':
-			ref=data[plate]['Differences']
-			shift='_Differences'
-			figures_temp=data[plate]['Differences']['Figures']
-		elif dataset=='Ratios':
-			ref=data[plate]['Ratios']
-			shift='_Ratios'
-			figures_temp=data[plate]['Ratios']['Figures']
-		elif dataset=='LogRatios':
-			ref=data[plate]['LogRatios']
-			shift='_LogRatios'
-			figures_temp=data[plate]['LogRatios']['Figures']
-		else:
-			ref=data[plate]['Control']
-			exp=data[plate]['Experiment']
-			shift='_Raw'
-			figures_temp=data[plate]['Control']['Figures']	
+		for strain in data[plate].keys():
+			labels=data[plate][strain]['NoMetf']['Labels']
+			ref=data[plate][strain]['NoMetf']
+			exp=data[plate][strain]['Metf']
+			figures_temp=data[plate][strain]['NoMetf']['Figures']
+		
 
-		if figs=='all':
-			figures=figures_temp
+			if figs=='all':
+				figures=figures_temp
 				
-		elif isinstance(figs, list):
-			figs_ch=[f for f in figs if f in figures_temp]
-			if len(figs)>0:
-				figures=figs_ch
-			else:
-				print 'Figures {} not found'.format(figs_ch)
-		elif isinstance(figs, str) or isinstance(figs, unicode):
-			if figs in figures_temp:
-				figures=[figs]
-			else:
-				print 'Figures {} not found'.format(figs)
+			elif isinstance(figs, list):
+				figs_ch=[f for f in figs if f in figures_temp]
+				if len(figs)>0:
+					figures=figs_ch
+				else:
+					print 'Figures {} not found'.format(figs_ch)
+			elif isinstance(figs, str) or isinstance(figs, unicode):
+				if figs in figures_temp:
+					figures=[figs]
+				else:
+					print 'Figures {} not found'.format(figs)
 
 
-		for fg in figures:
-			print "Plotting plate {} {}...".format(plate,fg+shift)
-			if '_dt' in fg:
-				time=data[plate]['Control']['Time_dt']
-			else:
-				time=data[plate]['Control']['Time']
-			if dataset in ['Differences','Ratios','LogRatios']:
-				plot=plot_2Ddiff('{}-{}{}'.format(plate,fg,shift),ref[fg],time, labels, genes[plate])
-			else:
-				plot=plot_2D('{}-{}{}'.format(plate,fg,shift),ref[fg],exp[fg],time, labels, genes[plate])
-			#data[plate]['Joint'][fg]=plt
-			plot.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg+shift))
-			plot.close()
+			for fg in figures:
+				print "Plotting plate {} {} {}...".format(plate,strain,fg)
+				if '_dt' in fg:
+					time=data[plate][strain]['NoMetf']['Time_dt']
+				else:
+					time=data[plate][strain]['NoMetf']['Time']
+				#Need to fix metabolites
+				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fg],exp[fg],time, labels, metabolites)
+				plot.savefig('{}/{}.pdf'.format(dirn,plate+'-'+strain+'_'+fg))
+				plot.close()
+	#
 	return data
 
-def plotall(data,plsel,tpsel,fg,lsel,shifted,norm):
-	ts=5
-	if plsel=='all':
-		plates=data.keys()
-	elif plsel in data.keys():
-		plates=[plsel]
-	for plate in plates:
-		print 'Plate number {}'.format(plate)
-		if tpsel=='all':
-			types=data[plate].keys()
-		elif tpsel in data[plate].keys():
-			types=[tpsel]
-		for tp in types:
-			#x=data[plate][tp]['Time']
-			
-			if tp=='Control':
-				plt.figure(0)
-				plt.title(fg+' without Metformin')
-
-			
-			elif tp=='Experiment':
-				plt.figure(1)
-				plt.title(fg+' with Metformin')
-			elif tp=='Difference':
-				plt.figure(0)
-				plt.title(fg+' difference')
-			elif tp=='Ratio':
-				plt.figure(0)
-				plt.title(fg+' ratio')
-
-			if fg in ['Growth','600nm']:
-				if norm:
-					plt.ylim([0,1])
-				else:			
-					plt.ylim([0,0.4])
-				plt.ylabel('OD')
-				#plt.yscale('log')
-			else:
-				#plt.ylim([0,3000])
-				plt.ylabel('Fluorescence, a.u.')
-				#plt.yscale('log')
-			
-			plt.xlim([0,20])
-			plt.xlabel('Time, h')
-
-			if '_dt' in fg:
-				x=data[plate][tp]['Time_dt']
-			else:
-				x=data[plate][tp]['Time']
-			if lsel=='all':
-				labels=data[plate][tp]['Labels']
-			elif isinstance(lsel, list):
-				labels=lsel
-			elif isinstance(lsel, str) or isinstance(lsel, unicode):
-				labels=[lsel] 
-			for l in labels:
-				if (plate!='21' and l!='A12' ) or (plate=='21' and l in labels[:10]):
-					if shifted:
-						y=data[plate][tp]['Shift'][fg][l]
-					else:
-						y=data[plate][tp][fg][l]
-					if norm and fg in ['Growth','600nm']:
-						y=(y-min(y))/max(y)
-					plt.plot(x/3600,y,'r-',label=plate+l )
-	plt.show()
-
-
-
-
-def growthfit(data,norm):
-	allfit=NestedDict()
-	if norm:
-		base=0.1
-		top=0.2
-		y0=0.2
-	else:
-		base=0.01
-		top=0.05
-		y0=0.005
-	
-	for plate in data.keys():
-		for tp in data[plate].keys():
-			x=data[plate][tp]['Time']
-			labels=data[plate][tp]['Labels']
-	
-			for l in labels:
-				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-					y=data[plate][tp]['Growth'][l]
-					if norm:
-						y=(y-min(y))/max(y)
-					x2,y2=cut(x, y, base, top)
-					y2l=np.log(y2)
-					for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
-						try:
-							popt, pcov = curve_fit(growth, x2, ydata)
-						except TypeError:
-							'Curve_fit encountered an error!'
-							continue
-						a=popt[0]
-						c=popt[1]
-						if ynm=='Log':
-							t0=(np.log(y0)-c)/(a*60)
-						else:
-							t0=(y0-c)/(a*60)
-						#print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
-						for par,nm in IT.izip([a,c,t0],['a','c','t0']):
-							if allfit[tp][ynm][nm]:
-								allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
-							else:
-								allfit[tp][ynm][nm]=[par]
-					
-						data[plate][tp]['GrowthFit'][l][ynm]=[a,c,t0]
-
-	return data,allfit
-
-
-
-def interp(x,y,x2):
-	tck = ip.splrep(x, y, s=0)
-	y2=ip.splev(x2, tck, der=0)
-	return y2
-
-
-				 
-	
-
-
 def plot_2D(title,datac,datae,time,labels,genes):
-	xmax=20
+	xmax=24
 	plate_size=96
 	#print title
-	plate,fg_temp=title.split('-')
-	fg='_'.join(fg_temp.split('_')[:-1])
-	shift=fg_temp.split('_')[-1]
+	plate,strain,fg=title.split()
 	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
 	
 	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
@@ -417,22 +269,20 @@ def plot_2D(title,datac,datae,time,labels,genes):
 	xlabel='Time, h'
 	ylabel=''
 	decimals=1
-	if fg=='600nm':
-		totalmax=0.6
+	if fg=='590nm':
+		totalmax=1
 		ticks=3
-		ylabel='OD@600nm'
+		ylabel='OD@590nm'
 		decimals=1
-	if fg=='535nm':
-		ylabel='GFP@535nm'
+	if fg=='750nm':
+		totalmax=7
+		ylabel='OD@750nm'
 		decimals=0
-
-
-	if fg=='Fluorescence_U139':
-		ylabel='(GFP/OD)/U139_fluor'		
+	
 	if fg=='Growth':
-		totalmax=0.4
+		totalmax=1
 		ticks=4
-		ylabel='Growth@600nm'
+		ylabel='Growth@590nm'
 		decimals=1
 	if fg=='Growth_dt':
 		totalmax=0.000015
@@ -441,30 +291,6 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		ylabel='OD/dt'
 		decimals=6
 
-	if fg in ['Fluorescence','Fluorescence_norm']:
-		ylabel='GFP/OD'
-		decimals=-1
-
-	if fg in ['Fluorescence_dt','Fluorescence_norm_dt']:
-		ylabel='GFP/dt/OD'
-		totalmax=0.1#max([totalmaxc,totalmaxe])
-		totalmin=-totalmax
-		ticks=4
-		decimals=1
-
-	if fg=='Fluorescence_norm_log10':
-		totalmax=3
-		totalmin=0
-		ticks=4
-		ylabel='Log10(GFP/OD)'
-		decimals=0
-
-	if fg=='Fluorescence_norm_log10_dt':
-		totalmax=0.0005
-		totalmin=-totalmax/2
-		ticks=4
-		ylabel='Log10(GFP/OD)/dt'
-		decimals=4
 
 
 
@@ -500,12 +326,9 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
 		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
 		plt.ylim([totalmin,totalmax])
-		plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)
+		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)
 		plt.text(0.15, 0.75, genes[l]['Gene'], fontsize=10,transform=ax.transAxes)
-		#if fg=='Fluorescence_norm_log10':
-		#	plt.axhline(y=1.2, xmin=0, xmax=20,c='green', hold=None)
 
-		
 		plt.plot(x,yc,'r-',x,ye,'b-')
 
 	return plt
@@ -513,254 +336,48 @@ def plot_2D(title,datac,datae,time,labels,genes):
 def myround(a, decimals=1):
      return np.around(a-10**(-(decimals+5)), decimals=decimals)
 
-def plot_2Ddiff(title,datac,time,labels,genes):
-	xmax=20
-	plate_size=96
-	#print title
-	plate,fg_temp=title.split('-')
-	fg='_'.join(fg_temp.split('_')[:-1])
-	shift=fg_temp.split('_')[-1]
-	#print fg,shift
-	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
-	decimals=1
-	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
-	fig.suptitle(title)
-	plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
+
+
+def growthfit(data):
+	allfit=NestedDict()
+	base=0.01
+	top=0.05
+	y0=0.005
+
+	for plate in data.keys():
+		for strain in data[plate].keys():
+			for tp in data[plate][strain].keys():
+				x=data[plate][strain][tp]['Time']
+				labels=data[plate][strain][tp]['Labels']
 	
+				for l in labels:
 
-	if fg in ['Fluorescence','Fluorescence_norm']:
-		rnd=1
-	else:
-		rnd=0.1
-	totalmaxc=round_to(max([max(datac[l]) for l in labels]),rnd)
+					y=data[plate][strain][tp]['Growth'][l]
+					x2,y2=cut(x, y, base, top)
+					y2l=np.log(y2)
+					for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
+						try:
+							popt, pcov = curve_fit(growth, x2, ydata)
+						except TypeError:
+							'Curve_fit encountered an error!'
+							continue
+						a=popt[0]
+						c=popt[1]
+						if ynm=='Log':
+							t0=(np.log(y0)-c)/(a*60)
+						else:
+							t0=(y0-c)/(a*60)
+						#print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
+						for par,nm in IT.izip([a,c,t0],['a','c','t0']):
+							if allfit[tp][ynm][nm]:
+								allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
+							else:
+								allfit[tp][ynm][nm]=[par]
+				
+						data[plate][strain][tp]['GrowthFit'][l][ynm]=[a,c,t0]
 
-	totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
-	
-	totalmax=totalmaxc/2
+	return data,allfit
 
-	ticks=3
-	xlabel='Time, h'
-	ylabel=''
-
-	if fg=='Growth':
-		totalmax=0.2
-
-		ticks=4
-		ylabel='Growth@600nm'
-		decimals=1
-
-	if fg=='Growth_dt':
-		totalmax=0.000015
-		ticks=3
-		ylabel='OD/dt'
-		decimals=4
-
-	if fg in ['Fluorescence','Fluorescence_norm']:
-		ylabel='GFP/OD'
-		decimals=0
-
-	if fg in ['Fluorescence_dt','Fluorescence_norm_dt']:
-		ylabel='GFP/dt/OD'
-		totalmax=0.1#max([totalmaxc,totalmaxe])
-		totalmin=-totalmax
-		ticks=4
-
-	if fg=='Fluorescence_norm_log10':
-		totalmax=1
-		ticks=3
-		ylabel='Log10(GFP/OD)'
-		decimals=2
-
-	if fg=='Fluorescence_norm_log10_dt':
-		totalmax=0.0005
-		ticks=4
-		ylabel='Log10(GFP/OD)/dt'
-		decimals=5
-
-
-	totalmin=-totalmax
-
-
-	ymin=totalmin
-	fig.text(0.5, 0.04, xlabel, ha='center')
-	fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
-
-	for v,l in IT.izip(range(plate_size),labels):
-		row=string.uppercase.index(l[0])+1
-		col=int(l.replace(l[0],''))
-		v=v+1
-	
-		x=time/3600
-		yc=datac[l]
-		plt.sca(axes[row-1,col-1])
-		ax=axes[row-1,col-1]
-		if col==12:
-			ax.yaxis.set_label_position("right")
-			plt.ylabel(l[0],rotation='horizontal')
-		if row==1:
-			plt.title(col)    				
-
-		if col>1 and row<11:
-			plt.setp(ax.get_yticklabels(), visible=False)
-
-		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
-		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(np.around(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
-		plt.ylim([totalmin,totalmax])
-		plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)
-		plt.text(0.15, 0.75, genes[l]['Gene'], fontsize=10,transform=ax.transAxes)
-		#if shift=='Differences':
-		#	plt.axhline(y=0, xmin=0, xmax=20,c='green', hold=None)
-
-		
-		plt.plot(x,yc,'k-')
-		plt.fill_between(x, 0, yc, where=yc>=0, facecolor='blue', interpolate=True)
-		plt.fill_between(x, 0, yc, where=yc<=0, facecolor='red', interpolate=True)
-
-	return plt
-
-def plot_2Dplates(data,tp,fg,shifted,means):
-	labels=data[data.keys()[0]][tp]['Labels']
-	title=fg+'_'+tp
-	plate_size=96
-	fig=plt.figure(figsize=(11.69,8.27), dpi=100)
-	fig.suptitle(title)
-	plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.1)
-	plots={}
-	#Need to check for both datasets
-	
-	if '_dt' in fg:
-		time=data[data.keys()[0]][tp]['Time_dt']
-	else:
-		time=data[data.keys()[0]][tp]['Time']
-	x=time/3600
-
-
-	if fg in ['Growth','600nm']:
-		totalmax=0.4
-		totalmin=0
-	elif fg in ['535nm','Fluorescence']:
-		totalmax=300
-		totalmin=0
-	elif fg in ['Fluorescence_norm']:
-		totalmax=3000
-		totalmin=0			
-	elif fg in ['Fluorescence_dt']:
-		totalmax=0.1
-		totalmin=-totalmax
-
-	ymin=totalmin
-	#print totalmax
-	#print list(np.linspace(0, 24, 4)[1:])
-	for v,l in IT.izip(range(plate_size),labels):
-
-		row=string.uppercase.index(l[0])+1
-		col=int(l.replace(l[0],''))
-		#print (row,col)
-		if divmod(float(v)/12,1)[1]==0:
-			sh_y=l
-		#print sh_y
-		v=v+1
-	
-
-
-		#setting arrangement
-		if row==1 and col==1:
-			plots[l]=plt.subplot(8,12,v)			
-		elif row==1 and col!=1:
-			plots[l]=plt.subplot(8,12,v,sharey=plots['A1'])
-		elif col==1 and row!=1:
-			plots[l]=plt.subplot(8,12,v,sharex=plots['A1'])
-		else:
-			plots[l]=plt.subplot(8,12,v,sharex=plots['A'+str(col)],sharey=plots[l[0]+'1'])
-		
-		if row!=8:
-			setp( plots[l].get_xticklabels(), visible=False)
-		if col!=1:
-			setp( plots[l].get_yticklabels(), visible=False)
-
-		if col==12:
-			plots[l].yaxis.set_label_position("right")
-			plt.ylabel(l[0],rotation='horizontal')
-		if row==1:
-			plt.title(col)
-
-		plt.xticks(np.linspace(0, max(x), 3),['']+list(np.linspace(0, max(x), 3).astype(int)[1:]), rotation='vertical')	
-		plt.yticks(np.linspace(ymin, totalmax, 3),['']+list(np.around(np.linspace(totalmin, totalmax, 3),1)[1:]))
-		plt.ylim([totalmin,totalmax])
-		
-		#plots[l].text(0.1, 0.8, genes[l]['Gene'], fontsize=10, transform=plots[l].transAxes)
-
-		if means:
-			mean, sd=meansd(data,'all',tp,fg,l,shifted)
-			RMSD=sum(sd)/len(sd)
-			plt.fill_between(x, mean - sd, mean + sd, color="red")
-			plt.plot(x,mean,'white')
-		else:		
-			for plate in data.keys():
-				if plate!='21' or (plate=='21' and l in labels[:10]):
-					if shifted:
-						y=data[plate][tp]['Shift'][fg][l]
-					else:
-						y=data[plate][tp][fg][l]
-					plt.plot(x,y,'r-')
-		
-		#plt.title(l)
-
-	return plt, plots
-
-def growthplot(allfit):	
-	
-	plt.figure(0)
-	sbn=np.arange(0,1000,10)
-	plt.hist(allfit['Control']['Log']['t0'],bins=sbn,label='Without metformin - Log')
-	plt.hist(allfit['Experiment']['Log']['t0'],bins=sbn,label='With metformin - Log')
-	plt.xlabel('Start, min')
-	plt.ylabel('Number')
-	plt.title('Growth start time with/without metformin - Log')
-	plt.legend()
-	
-	plt.figure(1)
-	slbn=np.arange(0,1000,10)
-	plt.hist(allfit['Control']['Linear']['t0'],bins=sbn,label='Without metformin - Linear')
-	plt.hist(allfit['Experiment']['Linear']['t0'],bins=slbn,label='With metformin - Linear')
-	plt.xlabel('Start, min')
-	plt.ylabel('Number')
-	plt.title('Growth start time with/without metformin - Linear')
-	plt.legend()
-
-	plt.figure(2)
-	abn=np.arange(0,2.5,0.1)
-	ac=np.asarray(allfit['Control']['Log']['a'])*3600
-	ae=np.asarray(allfit['Experiment']['Log']['a'])*3600
-	plt.hist(ac,bins=abn,label='Without metformin - Log')
-	plt.hist(ae,bins=abn,label='With metformin - Log')
-	plt.xlabel('Growth rate, ln(OD)/h')
-	plt.xlim([0,2.5])
-	plt.ylabel('Number')
-	plt.title('Growth rate with/without metformin - Log')
-	plt.legend()
-
-	plt.figure(3)
-	albn=np.arange(0,0.04,0.005)
-	alc=np.asarray(allfit['Control']['Linear']['a'])*3600
-	ale=np.asarray(allfit['Experiment']['Linear']['a'])*3600
-	plt.hist(alc,label='Without metformin - Linear')
-	plt.hist(ale,label='With metformin - Linear')
-	plt.xlabel('Growth rate, OD/h')
-	#plt.xlim([0,0.04])
-	plt.ylabel('Number')
-	plt.title('Growth rate with/without metformin - Linear')
-	plt.legend()
-
-	plt.show()
-
-
-def growth(x,a,c):
-	y=x*a+c
-	return y
-
-	
-	
 
 def cut(x, y, a,b):
 	x2=[]
@@ -776,6 +393,9 @@ def cut(x, y, a,b):
 	
 	return x2,y2 
 
+def growth(x,a,c):
+	y=x*a+c
+	return y
 
 def Wiener(y, n):
 	wi = sig.wiener(y, mysize=n)
@@ -786,7 +406,51 @@ def Butter(x, y, par1, par2):
 	fl = sig.filtfilt(b, a, y)
 	return fl
 
+def growthplot(allfit):	
+	
+	plt.figure(0)
+	sbn=np.arange(0,1000,10)
+	plt.hist(allfit['NoMetf']['Log']['t0'],bins=sbn,label='Without metformin - Log')
+	plt.hist(allfit['Metf']['Log']['t0'],bins=sbn,label='With metformin - Log')
+	plt.xlabel('Start, min')
+	plt.ylabel('Number')
+	plt.title('Growth start time with/without metformin - Log')
+	plt.legend()
+	
+	plt.figure(1)
+	slbn=np.arange(0,1000,10)
+	plt.hist(allfit['NoMetf']['Linear']['t0'],bins=sbn,label='Without metformin - Linear')
+	plt.hist(allfit['Metf']['Linear']['t0'],bins=slbn,label='With metformin - Linear')
+	plt.xlabel('Start, min')
+	plt.ylabel('Number')
+	plt.title('Growth start time with/without metformin - Linear')
+	plt.legend()
 
+	plt.figure(2)
+	abn=np.arange(0,2.5,0.1)
+	ac=np.asarray(allfit['NoMetf']['Log']['a'])*3600
+	ae=np.asarray(allfit['Metf']['Log']['a'])*3600
+	plt.hist(ac,bins=abn,label='Without metformin - Log')
+	plt.hist(ae,bins=abn,label='With metformin - Log')
+	plt.xlabel('Growth rate, ln(OD)/h')
+	plt.xlim([0,2.5])
+	plt.ylabel('Number')
+	plt.title('Growth rate with/without metformin - Log')
+	plt.legend()
+
+	plt.figure(3)
+	albn=np.arange(0,0.04,0.005)
+	alc=np.asarray(allfit['NoMetf']['Linear']['a'])*3600
+	ale=np.asarray(allfit['Metf']['Linear']['a'])*3600
+	plt.hist(alc,label='Without metformin - Linear')
+	plt.hist(ale,label='With metformin - Linear')
+	plt.xlabel('Growth rate, OD/h')
+	#plt.xlim([0,0.04])
+	plt.ylabel('Number')
+	plt.title('Growth rate with/without metformin - Linear')
+	plt.legend()
+
+	plt.show()
 
 
 def checkfiles(ilist):
@@ -814,53 +478,6 @@ def checkfiles(ilist):
 		sys.exit(1)
 
 
-def differences(data):
-	
-	for plate in sorted(data.keys()):
-		labels=data[plate]['Control']['Labels']
-		#for fg in data[plate]['Control']['Figures']:
-		#	#print plate, fg
-		#	for well in data[plate]['Control']['Labels']:
-		#		data[plate]['Differences']['Shift'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]-data[plate]['Control']['Shift'][fg][well]				
-		#		data[plate]['Ratios']['Shift'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]/data[plate]['Control']['Shift'][fg][well]
-		for fg in data[plate]['Control']['Shift']['Figures']:
-			if fg in ['Fluorescence','Fluorescence_norm']:
-				bar=10
-			elif fg in ['Growth']:
-				bar=0.1			
-			else:
-				bar=0
-			for well in labels:
-				#print plate, fg, well
-				#if (plate!='21' and well!='A12') or (plate=='21' and well in labels[:10]):
-				data[plate]['Differences'][fg][well]=data[plate]['Experiment']['Shift'][fg][well]-data[plate]['Control']['Shift'][fg][well]				
-				data[plate]['Ratios'][fg][well]=ratio(data[plate]['Experiment']['Shift'][fg][well],data[plate]['Control']['Shift'][fg][well],bar)
-				data[plate]['LogRatios'][fg][well]=np.log10(ratio(data[plate]['Experiment']['Shift'][fg][well],data[plate]['Control']['Shift'][fg][well],bar))
-		data[plate]['Differences']['Figures']=data[plate]['Control']['Shift']['Figures']
-		data[plate]['Ratios']['Figures']=data[plate]['Control']['Shift']['Figures']
-		data[plate]['LogRatios']['Figures']=data[plate]['Control']['Shift']['Figures']
-	return data
-
-
-
-def setbar(x,bar):
-	x2=[xi if xi>=bar else bar for xi in x]
-	x2=np.array(x2)
-	return x2
-
-def ratio(x,y,bar):
-	xy=[]
-	if len(x)==len(y):
-		for xi,yi in IT.izip(x,y):
-			if xi>bar and yi>bar:
-				xy.append(xi/yi)
-			else:
-				xy.append(1)
-
-	xy=np.array(xy)
-	return xy
-
-
 
 def analyze(data):
 	filterf='wiener'
@@ -871,72 +488,35 @@ def analyze(data):
 	method='pre'
 	window=10
 	for plate in sorted(data.keys()):
-		for tp in data[plate].keys():		
-			if len([nm for nm in waves if nm in data[plate][tp]['Waves']])==2:
-				time=data[plate][tp]['Time']
+		for strain in data[plate].keys():
+			for tp in data[plate][strain].keys():				
+				time=data[plate][strain][tp]['Time']
 				dt=time[1]-time[0]
 				npts=len(time)
 				nyf=0.5/dt
+				print plate,strain,tp
+				data[plate][strain][tp]['Time_dt']=(time+dt/2)[:-1]
+				for well in data[plate][strain][tp]['Labels']:
+					gs=np.mean(data[plate][strain][tp]['590nm'][well][:window])
+					rs=np.mean(data[plate][strain][tp]['750nm'][well][:window])
+					
+					growth=Wiener(data[plate][strain][tp]['590nm'][well]-gs,msize)
+					resp=Wiener(data[plate][strain][tp]['750nm'][well]-rs,msize)		
+	
 			
-				data[plate][tp]['Time_dt']=(time+dt/2)[:-1]
-				#Ufluor=data[plate][tp]['535nm']['C10']/data[plate][tp]['600nm']['C10']
-				
-				for well in data[plate][tp]['Labels']:
-					gs=np.mean(data[plate][tp]['600nm'][well][:window])
-					fs=np.mean(data[plate][tp]['535nm'][well][:window])
-
-					if method=='pre':						
-					
-						if filterf=='wiener':
-							growth=Wiener(data[plate][tp]['600nm'][well]-gs,msize)
-							fluor=(Wiener(data[plate][tp]['535nm'][well]-fs,msize)+fs)/(Wiener(data[plate][tp]['600nm'][well]-gs,msize)+gs)
-							fluor=fluor-np.mean(fluor[:window])
-						elif filterf=='butter':
-							growth=Butter(time,data[plate][tp]['600nm'][well]-gs,par1,par2)
-							fluor=(Butter(time,data[plate][tp]['535nm'][well]-fs,par1,par2)+fs)/(Butter(time,data[plate][tp]['600nm'][well]-gs,par1,par2)+gs)
-							fluor=fluor-np.mean(fluor[:window])
-						else:
-							fluor_norm=fluor-Ufluor
-
-
-					elif method=='post':
-						growth=data[plate][tp]['600nm'][well]-gs
-						fluor=data[plate][tp]['535nm'][well]/data[plate][tp]['600nm'][well]
-						
-					
-						if filterf=='wiener':
-							growth=Wiener(growth,msize)
-							fluor=Wiener(fluor-np.mean(fluor[:window]),msize)
-							#fluor_norm=fluor-Ufluor
-							#fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
-						elif filterf=='butter':
-							growth=Butter(time,growth,par1,par2)
-							fluor=Butter(time,fluor-np.mean(fluor[:window]),par1,par2)
-							#fluor_norm=fluor-Ufluor
-							#fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
-						else:
-							fluor_norm=fluor-Ufluor
-								
-					#growth=growth-min(growth)
-					#fluor=fluor-min(fluor)
-					#fluor_norm=fluor_norm-min(fluor_norm)
+					data[plate][strain][tp]['Growth'][well]=growth	
+					data[plate][strain][tp]['Growth_dt'][well]=np.diff(growth)/dt				
+					data[plate][strain][tp]['Respiration'][well]=resp	
+					data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/dt
 			
 				
-					data[plate][tp]['Growth'][well]=growth	
-					data[plate][tp]['Growth_dt'][well]=np.diff(growth)/dt				
-					data[plate][tp]['Fluorescence'][well]=fluor
-					#data[plate][tp]['Fluorescence_norm'][well]=fluor_norm	
-					data[plate][tp]['Fluorescence_dt'][well]=np.diff(fluor)/dt
-					#data[plate][tp]['Fluorescence_norm_dt'][well]=np.diff(fluor_norm)/dt
-				
-				
 					
 
-				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Growth_dt','Fluorescence','Fluorescence_dt']
+					data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_dt']
 
 	return data
 
-def genereader(dfile):
+def labelreader(dfile):
 	genes=NestedDict()
 	rdr=csv.reader(open(dfile,'r'), delimiter=',')
 	data=[ln for ln in rdr]
@@ -967,8 +547,10 @@ def collect(ilist):
 		strain=inm.split('_')[3]
 		tp=inm.split('_')[4]
 		print "File: {}\nPlate: {}\nStrain: {}\nType: {}".format(ifl,plate,strain,tp)
-
-		sheet=readxls(ifl)
+		if itp=='xlsx':
+			sheet=readxls(ifl)
+		else:
+			print 'Unknown file format'
 
 
 		nrows=sheet.nrows
@@ -976,11 +558,11 @@ def collect(ilist):
 		#print nm_labels
 
 		
-		waves=[wlen for wlen in nm_labels if str(wlen)[:2].isdigit()]
+		waves=[int(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
+		print waves
 		lengths=[sheet.row_values(0).index(wave) for wave in waves]
 		#Selection of time cells does not depend om the order of wavelengths		
 		length=max(lengths)
-
 		#print waves, lengths
 		time_row=sheet.row_values(1)[:length]
 		check=list(set([s for s in time_row if isinstance(s,float)]))
@@ -989,28 +571,30 @@ def collect(ilist):
 		else:
 			time_t=[int(t.replace('s','')) for t in time_row]
 		temp=[float(t.split()[0]) for t in sheet.row_values(2)[:length]]
-		timemax_h=time_t[length-1]/3600
-		timestep=time_t[length-1]/(length-1)
-		time=np.linspace(0,timemax_h*3600,length)
-		labels=sheet.col_values(length*2)		
-		data[plate][tp]['Labels']=labels[3:]
-		data[plate][tp]['Spectra']=waves
-		data[plate][tp]['Time']=time
-		data[plate][tp]['Temp']=temp
-		data[plate][tp]['Time_max']=timemax_h
-		data[plate][tp]['Time_step']=timestep
-		data[plate][tp]['Wells']=nrows-3
-		data[plate][tp]['Figures']=waves
-		data[plate][tp]['File']=inm
+		timemax_h=round_to(float(time_t[length-1])/3600,1)
 		
+		timestep=round_to(float(time_t[length-1])/(length-1),1)
+		time=np.linspace(0,timemax_h*3600,length)
+		labels=[l for l in sheet.col_values(length*2) if l not in ['','Well positions']	]
+		data[plate][strain][tp]['Labels']=labels
+		data[plate][strain][tp]['Spectra']=waves
+		data[plate][strain][tp]['Time']=time
+		data[plate][strain][tp]['Temp']=temp
+		data[plate][strain][tp]['Time_max']=timemax_h
+		data[plate][strain][tp]['Time_step']=timestep
+		data[plate][strain][tp]['Wells']=nrows-3
+		data[plate][strain][tp]['Figures']=[str(w)+'nm' for w in waves]
+		data[plate][strain][tp]['File']=inm
 		print "Wavelengths: {}, {}".format(*waves)
-		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, nrows-3)
-		for row in range(3,sheet.nrows):
+		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
+		for row in range(0,len(labels)):
 			for wave in waves:
-				data_row=[60000 if val=="Overflow" else val for val in sheet.row_values(row)[length*(waves.index(wave)):length*(waves.index(wave)+1)]]
-				data[plate][strain][tp][wave][labels[row]]=np.array(data_row)
-				data[plate][strain][tp][wave][labels[row]+'_max']=max(data_row)
-				data[plate][strain][tp][wave][labels[row]+'_min']=min(data_row)
+				data_row=[60000 if val=="Overflow" else val for val in sheet.row_values(row+3)[length*(waves.index(wave)):length*(waves.index(wave)+1)]]
+				#print data_row				
+				swave=str(wave)				
+				data[plate][strain][tp][swave+'nm'][labels[row]]=np.array(data_row)
+				data[plate][strain][tp][swave+'nm'][labels[row]+'_max']=max(data_row)
+				data[plate][strain][tp][swave+'nm'][labels[row]+'_min']=min(data_row)
 
 	return data
 
@@ -1046,12 +630,6 @@ def genlist(ifile):
 				print "Bad file type %(inp)s!" % vars()	
 	return ilist
 
-
-
-def round_to(n, precission):
-	#Round a number to desired precision
-	correction = 0.5 if n >= 0 else -0.5
-	return int(n/precission+correction)*precission
 
 def tableout(inp):
 	#Read file to a list
@@ -1097,9 +675,9 @@ def makesheets(data,genes):
 					for l in labels:
 						if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
 							if algn=='Shift' and tp in ['Control','Experiment']:
-								sheet.append([genes[plate][l]['Gene']]+data[plate][tp]['Shift'][out][l].tolist())
+								sheet.append([genes[plate][l]['Gene']]+data[plate][strain][tp]['Shift'][out][l].tolist())
 							else:
-								sheet.append([genes[plate][l]['Gene']]+data[plate][tp][out][l].tolist())
+								sheet.append([genes[plate][l]['Gene']]+data[plate][strain][tp][out][l].tolist())
 
 
 					sheets[tp][out][algn]=sheet
@@ -1159,6 +737,11 @@ def numerize(s):
 	
     except ValueError:
         return s
+
+def round_to(n, precission):
+	#Round a number to desired precision
+	correction = 0.5 if n >= 0 else -0.5
+	return int(n/precission+correction)*precission
 	
 def filename(ifile):
 	if ifile.split('.')[0]=='':

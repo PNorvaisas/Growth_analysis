@@ -181,16 +181,16 @@ def main(argv=None):
 		data=collect(ilist)		
 		data=analyze(data)
 		dirn=dircheck(odir)
-		#data,allfit=growthfit(data)
-		#growthplot(allfit)		
+		data,allfit=growthfit(data)
+		growthplot(allfit)		
 		plot_comparison(data,metabolites,odir,['Growth','Respiration'])
 	
 		
 		#sheets=makesheets(data,genes)
 		#writesheets(sheets,odir)
-		f = open('Biolog_data.pckl', 'w')
-		pickle.dump(data, f)
-		f.close()
+		#f = open('Biolog_data.pckl', 'w')
+		#pickle.dump(data, f)
+		#f.close()
 	
 
 
@@ -549,33 +549,36 @@ def collect(ilist):
 		print "File: {}\nPlate: {}\nStrain: {}\nType: {}".format(ifl,plate,strain,tp)
 		if itp=='xlsx':
 			sheet=readxls(ifl)
+		elif itp=='asc':
+			sheet=readacs(ifl)
 		else:
 			print 'Unknown file format'
 
 
-		nrows=sheet.nrows
-		nm_labels=list(set(sheet.row_values(0)))
+		nrows=len(sheet)
+		nm_labels=list(set(sheet[0]))
 		#print nm_labels
-
+		#print nrows
 		
-		waves=[int(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
-		print waves
-		lengths=[sheet.row_values(0).index(wave) for wave in waves]
+		waves=[wlen for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
+		#print waves
+		lengths=[sheet[0].index(wave) for wave in waves]
 		#Selection of time cells does not depend om the order of wavelengths		
 		length=max(lengths)
 		#print waves, lengths
-		time_row=sheet.row_values(1)[:length]
+		time_row=sheet[1][:length]
 		check=list(set([s for s in time_row if isinstance(s,float)]))
 		if check:
 			time_t=time_row
 		else:
 			time_t=[int(t.replace('s','')) for t in time_row]
-		temp=[float(t.split()[0]) for t in sheet.row_values(2)[:length]]
+		temp=[float(t.split()[0]) for t in sheet[2][:length]]
 		timemax_h=round_to(float(time_t[length-1])/3600,1)
 		
 		timestep=round_to(float(time_t[length-1])/(length-1),1)
 		time=np.linspace(0,timemax_h*3600,length)
-		labels=[l for l in sheet.col_values(length*2) if l not in ['','Well positions']	]
+		tsheet=zip(*sheet)
+		labels=[l for l in tsheet[length*2] if l not in ['','Well positions']	] #Sheet
 		data[plate][strain][tp]['Labels']=labels
 		data[plate][strain][tp]['Spectra']=waves
 		data[plate][strain][tp]['Time']=time
@@ -589,9 +592,9 @@ def collect(ilist):
 		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
 		for row in range(0,len(labels)):
 			for wave in waves:
-				data_row=[60000 if val=="Overflow" else val for val in sheet.row_values(row+3)[length*(waves.index(wave)):length*(waves.index(wave)+1)]]
+				data_row=[60000 if val=="Overflow" else val for val in sheet[row+3][length*(waves.index(wave)):length*(waves.index(wave)+1)]]
 				#print data_row				
-				swave=str(wave)				
+				swave=str(int(wave))				
 				data[plate][strain][tp][swave+'nm'][labels[row]]=np.array(data_row)
 				data[plate][strain][tp][swave+'nm'][labels[row]+'_max']=max(data_row)
 				data[plate][strain][tp][swave+'nm'][labels[row]+'_min']=min(data_row)
@@ -609,7 +612,7 @@ def genlist(ifile):
 			ilist.extend(genlist(ifl))
 	else:
 		ipath, iname, itype=filename(ifile)
-		if itype in ['xls','xlsx'] and os.path.isfile(ifile):
+		if itype in ['xls','xlsx','asc'] and os.path.isfile(ifile):
 			ilist.append(ifile)
 		elif itype in ['txt',''] and os.path.isfile(ifile):
 			ifl=open(ifile,'r')
@@ -618,7 +621,7 @@ def genlist(ifile):
 			for fld in idata:
 				ilist.extend(genlist(fld))
 
-		elif iname=='' and itype in ['xls','xlsx']:
+		elif iname=='' and itype in ['xls','xlsx','asc']:
 			if itype in ['xls','xlsx']:
 				ffiles=glob.glob('*.%(itype)s' % vars())
 				#print ffiles
@@ -789,8 +792,23 @@ def dircheck(somedir):
 
 def readxls(ifile):
 	book=xlrd.open_workbook(ifile,formatting_info=False)
-	sheet=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm][0])
+	data=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm][0])
+	sheet=[]	
+	for r in range(0,data.nrows):
+		if len(data.row_values(r))>200:
+			#print set(data.row_values(r))
+			sheet.append(data.row_values(r))
 	return sheet
+
+def readacs(ifile):
+	f=open(ifile,'r')
+	sheet=[]
+	for l in f:
+		if len(l.split('\t'))>200:
+			sheet.append([cell.strip() for cell in l.split('\t')])
+	f.close()	
+	return sheet
+	
 
 
 #----------------------------------

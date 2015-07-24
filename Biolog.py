@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#sys.setdefaultencoding('iso-8859-1')
+
 """
 Biolog.py
 
@@ -24,9 +24,16 @@ for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','o
 		print "Module not found %(mod)s\nTrying to install!" % vars()
 		install(mod)		
 		#pass # module doesn't exist, deal with it.
-
+import unicodedata
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from matplotlib import rc
+
+
+#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+#rc('text', usetex=True)
 #from pylab import *
 
 import scipy.signal as sig
@@ -39,7 +46,7 @@ from scipy.optimize import curve_fit
 import numpy as np
 from operator import itemgetter
 from itertools import groupby
-
+import textwrap as tw
 from multiprocessing import Pool
 
 
@@ -100,6 +107,7 @@ def main(argv=None):
 	odir='Output'
 	load=False
 	comparison=False
+	
 	if argv is None:
 		argv = sys.argv
 	try:
@@ -145,10 +153,12 @@ def main(argv=None):
 					ipath, iname, itype = filename(ifile)			
 			else:
 				raise Exception("No files specified.")
-			#if dfile!="":
-			#	dpath, dname, dtype = filename(dfile)			
-			#else:
-			#	raise Exception("No database file specified.")
+			if dfile!="":
+				dpath, dname, dtype = filename(dfile)
+				metabolites=labelreader(dfile)		
+			else:
+				print "No database file specified."
+				metabolites=NestedDict()
 				
 			
 	
@@ -171,19 +181,20 @@ def main(argv=None):
 
 		
 	else:	
-		#metabolites=labelreader(dfile)
-		metabolites=NestedDict()
+		
 		ilist=genlist(ifile)
 		print ilist
+		#print metabolites
 				
 		
 		#checkfiles(ilist)	
 		data=collect(ilist)		
 		data=analyze(data)
-		dirn=dircheck(odir)
+		dirn=dircheck(odir)	
+		
 		data,allfit=growthfit(data)
-		growthplot(allfit)		
-		plot_comparison(data,metabolites,odir,['Growth','Respiration'])
+		#growthplot(allfit)		
+		plot_comparison(data,metabolites,odir,'all') #['Growth','Respiration']
 	
 		
 		#sheets=makesheets(data,genes)
@@ -229,7 +240,7 @@ def plot_comparison(data,metabolites,dirn,figs):
 				else:
 					print 'Figures {} not found'.format(figs)
 
-
+			#print figures
 			for fg in figures:
 				print "Plotting plate {} {} {}...".format(plate,strain,fg)
 				if '_dt' in fg:
@@ -237,13 +248,14 @@ def plot_comparison(data,metabolites,dirn,figs):
 				else:
 					time=data[plate][strain]['NoMetf']['Time']
 				#Need to fix metabolites
-				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fg],exp[fg],time, labels, metabolites)
+				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fg],exp[fg],time, labels, metabolites[plate])
 				plot.savefig('{}/{}.pdf'.format(dirn,plate+'-'+strain+'_'+fg))
 				plot.close()
 	#
 	return data
 
-def plot_2D(title,datac,datae,time,labels,genes):
+def plot_2D(title,datac,datae,time,labels,metabolites):
+	
 	xmax=24
 	plate_size=96
 	#print title
@@ -326,8 +338,9 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
 		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
 		plt.ylim([totalmin,totalmax])
-		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)
-		plt.text(0.15, 0.75, genes[l]['Gene'], fontsize=10,transform=ax.transAxes)
+		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)  u 
+		label=greek_check(metabolites[l]['Metabolite'],12)
+		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 
 		plt.plot(x,yc,'r-',x,ye,'b-')
 
@@ -336,7 +349,20 @@ def plot_2D(title,datac,datae,time,labels,genes):
 def myround(a, decimals=1):
      return np.around(a-10**(-(decimals+5)), decimals=decimals)
 
-
+def greek_check(text,slen):
+	text=unicode(text)
+	greek_alphabet ={'alpha':u'\u03B1','beta':u'\u03B2','gamma':u'\u03B3','delta':u'\u03B4','epsilon':u'\u03B5'}
+	greek_alphabet2 ={'alpha':u'α','beta':u'β','gamma':u'γ','delta':u'δ','epsilon':u'ε'}	
+	tex_alphabet ={u'α':u'$α$',u'β':u'$β$',u'γ':u'$γ$',u'δ':u'$δ$',u'ε':u'$ε$'}
+	uni_alphabet ={'alpha':u'α','beta':u'β','gamma':u'γ','delta':u'δ','epsilon':u'ε'}
+	for k in uni_alphabet.keys():
+		if k in text:
+			text=text.replace(k,uni_alphabet[k])
+	text='\n'.join(tw.wrap(text,slen))
+	for k in tex_alphabet.keys():
+		if k in text:
+			text=text.replace(k,tex_alphabet[k])
+	return text
 
 def growthfit(data):
 	allfit=NestedDict()
@@ -498,44 +524,55 @@ def analyze(data):
 				data[plate][strain][tp]['Time_dt']=(time+dt/2)[:-1]
 				for well in data[plate][strain][tp]['Labels']:
 					gs=np.mean(data[plate][strain][tp]['590nm'][well][:window])
-					rs=np.mean(data[plate][strain][tp]['750nm'][well][:window])
+					ds=np.mean(data[plate][strain][tp]['750nm'][well][:window])
 					
 					growth=Wiener(data[plate][strain][tp]['590nm'][well]-gs,msize)
-					resp=Wiener(data[plate][strain][tp]['750nm'][well]-rs,msize)		
+					dye=Wiener(data[plate][strain][tp]['750nm'][well]-ds,msize)
+					resp=(dye+ds)/(growth+gs)
 	
-			
+					data[plate][strain][tp]['Dye'][well]=dye
+					data[plate][strain][tp]['Dye_dt'][well]=np.diff(dye)/dt	
 					data[plate][strain][tp]['Growth'][well]=growth	
-					data[plate][strain][tp]['Growth_dt'][well]=np.diff(growth)/dt				
+					data[plate][strain][tp]['Growth_dt'][well]=np.diff(growth)/dt
+					data[plate][strain][tp]['Respiration'][well]=resp
+
+					refresp=data[plate][strain][tp]['Respiration']['A1']
+
+					if plate=='PM5':
+						rs=np.mean(resp[:window])			
+						resp=resp-rs
+					else:
+						resp=resp-refresp
+						rs=np.mean(resp[:window])
+						resp=resp-rs	
+					gresp=(growth+gs+0.1)/(resp+rs+0.1)
+					respg=(resp+rs+0.1)/(growth+gs+0.1)
+					gresp=gresp-np.mean(gresp[:window])
+					respg=respg-np.mean(respg[:window])
 					data[plate][strain][tp]['Respiration'][well]=resp	
 					data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/dt
+					data[plate][strain][tp]['Growth-Resp'][well]=gresp
+					data[plate][strain][tp]['Resp-Growth'][well]=respg
 			
 				
 					
 
-					data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_dt']
+				data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_dt','Dye','Dye_dt','Growth-Resp','Resp-Growth']
 
 	return data
 
 def labelreader(dfile):
-	genes=NestedDict()
-	rdr=csv.reader(open(dfile,'r'), delimiter=',')
+	metabolites=NestedDict()
+	rdr=csv.reader(open(dfile,'r'), delimiter=';')
 	data=[ln for ln in rdr]
 	headers=data[0]
 	for ln in data[1:]:
+		ln=[cell.strip() for cell in ln]
 		#print ln
-		genes[ln[0]][ln[1]]['Gene']=ln[2]
-		genes[ln[0]][ln[1]]['Description']=ln[3]
-		if isinstance(genes['Genes'][ln[2]]['Address'], list):
-			genes['Genes'][ln[2]]['Address']=genes['Genes'][ln[2]]['Address']+[[ln[0],ln[1]]]
-		else:
-			genes['Genes'][ln[2]]['Address']=[[ln[0],ln[1]]]
-
-		if isinstance(genes['Genes'][ln[2]]['Description'], str):
-			continue
-		else:
-			genes['Genes'][ln[2]]['Description']=ln[3]
-	#print genes
-	return genes
+		metabolites[ln[0]][ln[1]]['Metabolite']=ln[3]
+		metabolites[ln[0]][ln[1]]['Index']=ln[2]
+		
+	return metabolites
 
 
 
@@ -560,7 +597,7 @@ def collect(ilist):
 		#print nm_labels
 		#print nrows
 		
-		waves=[wlen for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
+		waves=[numerize(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
 		#print waves
 		lengths=[sheet[0].index(wave) for wave in waves]
 		#Selection of time cells does not depend om the order of wavelengths		
@@ -805,8 +842,10 @@ def readacs(ifile):
 	sheet=[]
 	for l in f:
 		if len(l.split('\t'))>200:
-			sheet.append([cell.strip() for cell in l.split('\t')])
-	f.close()	
+			row=[cell.strip() for cell in l.split('\t')]
+			row=[numerize(cell) for cell in row]
+			sheet.append(row)
+	f.close()
 	return sheet
 	
 

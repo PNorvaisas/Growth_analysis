@@ -194,7 +194,7 @@ def main(argv=None):
 		
 		data,allfit=growthfit(data)
 		#growthplot(allfit)		
-		plot_comparison(data,metabolites,odir,'all') #['Growth','Respiration']
+		plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished']) #['Growth','Respiration','Growth_dt','Respiration_dt']
 	
 		
 		#sheets=makesheets(data,genes)
@@ -223,7 +223,7 @@ def plot_comparison(data,metabolites,dirn,figs):
 			ref=data[plate][strain]['NoMetf']
 			exp=data[plate][strain]['Metf']
 			figures_temp=data[plate][strain]['NoMetf']['Figures']
-		
+			figures_temp=figures_temp+['Growth_abolished','Respiration_abolished']
 
 			if figs=='all':
 				figures=figures_temp
@@ -242,13 +242,19 @@ def plot_comparison(data,metabolites,dirn,figs):
 
 			#print figures
 			for fg in figures:
+				if fg=='Growth_abolished':
+					fgl='Growth'
+				elif fg=='Respiration_abolished':
+					fgl='Respiration'
+				else:
+					fgl=fg
 				print "Plotting plate {} {} {}...".format(plate,strain,fg)
 				if '_dt' in fg:
 					time=data[plate][strain]['NoMetf']['Time_dt']
 				else:
 					time=data[plate][strain]['NoMetf']['Time']
 				#Need to fix metabolites
-				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fg],exp[fg],time, labels, metabolites[plate])
+				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fgl],exp[fgl],time, labels, metabolites[plate])
 				plot.savefig('{}/{}.pdf'.format(dirn,plate+'-'+strain+'_'+fg))
 				plot.close()
 	#
@@ -287,22 +293,63 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		ylabel='OD@590nm'
 		decimals=1
 	if fg=='750nm':
-		totalmax=7
+		totalmax=2
+		ticks=4
 		ylabel='OD@750nm'
-		decimals=0
+		decimals=1
 	
 	if fg=='Growth':
 		totalmax=1
-		ticks=4
+		ticks=3
 		ylabel='Growth@590nm'
 		decimals=1
 	if fg=='Growth_dt':
-		totalmax=0.000015
+		totalmax=0.2
 		totalmin=0
 		ticks=3
-		ylabel='OD/dt'
-		decimals=6
+		ylabel='Growth@590nm/dt'
+		decimals=1
 
+	if fg=='Dye':
+		totalmax=1.6
+		ticks=3
+		ylabel='Dye@750nm'
+		decimals=1
+	if fg=='Dye_dt':
+		totalmax=0.3
+		totalmin=0
+		ticks=4
+		ylabel='Dye@750nm/dt'
+		decimals=1
+
+	if fg=='Respiration':
+		totalmax=2
+		ticks=3
+		ylabel='Respiration, Dye/Growth'
+		decimals=1
+
+	if fg=='Respiration_dt':
+		totalmax=0.3
+		totalmin=0
+		ticks=4
+		ylabel='Respiration, Dye/Growth/dt'
+		decimals=1
+
+	if fg=='Growth_abolished':
+		totalmax=100
+		totalmin=-100
+		ticks=3
+		decimals=1
+		ylabel='Growth abolished, %'
+		thres=0.05
+
+	if fg=='Respiration_abolished':
+		totalmax=100
+		totalmin=-100
+		ticks=3
+		decimals=1
+		ylabel='Respiration abolished, %'
+		thres=0.15
 
 
 
@@ -341,8 +388,15 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)  u 
 		label=greek_check(metabolites[l]['Metabolite'],12)
 		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
-
-		plt.plot(x,yc,'r-',x,ye,'b-')
+		if fg in ['Growth_abolished','Respiration_abolished']:
+			ye[ye<thres]=thres
+			yc[yc<thres]=thres
+			yd=(ye*100/yc)-100			
+			plt.plot(x,yd,'k-')
+			plt.fill_between(x, 0, yd, where=yd>=0, facecolor='blue', interpolate=True)
+			plt.fill_between(x, 0, yd, where=yd<=0, facecolor='red', interpolate=True)
+		else:
+			plt.plot(x,yc,'r-',x,ye,'b-')
 
 	return plt
 
@@ -531,9 +585,9 @@ def analyze(data):
 					resp=(dye+ds)/(growth+gs)
 	
 					data[plate][strain][tp]['Dye'][well]=dye
-					data[plate][strain][tp]['Dye_dt'][well]=np.diff(dye)/dt	
+					data[plate][strain][tp]['Dye_dt'][well]=np.diff(dye)/(dt/3600)	
 					data[plate][strain][tp]['Growth'][well]=growth	
-					data[plate][strain][tp]['Growth_dt'][well]=np.diff(growth)/dt
+					data[plate][strain][tp]['Growth_dt'][well]=np.diff(growth)/(dt/3600)
 					data[plate][strain][tp]['Respiration'][well]=resp
 
 					refresp=data[plate][strain][tp]['Respiration']['A1']
@@ -550,14 +604,14 @@ def analyze(data):
 					gresp=gresp-np.mean(gresp[:window])
 					respg=respg-np.mean(respg[:window])
 					data[plate][strain][tp]['Respiration'][well]=resp	
-					data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/dt
-					data[plate][strain][tp]['Growth-Resp'][well]=gresp
-					data[plate][strain][tp]['Resp-Growth'][well]=respg
+					data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/(dt/3600)
+					#data[plate][strain][tp]['Growth-Resp'][well]=gresp
+					#data[plate][strain][tp]['Resp-Growth'][well]=respg
 			
 				
 					
 
-				data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_dt','Dye','Dye_dt','Growth-Resp','Resp-Growth']
+				data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_dt','Dye','Dye_dt']
 
 	return data
 

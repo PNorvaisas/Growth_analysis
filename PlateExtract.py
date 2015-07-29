@@ -100,7 +100,7 @@ def main(argv=None):
 	ifile=""
 	dfile=""
 	msize=20
-	filterf=''
+	filterf='wiener'
 	odir='Output'
 	load=False
 	comparison=False
@@ -1152,20 +1152,27 @@ def genereader(dfile):
 	rdr=csv.reader(open(dfile,'r'), delimiter=',')
 	data=[ln for ln in rdr]
 	headers=data[0]
+	plate=headers.index('Plate')
+	well=headers.index('Well')
+	index=headers.index('Index')
+	gene=headers.index('Gene_Name')
+	desc=headers.index('Description')
 	for ln in data[1:]:
 		#print ln
-		genes[ln[0]][ln[1]]['Gene']=ln[2]
-		genes[ln[0]][ln[1]]['Description']=ln[3]
-		if isinstance(genes['Genes'][ln[2]]['Address'], list):
-			genes['Genes'][ln[2]]['Address']=genes['Genes'][ln[2]]['Address']+[[ln[0],ln[1]]]
+		genes[ln[plate]][ln[well]]['Gene']=ln[gene]
+		genes[ln[plate]][ln[well]]['Description']=ln[desc]
+		genes[ln[plate]][ln[well]]['Index']=ln[index]
+		if isinstance(genes['Genes'][ln[gene]]['Address'], list):
+			genes['Genes'][ln[gene]]['Address']=genes['Genes'][ln[gene]]['Address']+[[ln[plate],ln[well]]]
 		else:
-			genes['Genes'][ln[2]]['Address']=[[ln[0],ln[1]]]
+			genes['Genes'][ln[gene]]['Address']=[[ln[plate],ln[well]]]
 
-		if isinstance(genes['Genes'][ln[2]]['Description'], str):
+		if isinstance(genes['Genes'][ln[gene]]['Description'], str):
 			continue
 		else:
-			genes['Genes'][ln[2]]['Description']=ln[3]
+			genes['Genes'][ln[gene]]['Description']=ln[3]
 	#print genes
+
 	return genes
 
 
@@ -1322,7 +1329,7 @@ def makesheets(data,genes):
 					time=time_dt
 				else:
 					time=time_lin
-				sheet.append(['Gene']+time.tolist())
+				sheet.append(['Gene','Index']+time.tolist())
 				#print tp, algn, out
 				#print output
 			
@@ -1331,9 +1338,9 @@ def makesheets(data,genes):
 					for l in labels:
 						if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
 							if algn=='Shift' and tp in ['Control','Experiment']:
-								sheet.append([genes[plate][l]['Gene']]+data[plate][tp]['Shift'][out][l].tolist())
+								sheet.append([genes[plate][l]['Gene'],genes[plate][l]['Index']]+data[plate][tp]['Shift'][out][l].tolist())
 							else:
-								sheet.append([genes[plate][l]['Gene']]+data[plate][tp][out][l].tolist())
+								sheet.append([genes[plate][l]['Gene'],genes[plate][l]['Index']]+data[plate][tp][out][l].tolist())
 
 
 					sheets[tp][out][algn]=sheet

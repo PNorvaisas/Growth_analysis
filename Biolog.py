@@ -199,9 +199,9 @@ def main(argv=None):
 		
 		#sheets=makesheets(data,genes)
 		#writesheets(sheets,odir)
-		#f = open('Biolog_data.pckl', 'w')
-		#pickle.dump(data, f)
-		#f.close()
+		f = open('Biolog_data.pckl', 'w')
+		pickle.dump(data, f)
+		f.close()
 	
 
 

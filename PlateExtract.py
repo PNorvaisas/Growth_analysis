@@ -196,7 +196,7 @@ def main(argv=None):
 		data=analyze(data,filterf)
 		dirn=dircheck(odir)
 		data,allfit=growthfit(data,False)
-		growthplot(allfit)		
+		#growthplot(allfit)		
 		data=datashift(data,'all','all','all','all')
 		data=analyze_shift(data,filterf)
 		data=differences(data)	
@@ -215,7 +215,6 @@ def main(argv=None):
 	#data,allfit=growthfit(data,False)
 	#growthplot(allfit)
 	#data=datashift(data,'all','all','all','all')
-	#data=analyze2(data,filterf)
 	#plotall(data,'all','Experiment','Growth','C3',False,False)
 	#plotall(data,'all','Control','Growth','C3',False,False)
 	#plotall(data,'all','Experiment','Growth','C3',True,False)
@@ -223,13 +222,10 @@ def main(argv=None):
 	#plot_comparison(data,genes,odir,True,'all')
 
 
-	#plot=plot_2D('1'+"-"+'Fluorescence_norm',data['1']['Control']['Shift']['Fluorescence_norm'],data['1']['Experiment']['Shift']['Fluorescence_norm'],data['1']['Control']['Time'], data['1']['Control']['Labels'], genes['1'])
-
-
-	plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
-	plot_comparison(data,genes,odir,'Shift','all')
+	#plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
+	plot_comparison(data,genes,odir,'Shift',['Activity_dt','Activity_log_dt'])
 	
-	#plotall(data,'all','Experiment','Growth','C3',False,False)
+	#plotall(data,'all','Experiment','Growth','C3',False,False)'Activity',,'Activity_norm_dt','Activity_norm_log_dt'
 	#plotall(data,'all','Control','Growth','C3',False,False)
 
 	#plotall(data,'all','Experiment','Growth_dt','C3',True,False)
@@ -594,6 +590,20 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		ylabel='GFP@535nm'
 		decimals=0
 
+	if fg in ['Activity_log_dt','Activity_norm_log_dt']:
+		totalmax=10
+		totalmin=0
+		ticks=3
+		ylabel='log2(dGFP/dt/OD)'
+		decimals=0
+		#totalmin=-totalmax
+
+	if fg in ['Activity_dt','Activity_norm_dt']:
+		totalmin=0
+		ticks=3
+		ylabel='dGFP/dt/OD'
+		decimals=-1
+
 
 	if fg=='Fluorescence_U139':
 		ylabel='(GFP/OD)/U139_fluor'		
@@ -603,18 +613,18 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		ylabel='Growth@600nm'
 		decimals=1
 	if fg=='Growth_dt':
-		totalmax=0.000015
-		totalmin=0
+		#totalmax=0.000015
+		totalmin=-totalmax
 		ticks=3
 		ylabel='OD/dt'
-		decimals=6
+		decimals=1
 
 	if fg in ['Fluorescence','Fluorescence_norm']:
 		ylabel='GFP/OD'
 		decimals=-1
 
 	if fg in ['Fluorescence_dt','Fluorescence_norm_dt']:
-		ylabel='GFP/dt/OD'
+		ylabel='GFP/OD/dt'
 		totalmax=0.1#max([totalmaxc,totalmaxe])
 		totalmin=-totalmax
 		ticks=4
@@ -628,8 +638,8 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		decimals=0
 
 	if fg=='Fluorescence_norm_log10_dt':
-		totalmax=0.0005
-		totalmin=-totalmax/2
+		#totalmax=0.0005
+		totalmin=-totalmax
 		ticks=4
 		ylabel='Log10(GFP/OD)/dt'
 		decimals=4
@@ -740,7 +750,7 @@ def plot_2Ddiff(title,datac,time,labels,genes):
 		decimals=2
 
 	if fg=='Fluorescence_norm_log10_dt':
-		totalmax=0.0005
+		#totalmax=0.0005
 		ticks=4
 		ylabel='Log10(GFP/OD)/dt'
 		decimals=5
@@ -1013,44 +1023,54 @@ def analyze_shift(data,filterf):
 	msize=20
 	par1=4
 	par2=0.1
-	bar=10
+	bar=1
 	window=10
 	for plate in sorted(data.keys()):
 		for tp in data[plate].keys():
 			if plate!='21':
 				Ufluor=data[plate][tp]['Shift']['Fluorescence']['C10']
+				refsmoothGFP=data[plate][tp]['Shift']['535nm_smooth']['C10']
+				refsmoothOD=data[plate][tp]['Shift']['600nm_smooth']['C10']
+
+
 			else:
 				Ufluor=data['20'][tp]['Shift']['Fluorescence']['C10']
+				refsmoothGFP=data['20'][tp]['Shift']['535nm_smooth']['C10']
+				refsmoothOD=data['20'][tp]['Shift']['600nm_smooth']['C10']
 			time=data[plate][tp]['Time']
+			time_dt=data[plate][tp]['Time_dt']
 			dt=time[1]-time[0]
+			refactivity_temp=(np.diff(refsmoothGFP)/(dt/3600))/interp(time,refsmoothOD,time_dt)
+			refactivity_dt=Wiener(refactivity_temp,msize)
 			for well in data[plate][tp]['Labels']:
 				#if (plate!='21' and well!='A12') or (plate=='21' and well in data[plate][tp]['Labels'][:10]):
 				fluor=data[plate][tp]['Shift']['Fluorescence'][well]
+				smoothOD=data[plate][tp]['Shift']['600nm_smooth'][well]
+				smoothGFP=data[plate][tp]['Shift']['535nm_smooth'][well]			
 				fluor_norm=fluor-Ufluor
 				fluor_norm=fluor_norm-np.mean(fluor_norm[:window])
-				fluor_U139=ratio(fluor,Ufluor,bar)
-				#if filterf=='wiener':
-					#fluor_U139=Wiener(fluor_U139-fluor_U139[0],msize)
-				#	fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
-				#elif filterf=='butter':
-					#fluorU139=Butter(time,fluor_U139-fluor_U139[0],par1,par2)
-				#	fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
 
-		
-				fluor_norm_dt=np.diff(fluor_norm)/dt
+				activity_temp=(np.diff(smoothGFP)/(dt/3600))/interp(time,smoothOD,time_dt)
+				
+
+				activity_dt=setbar(Wiener(activity_temp,msize),1)
+				
+
+				activity_log_dt=np.log2(activity_dt)
+
+
+				fluor_norm_dt=np.diff(fluor_norm)/(dt/3600)
 				fluor_norm_log=np.log10(setbar(fluor_norm,bar))
-				fluor_norm_log_dt=np.diff(fluor_norm_log)/dt
+				fluor_norm_log_dt=np.diff(fluor_norm_log)/(dt/3600)
 				#fluor_U139_dt=np.diff(fluor_U139)/dt
 				data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm
 				data[plate][tp]['Shift']['Fluorescence_norm_log10'][well]=fluor_norm_log
 				data[plate][tp]['Shift']['Fluorescence_norm_log10_dt'][well]=fluor_norm_log_dt
 				data[plate][tp]['Shift']['Fluorescence_norm_dt'][well]=fluor_norm_dt
-				data[plate][tp]['Shift']['Fluorescence_U139'][well]=fluor_U139
-				#data[plate][tp]['Shift']['Fluorescence_U139_dt'][well]=fluor_U139_dt
+				data[plate][tp]['Shift']['Activity_dt'][well]=activity_dt
+				data[plate][tp]['Shift']['Activity_log_dt'][well]=Wiener(activity_log_dt,msize)
 
-					
-					#print plate,tp,well   ,'Fluorescence_U139','Fluorescence_U139_dt'
-			data[plate][tp]['Shift']['Figures']=data[plate][tp]['Figures']+['Fluorescence_norm','Fluorescence_norm_log10','Fluorescence_norm_log10_dt','Fluorescence_norm_dt','Fluorescence_U139']
+			data[plate][tp]['Shift']['Figures']=data[plate][tp]['Figures']+['Fluorescence_norm','Fluorescence_norm_log10','Fluorescence_norm_log10_dt','Fluorescence_norm_dt','Activity_dt','Activity_log_dt']
 
 	return data
 
@@ -1075,11 +1095,11 @@ def ratio(x,y,bar):
 
 
 def analyze(data,filterf):
+	filterf="Wiener"
 	waves=['600nm','535nm']
 	msize=20
 	par1=4
 	par2=0.1
-	method='pre'
 	window=10
 	for plate in sorted(data.keys()):
 		for tp in data[plate].keys():		
@@ -1095,55 +1115,33 @@ def analyze(data,filterf):
 				for well in data[plate][tp]['Labels']:
 					gs=np.mean(data[plate][tp]['600nm'][well][:window])
 					fs=np.mean(data[plate][tp]['535nm'][well][:window])
-
-					if method=='pre':						
+					smooth535=Wiener(data[plate][tp]['535nm'][well]-fs,msize)+fs
+					smooth600=Wiener(data[plate][tp]['600nm'][well]-gs,msize)+gs
+					growth=Wiener(data[plate][tp]['600nm'][well]-gs,msize)
+					fluor=smooth535/smooth600
+					fluor=fluor-np.mean(fluor[:window])
 					
-						if filterf=='wiener':
-							growth=Wiener(data[plate][tp]['600nm'][well]-gs,msize)
-							fluor=(Wiener(data[plate][tp]['535nm'][well]-fs,msize)+fs)/(Wiener(data[plate][tp]['600nm'][well]-gs,msize)+gs)
-							fluor=fluor-np.mean(fluor[:window])
-						elif filterf=='butter':
-							growth=Butter(time,data[plate][tp]['600nm'][well]-gs,par1,par2)
-							fluor=(Butter(time,data[plate][tp]['535nm'][well]-fs,par1,par2)+fs)/(Butter(time,data[plate][tp]['600nm'][well]-gs,par1,par2)+gs)
-							fluor=fluor-np.mean(fluor[:window])
-						else:
-							fluor_norm=fluor-Ufluor
 
 
-					elif method=='post':
-						growth=data[plate][tp]['600nm'][well]-gs
-						fluor=data[plate][tp]['535nm'][well]/data[plate][tp]['600nm'][well]
-						
-					
-						if filterf=='wiener':
-							growth=Wiener(growth,msize)
-							fluor=Wiener(fluor-np.mean(fluor[:window]),msize)
-							#fluor_norm=fluor-Ufluor
-							#fluor_norm=Wiener(fluor_norm-fluor_norm[0],msize)
-						elif filterf=='butter':
-							growth=Butter(time,growth,par1,par2)
-							fluor=Butter(time,fluor-np.mean(fluor[:window]),par1,par2)
-							#fluor_norm=fluor-Ufluor
-							#fluor_norm=Butter(time,fluor_norm-fluor_norm[0],par1,par2)
-						else:
-							fluor_norm=fluor-Ufluor
+
 								
 					#growth=growth-min(growth)
 					#fluor=fluor-min(fluor)
 					#fluor_norm=fluor_norm-min(fluor_norm)
-			
-				
+					data[plate][tp]['535nm_smooth'][well]=smooth535
+					data[plate][tp]['600nm_smooth'][well]=smooth600
 					data[plate][tp]['Growth'][well]=growth	
-					data[plate][tp]['Growth_dt'][well]=np.diff(growth)/dt				
+					data[plate][tp]['Growth_dt'][well]=np.diff(growth)/(dt/3600)				
 					data[plate][tp]['Fluorescence'][well]=fluor
+					#data[plate][tp]['Activity'][well]=activity
 					#data[plate][tp]['Fluorescence_norm'][well]=fluor_norm	
-					data[plate][tp]['Fluorescence_dt'][well]=np.diff(fluor)/dt
+					data[plate][tp]['Fluorescence_dt'][well]=np.diff(fluor)/(dt/3600)
 					#data[plate][tp]['Fluorescence_norm_dt'][well]=np.diff(fluor_norm)/dt
 				
 				
 					
 
-				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Growth_dt','Fluorescence','Fluorescence_dt']
+				data[plate][tp]['Figures']=data[plate][tp]['Figures']+['Growth','Growth_dt','Fluorescence','Fluorescence_dt','600nm_smooth','535nm_smooth']
 
 	return data
 

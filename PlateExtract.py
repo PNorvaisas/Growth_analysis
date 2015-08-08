@@ -195,12 +195,16 @@ def main(argv=None):
 
 		data=analyze(data,filterf)
 		dirn=dircheck(odir)
-		data,allfit=growthfit(data,False)
-		#growthplot(allfit)		
+		data,allfit,allfit2=growthfit(data,False)
+		#growthplot(allfit)
+		#print allfit2	
 		data=datashift(data,'all','all','all','all')
+		data_fake,allfit_fake,allfit_shift=growthfit(data,True)
+		#growthplot(allfit_fake)
 		data=analyze_shift(data,filterf)
 		data=differences(data)	
 		sheets=makesheets(data,genes)
+		sheets=makegrowthsheets(sheets,allfit2,allfit_shift,genes)
 		writesheets(sheets,odir)
 		f = open('UAL_data.pckl', 'w')
 		pickle.dump([data,genes,odir,filterf], f)
@@ -223,7 +227,7 @@ def main(argv=None):
 
 
 	#plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
-	plot_comparison(data,genes,odir,'Shift',['Activity_dt','Activity_log_dt'])
+	#plot_comparison(data,genes,odir,'Shift',['Activity_dt','Activity_log_dt'])
 	
 	#plotall(data,'all','Experiment','Growth','C3',False,False)'Activity',,'Activity_norm_dt','Activity_norm_log_dt'
 	#plotall(data,'all','Control','Growth','C3',False,False)
@@ -394,16 +398,13 @@ def plotall(data,plsel,tpsel,fg,lsel,shifted,norm):
 
 
 
-def growthfit(data,norm):
+def growthfit(data,shifted):
 	allfit=NestedDict()
-	if norm:
-		base=0.1
-		top=0.2
-		y0=0.2
-	else:
-		base=0.01
-		top=0.05
-		y0=0.005
+	allfit2=NestedDict()
+
+	base=0.01
+	top=0.05
+	y0=0.005
 	
 	for plate in data.keys():
 		for tp in data[plate].keys():
@@ -412,11 +413,12 @@ def growthfit(data,norm):
 	
 			for l in labels:
 				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-					y=data[plate][tp]['Growth'][l]
-					if norm:
-						y=(y-min(y))/max(y)
+					if shifted:
+						y=data[plate][tp]['Shift']['Growth'][l]
+					else:
+						y=data[plate][tp]['Growth'][l]
 					x2,y2=cut(x, y, base, top)
-					y2l=np.log(y2)
+					y2l=np.log2(y2)
 					for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
 						try:
 							popt, pcov = curve_fit(growth, x2, ydata)
@@ -435,10 +437,13 @@ def growthfit(data,norm):
 								allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
 							else:
 								allfit[tp][ynm][nm]=[par]
-					
-						data[plate][tp]['GrowthFit'][l][ynm]=[a,c,t0]
+						if shifted:
+							data[plate][tp]['Shift']['GrowthFit'][l][ynm]=[a,c,t0]
+						else:
+							data[plate][tp]['GrowthFit'][l][ynm]=[a,c,t0]
+						allfit2[plate][tp][l][ynm]=[a,c,t0]
 
-	return data,allfit
+	return data,allfit,allfit2
 
 
 
@@ -1053,14 +1058,14 @@ def analyze_shift(data,filterf):
 				activity_temp=(np.diff(smoothGFP)/(dt/3600))/interp(time,smoothOD,time_dt)
 				
 
-				activity_dt=setbar(Wiener(activity_temp,msize),1)
+				activity_dt=setbar(Wiener(activity_temp,25),1)
 				
 
 				activity_log_dt=np.log2(activity_dt)
 
 
 				fluor_norm_dt=np.diff(fluor_norm)/(dt/3600)
-				fluor_norm_log=np.log10(setbar(fluor_norm,bar))
+				fluor_norm_log=np.log2(setbar(fluor_norm,bar))
 				fluor_norm_log_dt=np.diff(fluor_norm_log)/(dt/3600)
 				#fluor_U139_dt=np.diff(fluor_U139)/dt
 				data[plate][tp]['Shift']['Fluorescence_norm'][well]=fluor_norm
@@ -1340,22 +1345,29 @@ def makesheets(data,genes):
 							else:
 								sheet.append([genes[plate][l]['Gene'],genes[plate][l]['Index']]+data[plate][tp][out][l].tolist())
 
+				#Was the shift proper?
+				sheets[tp][out][algn]=sheet
 
-					sheets[tp][out][algn]=sheet
 
-
-	##Implement Difference art in analysis function
-	#for out in ['Fluorescence', 'Fluorescence_norm']:
-	#	sheet=[]
-	#	time=time_lin
-	#	sheet.append(['Gene']+time.tolist())
-	#	for plate in plates:
-	#		for l in labels:
-	#			if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-	#				sheet.append([genes[plate][l]['Gene']]+(data[plate]['Experiment'][out][l]-data[plate]['Control'][out][l]).tolist())
-	#	sheets['Difference'][out]['Diff']=sheet
 
 	return sheets
+
+def makegrowthsheets(sheets,allfit,allfitS,genes):
+	header=['Gene','Index','Plate','Well','Type','Shift','Alignment','a','c','t0']
+	sheet=[]	
+	sheet.append(header)
+	for plate in allfit.keys():
+		for tp in allfit[plate].keys():
+			for l in allfit[plate][tp].keys():
+				for al in allfit[plate][tp][l].keys():
+					sheet.append([genes[plate][l]['Gene'],genes[plate][l]['Index'],plate,l,tp,'Raw',al]+allfit[plate][tp][l][al])
+					sheet.append([genes[plate][l]['Gene'],genes[plate][l]['Index'],plate,l,tp,'Shift',al]+allfitS[plate][tp][l][al])
+
+	sheets['All']['GrowthFit']['Both']=sheet
+	return sheets
+				
+
+	
 
 def writesheets(sheets,odir):
 	#Writes organized data to file.

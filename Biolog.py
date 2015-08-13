@@ -155,10 +155,10 @@ def main(argv=None):
 				raise Exception("No files specified.")
 			if dfile!="":
 				dpath, dname, dtype = filename(dfile)
-				metabolites=labelreader(dfile)		
+				metabolites=readmet(dfile)		
 			else:
 				print "No database file specified."
-				metabolites=NestedDict()
+				sys.exit(1)
 				
 			
 	
@@ -170,13 +170,13 @@ def main(argv=None):
 		print optionsset %vars()
 	#----------------------------
 
-
-	
+	if odir!="":
+		dirn=dircheck(odir)
 
 
 	if load:
 		f = open('Biolog_data.pckl','rb')
-		data = pickle.load(f)
+		data,allfit,metabolites,odir = pickle.load(f)
 		f.close()
 
 		
@@ -190,24 +190,27 @@ def main(argv=None):
 		#checkfiles(ilist)	
 		data=collect(ilist)		
 		data=analyze(data)
-		dirn=dircheck(odir)	
-		
 		data,allfit=growthfit(data)
-		#growthplot(allfit)		
-		plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished']) #['Growth','Respiration','Growth_dt','Respiration_dt']
-	
+
 		
-		#sheets=makesheets(data,genes)
-		#writesheets(sheets,odir)
+		
+		sheets=makesheets(data,metabolites)
+		writesheets(sheets,odir)
 		f = open('Biolog_data.pckl', 'w')
-		pickle.dump(data, f)
+		pickle.dump([data,allfit,metabolites,odir], f)
 		f.close()
 	
+	
+	#data,allfit=growthfit(data)
 
-
+	plot_comparison(data,metabolites,odir,['Respiration_log','Respiration','Resp&Growth','Growth_log','Growth','Dye_log'])
+	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
+		
+	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
 
 	
-	
+	#sheets=makesheets(data,metabolites)	
+	#writesheets(sheets,odir)
 	
 	
 
@@ -223,7 +226,7 @@ def plot_comparison(data,metabolites,dirn,figs):
 			ref=data[plate][strain]['NoMetf']
 			exp=data[plate][strain]['Metf']
 			figures_temp=data[plate][strain]['NoMetf']['Figures']
-			figures_temp=figures_temp+['Growth_abolished','Respiration_abolished']
+			figures_temp=figures_temp+['Growth_abolished','Respiration_abolished','Resp&Growth']
 
 			if figs=='all':
 				figures=figures_temp
@@ -246,21 +249,35 @@ def plot_comparison(data,metabolites,dirn,figs):
 					fgl='Growth'
 				elif fg=='Respiration_abolished':
 					fgl='Respiration'
+
+				elif fg=='Resp&Growth':
+					fgl='Growth_dt_norm'
+					gfitc=ref['dRespiration_dt_norm']
+					gfite=exp['dRespiration_dt_norm']
+					
+				elif fg=='Growth_log':
+					fgl=fg
+					gfitc=ref['GrowthFit']
+					gfite=exp['GrowthFit']
+				
 				else:
 					fgl=fg
+					gfitc=''
+					gfite=''
 				print "Plotting plate {} {} {}...".format(plate,strain,fg)
-				if '_dt' in fg:
+				if '_dt' in fg or fg=='Resp&Growth':
 					time=data[plate][strain]['NoMetf']['Time_dt']
 				else:
 					time=data[plate][strain]['NoMetf']['Time']
+
 				#Need to fix metabolites
-				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fgl],exp[fgl],time, labels, metabolites[plate])
+				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fgl],exp[fgl],time, labels, metabolites[plate],gfitc,gfite)
 				plot.savefig('{}/{}.pdf'.format(dirn,plate+'-'+strain+'_'+fg))
 				plot.close()
 	#
 	return data
 
-def plot_2D(title,datac,datae,time,labels,metabolites):
+def plot_2D(title,datac,datae,time,labels,metabolites,gfitc,gfite):
 	
 	xmax=24
 	plate_size=96
@@ -277,8 +294,16 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		rnd=1
 	else:
 		rnd=0.1
-	totalmaxc=round_to(max([max(datac[l]) for l in labels]),rnd)
-	totalmaxe=round_to(max([max(datae[l]) for l in labels]),rnd)
+	maxc=max([max(datac[l]) for l in labels])
+	maxe=max([max(datae[l]) for l in labels])
+	if maxc>0:		
+		totalmaxc=round_to(maxc,rnd)
+	else:
+		totalmaxc=0
+	if maxe>0:		
+		totalmaxe=round_to(maxe,rnd)
+	else:
+		totalmaxe=0
 	totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
 	totalmine=round_to(min([min(datae[l]) for l in labels]),rnd)
 	totalmax=max([totalmaxc,totalmaxe])
@@ -303,6 +328,14 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		ticks=3
 		ylabel='Growth@590nm'
 		decimals=1
+
+	if fg=='Growth_log':
+		totalmax=0
+		totalmin=-6
+		ticks=4
+		ylabel='log2 Growth@590nm'
+		decimals=1
+
 	if fg=='Growth_dt':
 		totalmax=0.2
 		totalmin=0
@@ -314,6 +347,13 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		totalmax=1.6
 		ticks=3
 		ylabel='Dye@750nm'
+		decimals=1
+
+	if fg=='Dye_log':
+		totalmax=2
+		totalmin=-6
+		ticks=5
+		ylabel='log2 Dye@750nm'
 		decimals=1
 	if fg=='Dye_dt':
 		totalmax=0.3
@@ -328,11 +368,31 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		ylabel='Respiration, Dye/Growth'
 		decimals=1
 
+	if fg=='Respiration_log':
+		totalmax=2
+		totalmin=-6
+		ticks=5
+		ylabel='log2 Respiration, Dye/OD'
+		decimals=0
+
 	if fg=='Respiration_dt':
 		totalmax=0.3
 		totalmin=0
 		ticks=4
-		ylabel='Respiration, Dye/Growth/dt'
+		ylabel='Respiration, Dye/OD/dt'
+		decimals=1
+	if fg=='dRespiration_dt':
+		totalmin=0
+		totalmax=1.5
+		ticks=3
+		ylabel='Respiration, Dye/dt/OD'
+		decimals=1
+
+	if fg=='Resp&Growth':
+		totalmin=0
+		totalmax=1
+		ticks=3
+		ylabel='Normalised growth/dt and respiration/dt (pale)'
 		decimals=1
 
 	if fg=='Growth_abolished':
@@ -371,6 +431,12 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		x=time/3600
 		yc=datac[l]
 		ye=datae[l]
+		if fg=='Growth_log':
+			ca,cc,ct=gfitc[l]
+			ea,ec,et=gfite[l]
+		elif fg=='Resp&Growth':
+			rc=gfitc[l]
+			re=gfite[l]
 		plt.sca(axes[row-1,col-1])
 		ax=axes[row-1,col-1]
 		if col==12:
@@ -386,7 +452,7 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
 		plt.ylim([totalmin,totalmax])
 		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)  u 
-		label=greek_check(metabolites[l]['Metabolite'],12)
+		label=greek_check(metabolites[l]['Name'],12)
 		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 		if fg in ['Growth_abolished','Respiration_abolished']:
 			ye[ye<thres]=thres
@@ -395,8 +461,21 @@ def plot_2D(title,datac,datae,time,labels,metabolites):
 			plt.plot(x,yd,'k-')
 			plt.fill_between(x, 0, yd, where=yd>=0, facecolor='blue', interpolate=True)
 			plt.fill_between(x, 0, yd, where=yd<=0, facecolor='red', interpolate=True)
+
 		else:
+			#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
 			plt.plot(x,yc,'r-',x,ye,'b-')
+			if fg=='Growth_log':
+				if ca>0:
+					yfitc=x*ca+cc
+					plt.plot(x,yfitc,'r-',alpha=0.5)
+				if ea>0:
+					yfite=x*ea+ec
+					plt.plot(x,yfite,'b-',alpha=0.5)
+			elif fg=='Resp&Growth':
+				#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
+				plt.plot(x,rc,'r-',alpha=0.5)
+				plt.plot(x,re,'b-',alpha=0.5)
 
 	return plt
 
@@ -418,60 +497,10 @@ def greek_check(text,slen):
 			text=text.replace(k,tex_alphabet[k])
 	return text
 
-def growthfit(data):
-	allfit=NestedDict()
-	base=0.01
-	top=0.05
-	y0=0.005
-
-	for plate in data.keys():
-		for strain in data[plate].keys():
-			for tp in data[plate][strain].keys():
-				x=data[plate][strain][tp]['Time']
-				labels=data[plate][strain][tp]['Labels']
-	
-				for l in labels:
-
-					y=data[plate][strain][tp]['Growth'][l]
-					x2,y2=cut(x, y, base, top)
-					y2l=np.log(y2)
-					for ydata, ynm in IT.izip([y2,y2l],['Linear','Log']):
-						try:
-							popt, pcov = curve_fit(growth, x2, ydata)
-						except TypeError:
-							'Curve_fit encountered an error!'
-							continue
-						a=popt[0]
-						c=popt[1]
-						if ynm=='Log':
-							t0=(np.log(y0)-c)/(a*60)
-						else:
-							t0=(y0-c)/(a*60)
-						#print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
-						for par,nm in IT.izip([a,c,t0],['a','c','t0']):
-							if allfit[tp][ynm][nm]:
-								allfit[tp][ynm][nm]=allfit[tp][ynm][nm]+[par]
-							else:
-								allfit[tp][ynm][nm]=[par]
-				
-						data[plate][strain][tp]['GrowthFit'][l][ynm]=[a,c,t0]
-
-	return data,allfit
 
 
-def cut(x, y, a,b):
-	x2=[]
-	y2=[]
-	for xt, yt in IT.izip(enumerate(x),enumerate(y)):
-		#print xt, yt	
-		if yt[1]>=a and yt[1]<=b:
-			#if y[yt[0]+1]>=a and y[yt[0]+2]>=a: 
-			x2.append(xt[1])
-			y2.append(yt[1])
-	y2=np.asarray(y2)
-	x2=np.asarray(x2)
-	
-	return x2,y2 
+
+
 
 def growth(x,a,c):
 	y=x*a+c
@@ -486,51 +515,6 @@ def Butter(x, y, par1, par2):
 	fl = sig.filtfilt(b, a, y)
 	return fl
 
-def growthplot(allfit):	
-	
-	plt.figure(0)
-	sbn=np.arange(0,1000,10)
-	plt.hist(allfit['NoMetf']['Log']['t0'],bins=sbn,label='Without metformin - Log')
-	plt.hist(allfit['Metf']['Log']['t0'],bins=sbn,label='With metformin - Log')
-	plt.xlabel('Start, min')
-	plt.ylabel('Number')
-	plt.title('Growth start time with/without metformin - Log')
-	plt.legend()
-	
-	plt.figure(1)
-	slbn=np.arange(0,1000,10)
-	plt.hist(allfit['NoMetf']['Linear']['t0'],bins=sbn,label='Without metformin - Linear')
-	plt.hist(allfit['Metf']['Linear']['t0'],bins=slbn,label='With metformin - Linear')
-	plt.xlabel('Start, min')
-	plt.ylabel('Number')
-	plt.title('Growth start time with/without metformin - Linear')
-	plt.legend()
-
-	plt.figure(2)
-	abn=np.arange(0,2.5,0.1)
-	ac=np.asarray(allfit['NoMetf']['Log']['a'])*3600
-	ae=np.asarray(allfit['Metf']['Log']['a'])*3600
-	plt.hist(ac,bins=abn,label='Without metformin - Log')
-	plt.hist(ae,bins=abn,label='With metformin - Log')
-	plt.xlabel('Growth rate, ln(OD)/h')
-	plt.xlim([0,2.5])
-	plt.ylabel('Number')
-	plt.title('Growth rate with/without metformin - Log')
-	plt.legend()
-
-	plt.figure(3)
-	albn=np.arange(0,0.04,0.005)
-	alc=np.asarray(allfit['NoMetf']['Linear']['a'])*3600
-	ale=np.asarray(allfit['Metf']['Linear']['a'])*3600
-	plt.hist(alc,label='Without metformin - Linear')
-	plt.hist(ale,label='With metformin - Linear')
-	plt.xlabel('Growth rate, OD/h')
-	#plt.xlim([0,0.04])
-	plt.ylabel('Number')
-	plt.title('Growth rate with/without metformin - Linear')
-	plt.legend()
-
-	plt.show()
 
 
 def checkfiles(ilist):
@@ -566,12 +550,16 @@ def analyze(data):
 	par1=4
 	par2=0.1
 	method='pre'
-	window=10
+	window=20
+	thres=np.power(2.0,-5)
+	thresd=np.power(2.0,-5)
 	for plate in sorted(data.keys()):
 		for strain in data[plate].keys():
 			for tp in data[plate][strain].keys():				
 				time=data[plate][strain][tp]['Time']
+				
 				dt=time[1]-time[0]
+				time_dt=(time+dt/2)[:-1]
 				npts=len(time)
 				nyf=0.5/dt
 				print plate,strain,tp
@@ -579,56 +567,198 @@ def analyze(data):
 				for well in data[plate][strain][tp]['Labels']:
 					gs=np.mean(data[plate][strain][tp]['590nm'][well][:window])
 					ds=np.mean(data[plate][strain][tp]['750nm'][well][:window])
+
+					rawod=data[plate][strain][tp]['590nm'][well]
+					rawdye=data[plate][strain][tp]['750nm'][well]
+
+					growth=setbar(rawod-gs,thres)
+					dye=setbar(rawdye-ds,thresd)
+
+
+					growth=setbar(Wiener(growth-thres,msize),0.0)+thres
+					growth_dt=np.diff(growth)/(dt/3600)
+					growth_dt=setbar(Wiener(growth_dt,msize),0.0)
 					
-					growth=Wiener(data[plate][strain][tp]['590nm'][well]-gs,msize)
-					dye=Wiener(data[plate][strain][tp]['750nm'][well]-ds,msize)
-					resp=(dye+ds)/(growth+gs)
+
+					dye=setbar(Wiener(dye-thresd,msize),0.0)+thresd
+					dye_log=np.log2(dye)
+					dye_dt=np.diff(dye)/(dt/3600)
+					dye_dt=setbar(Wiener(dye_dt,msize),0.0)
+					
+
+										
+					resp=dye/growth
+					rs=np.mean(resp[:window])
+					resp=Wiener(resp-rs,msize)
+					resp_log=np.log2(setbar(resp,thresd/4))
+					resp=setbar(resp,0.0)
+					resp_dt=np.diff(resp)/(dt/3600)
+					resp_dt=Wiener(resp_dt,msize)
+					resp_dt=setbar(Wiener(resp_dt,msize),0.0)
+
+					dresp=(np.diff(dye)/(dt/3600))/interp(time,growth,time_dt)
+					dresp=Wiener(dresp,msize)
+					dresp=setbar(dresp,0.0)
+
+
+					
+					#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
+
+					if max(dresp)>0.1:
+						dresp_norm=dresp/max(dresp)
+					else:
+						dresp_norm=np.zeros((len(dresp),), dtype=np.int)
+					if max(growth_dt)>0.01:
+						growth_dt_norm=growth_dt/max(growth_dt)
+					else:
+						growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
+	
+
 	
 					data[plate][strain][tp]['Dye'][well]=dye
-					data[plate][strain][tp]['Dye_dt'][well]=np.diff(dye)/(dt/3600)	
-					data[plate][strain][tp]['Growth'][well]=growth	
-					data[plate][strain][tp]['Growth_dt'][well]=np.diff(growth)/(dt/3600)
+					data[plate][strain][tp]['Dye_log'][well]=dye_log
+					data[plate][strain][tp]['Dye_dt'][well]=dye_dt	
+					data[plate][strain][tp]['Growth'][well]=growth
+					data[plate][strain][tp]['Growth_log'][well]=np.log2(growth)
+					data[plate][strain][tp]['Growth_dt'][well]=growth_dt
+					data[plate][strain][tp]['Growth_dt_norm'][well]=growth_dt_norm
 					data[plate][strain][tp]['Respiration'][well]=resp
+					data[plate][strain][tp]['Respiration_log'][well]=resp_log
+					data[plate][strain][tp]['Respiration_dt'][well]=resp_dt
+					data[plate][strain][tp]['dRespiration_dt'][well]=dresp
+					data[plate][strain][tp]['dRespiration_dt_norm'][well]=dresp_norm
 
 					refresp=data[plate][strain][tp]['Respiration']['A1']
 
-					if plate=='PM5':
-						rs=np.mean(resp[:window])			
-						resp=resp-rs
-					else:
-						resp=resp-refresp
-						rs=np.mean(resp[:window])
-						resp=resp-rs	
-					gresp=(growth+gs+0.1)/(resp+rs+0.1)
-					respg=(resp+rs+0.1)/(growth+gs+0.1)
-					gresp=gresp-np.mean(gresp[:window])
-					respg=respg-np.mean(respg[:window])
-					data[plate][strain][tp]['Respiration'][well]=resp	
-					data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/(dt/3600)
+					#if plate=='PM5':
+					#	rs=np.mean(resp[:window])			
+					#	resp=resp-rs
+					#else:
+					#	resp=resp-refresp
+					#	rs=np.mean(resp[:window])
+					#	resp=resp-rs	
+					#gresp=(growth+gs+0.1)/(resp+rs+0.1)
+					#respg=(resp+rs+0.1)/(growth+gs+0.1)
+					#gresp=gresp-np.mean(gresp[:window])
+					#respg=respg-np.mean(respg[:window])
+					#data[plate][strain][tp]['Respiration'][well]=resp	
+					#data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/(dt/3600)
 					#data[plate][strain][tp]['Growth-Resp'][well]=gresp
 					#data[plate][strain][tp]['Resp-Growth'][well]=respg
 			
 				
 					
 
-				data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_dt','Dye','Dye_dt']
+				data[plate][strain][tp]['Figures']=data[plate][strain][tp]['Figures']+['Growth','Growth_dt','Respiration','Respiration_log','Respiration_dt','Dye','Dye_dt','dRespiration_dt','Growth_log','Growth_dt_norm','dRespiration_dt_norm','Dye_log']
 
 	return data
 
-def labelreader(dfile):
-	metabolites=NestedDict()
-	rdr=csv.reader(open(dfile,'r'), delimiter=';')
+def setbar(x,bar):
+	x2=[xi if xi>bar else bar for xi in x]
+	x2=np.array(x2)
+	return x2
+
+def interp(x,y,x2):
+	tck = ip.splrep(x, y, s=0)
+	y2=ip.splev(x2, tck, der=0)
+	return y2
+
+def readmet(ifile):
+	print ifile
+	nutrients=NestedDict()
+
+	rdr=csv.reader(open(ifile,'r'), delimiter=',')
 	data=[ln for ln in rdr]
 	headers=data[0]
+	metin=headers.index('Metabolite')
+	ecoin=headers.index('EcoCycID')
+	plate=headers.index('Plate')
+	well=headers.index('Well')
+	indx=headers.index('Index')
+	print metin, ecoin,plate,well
 	for ln in data[1:]:
-		ln=[cell.strip() for cell in ln]
-		#print ln
-		metabolites[ln[0]][ln[1]]['Metabolite']=ln[3]
-		metabolites[ln[0]][ln[1]]['Index']=ln[2]
-		
-	return metabolites
+		met=ln[metin].encode('ascii','ignore').strip()
+		eco=ln[ecoin].encode('ascii','ignore').strip()
+		pl=ln[plate].encode('ascii','ignore').strip()
+		wl=ln[well].encode('ascii','ignore').strip()
+		ind=ln[indx].encode('ascii','ignore').strip()
+		nutrients[pl][wl]['ID']=eco
+		nutrients[pl][wl]['Name']=met
+		nutrients[pl][wl]['Index']=ind
 
 
+	#print genes
+	return nutrients
+
+def cut(x, y, a,b):
+	x2=[]
+	y2=[]
+	last=0
+	for xt, yt in IT.izip(enumerate(x),enumerate(y)):
+		df=yt[0]-last
+		#print df
+		if yt[1]>a and yt[1]<b:# and df<3
+			last=yt[0]
+			x2.append(xt[1])
+			y2.append(yt[1])
+	y2=np.asarray(y2)
+	x2=np.asarray(x2)
+	
+	return x2,y2 
+
+def growth(x,a,c):
+	y=x*a+c
+	return y
+
+def growthfit(data):
+	allfit=NestedDict()
+
+	y0=np.power(2.0,-4)
+	
+	for plate in data.keys():
+		for strain in data[plate].keys():
+			for tp in data[plate][strain].keys():
+				x=data[plate][strain][tp]['Time']
+				x=x/3600
+				labels=data[plate][strain][tp]['Labels']
+				ref=data[plate][strain][tp]['Growth']['A1']
+				for l in labels:
+
+					y=data[plate][strain][tp]['Growth_log'][l]
+					#y=setbar(y,np.power(2,-5))
+					#maxy=max(y)
+					#miny=min(y)
+					#yl=np.log2(y)
+					miny=min(y)
+					maxy=max(y)
+					gscale=maxy-miny
+					thres=-5 #-4
+					#print miny, maxy
+					x2,y2=cut(x, y, thres+(maxy-thres)*0.1, thres+(maxy-thres)*0.6) #0.6
+					if len(y2)>0 and gscale>0.5:						
+						try:
+							popt, pcov = curve_fit(growth, x2, y2)
+							a=popt[0]
+							c=popt[1]
+							t0=(np.log2(y0)-c)/(a)
+						except TypeError:
+							print 'Curve_fit encountered an error!'
+							a=0
+							c=0
+							t0=float("inf")
+
+					else:
+						a=0
+						c=0
+						t0=float("inf")
+					for par,nm in IT.izip([a,c,t0],['a','c','t0']):
+						if allfit[tp]['Log'][nm]:
+							allfit[tp]['Log'][nm]=allfit[tp]['Log'][nm]+[par]
+						else:
+							allfit[tp]['Log'][nm]=[par]
+					data[plate][strain][tp]['GrowthFit'][l]=[a,c,t0]
+
+	return data,allfit
 
 def collect(ilist):
 	data=NestedDict()
@@ -739,71 +869,71 @@ def tableout(inp):
 
 	return table
 
-def makesheets(data,genes):
+def makesheets(data,metabolites):
 	sheets=NestedDict()
-	plates=data.keys()
-	labels=data[plates[0]]['Control']['Labels']
+	dt=[]
+	gfit=[]
+	regular=[]
 	
-	time_dt=data[plates[0]]['Control']['Time_dt']
-	time_lin=data[plates[0]]['Control']['Time']
+	header=['Plate','Well','Index','Strain','Type','Data','Name','EcoCycID']
+	ghead=['a','c','t0']
+	gfit.append(header+ghead)
+	for plate in data.keys():
+		for strain in data[plate].keys():
+			for tp in data[plate][strain].keys():
+				output=data[plate][strain][tp]['Figures']
+				output=output+['GrowthFit']
+				time_dt=data[plate][strain][tp]['Time_dt']
+				time_lin=data[plate][strain][tp]['Time']
+				labels=data[plate][strain][tp]['Labels']
+				for fig in output:
+					print plate,strain,tp,fig
+					for well in labels:
+						datrow=data[plate][strain][tp][fig][well]
+						rowhead=[plate,well,plate+'-'+well,strain,tp,fig,metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
+						if not isinstance(datrow,list):
+							datrow=datrow.tolist()
+						newrow=rowhead+datrow
+						if '_dt' in fig:
+							dt.append(newrow)
+					
+						elif fig=='GrowthFit':
+							gfit.append(newrow)
+						else:
+							regular.append(newrow)
 
-	for tp in ['Differences','Ratios','LogRatios','Control','Experiment']:
-		for algn in ['Raw','Shift']:
-			if algn=='Shift' and tp in ['Control','Experiment']:
-				output=data[plates[0]][tp]['Shift']['Figures']
-			else:
-				output=data[plates[0]][tp]['Figures']	
-			for out in output:			
-				sheet=[]
-
-				if '_dt' in out:
-					time=time_dt
-				else:
-					time=time_lin
-				sheet.append(['Gene']+time.tolist())
-				#print tp, algn, out
-				#print output
-			
-				for plate in plates:
-					#print data[plate][tp].keys()
-					for l in labels:
-						if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-							if algn=='Shift' and tp in ['Control','Experiment']:
-								sheet.append([genes[plate][l]['Gene']]+data[plate][strain][tp]['Shift'][out][l].tolist())
-							else:
-								sheet.append([genes[plate][l]['Gene']]+data[plate][strain][tp][out][l].tolist())
-
-
-					sheets[tp][out][algn]=sheet
-
-
-	##Implement Difference art in analysis function
-	#for out in ['Fluorescence', 'Fluorescence_norm']:
-	#	sheet=[]
-	#	time=time_lin
-	#	sheet.append(['Gene']+time.tolist())
-	#	for plate in plates:
-	#		for l in labels:
-	#			if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
-	#				sheet.append([genes[plate][l]['Gene']]+(data[plate]['Experiment'][out][l]-data[plate]['Control'][out][l]).tolist())
-	#	sheets['Difference'][out]['Diff']=sheet
+	time_lin=time_lin.tolist()
+	time_dt=time_dt.tolist()
+	dt.insert(0,header+time_dt)
+	regular.insert(0,header+time_lin)
+	sheets['Data_dt']=dt
+	sheets['Data']=regular
+	sheets['Growth_fit']=gfit
+	
+	#print len(dt[0]),len(dt[1])
+	#print dt[0],dt[1]
 
 	return sheets
+
+
+	
 
 def writesheets(sheets,odir):
 	#Writes organized data to file.
 	#odir=dircheck('Split')
-	for tp in sheets.keys():
-		for fig in sheets[tp].keys():
-			for form in sheets[tp][fig].keys():
-				oname='{}/{}_{}_{}.csv'.format(odir,tp,fig,form)		
-				sheet=sheets[tp][fig][form]
-				f=open(oname,"wb")
-				ofile=csv.writer(f, delimiter='\t') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
-				for row in sheet:
-					#row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
-					ofile.writerow(row)
-				f.close()
+	print sheets.keys()
+	for fig in sheets.keys():
+		print fig
+		oname='{}/{}.csv'.format(odir,fig)		
+		sheet=sheets[fig]
+		print len(sheet)
+		f=open(oname,"wb")
+		ofile=csv.writer(f, delimiter='\t') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
+		for row in sheet:
+			#row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
+			ofile.writerow(row)
+		f.close()
+
 	
 
 def runcmd(cmd):

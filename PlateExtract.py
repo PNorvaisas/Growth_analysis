@@ -410,7 +410,7 @@ def growthfit(data,shifted):
 		for tp in data[plate].keys():
 			x=data[plate][tp]['Time']
 			labels=data[plate][tp]['Labels']
-	
+			x=x/3600
 			for l in labels:
 				if (plate!='21' and l!='A12') or (plate=='21' and l in labels[:10]):
 					if shifted:
@@ -428,9 +428,9 @@ def growthfit(data,shifted):
 						a=popt[0]
 						c=popt[1]
 						if ynm=='Log':
-							t0=(np.log(y0)-c)/(a*60)
+							t0=(np.log2(y0)-c)/a
 						else:
-							t0=(y0-c)/(a*60)
+							t0=(y0-c)/a
 						#print '{} growth rate: {}, start: {}'.format(ynm,a*3600,t0)
 						for par,nm in IT.izip([a,c,t0],['a','c','t0']):
 							if allfit[tp][ynm][nm]:

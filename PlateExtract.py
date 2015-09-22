@@ -199,8 +199,8 @@ def main(argv=None):
 		#growthplot(allfit)
 		#print allfit2	
 		data=datashift(data,'all','all','all','all')
-		data_fake,allfit_fake,allfit_shift=growthfit(data,True)
-		#growthplot(allfit_fake)
+		data_postshift,allfit_postshift,allfit_shift=growthfit(data,True)
+		#growthplot(allfit_postshift)
 		data=analyze_shift(data,filterf)
 		data=differences(data)	
 		sheets=makesheets(data,genes)
@@ -219,16 +219,13 @@ def main(argv=None):
 	#data,allfit=growthfit(data,False)
 	#growthplot(allfit)
 	#data=datashift(data,'all','all','all','all')
-	#plotall(data,'all','Experiment','Growth','C3',False,False)
-	#plotall(data,'all','Control','Growth','C3',False,False)
-	#plotall(data,'all','Experiment','Growth','C3',True,False)
-	#plotall(data,'all','Control','Growth','C3',True,False)
+
 	#plot_comparison(data,genes,odir,True,'all')
 
 
 	#plot_comparison(data,genes,odir,'Differences','Fluorescence_norm_log10')
-	#plot_comparison(data,genes,odir,'Shift',['Activity_dt','Activity_log_dt'])
-	
+	plot_comparison(data,genes,odir,'Shift',['Fluorescence_norm_log10'])
+	#'Fluorescence_norm','Fluorescence_norm_log10','Activity_log_dt'
 	#plotall(data,'all','Experiment','Growth','C3',False,False)'Activity',,'Activity_norm_dt','Activity_norm_log_dt'
 	#plotall(data,'all','Control','Growth','C3',False,False)
 
@@ -245,7 +242,10 @@ def main(argv=None):
 	#plotall(data,'all','Control','Fluorescence_norm_log10_dt','C3',True,False)
 
 
-
+	#plotall(data,'all','Experiment','Growth','C3',False,False)
+	#plotall(data,'all','Control','Growth','C3',False,False)
+	#plotall(data,'all','Experiment','Growth','C3',True,False)
+	#plotall(data,'all','Control','Growth','C3',True,False)
 	#plotall(data,'all','Experiment','535nm','F10',True,False)
 	#plotall(data,'all','Control','535nm','F10',True,False)
 
@@ -618,11 +618,11 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		ylabel='Growth@600nm'
 		decimals=1
 	if fg=='Growth_dt':
-		#totalmax=0.000015
-		totalmin=-totalmax
+		totalmax=0.05
+		totalmin=0
 		ticks=3
 		ylabel='OD/dt'
-		decimals=1
+		decimals=2
 
 	if fg in ['Fluorescence','Fluorescence_norm']:
 		ylabel='GFP/OD'
@@ -636,10 +636,10 @@ def plot_2D(title,datac,datae,time,labels,genes):
 		decimals=1
 
 	if fg=='Fluorescence_norm_log10':
-		totalmax=3
+		totalmax=12
 		totalmin=0
 		ticks=4
-		ylabel='Log10(GFP/OD)'
+		ylabel='Log2(GFP/OD)'
 		decimals=0
 
 	if fg=='Fluorescence_norm_log10_dt':

@@ -301,7 +301,7 @@ def plot_2D(title,datac,time,labels,gfitc):
 
 	
 	if fg=='Growth':
-		totalmax=0.2
+		totalmax=totalmaxc+0.1
 		ticks=3
 		ylabel='Growth@590nm'
 		decimals=1

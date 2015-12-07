@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Biolog.py
+Justgrowth.py
 
 Created by Povilas Norvaisas on 2015-02-26.
 Copyright (c) 2015. All rights reserved.
@@ -24,6 +24,7 @@ for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','o
 		print "Module not found %(mod)s\nTrying to install!" % vars()
 		install(mod)		
 		#pass # module doesn't exist, deal with it.
+
 import unicodedata
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -175,31 +176,31 @@ def main(argv=None):
 		dirn=dircheck(odir)
 
 
-	if load:
-		f = open('Biolog_data.pckl','rb')
-		data,allfit,metabolites,odir = pickle.load(f)
-		f.close()
+	# if load:
+	# 	f = open('Biolog_data.pckl','rb')
+	# 	data,allfit,metabolites,odir = pickle.load(f)
+	# 	f.close()
+    #
+	#
+	# else:
+		
+	ilist=genlist(ifile)
+	print ilist
+	#print metabolites
 
-		
-	else:	
-		
-		ilist=genlist(ifile)
-		print ilist
-		#print metabolites
-				
-		
-		#checkfiles(ilist)	
-		data=collect(ilist)		
-		data=analyze(data)
-		data,allfit=growthfit(data)
 
-		
-		
-		sheets=makesheets(data,metabolites)
-		writesheets(sheets,odir)
-		f = open('Biolog_data.pckl', 'w')
-		pickle.dump([data,allfit,metabolites,odir], f)
-		f.close()
+	#checkfiles(ilist)
+	data=collect(ilist)
+	data=analyze(data)
+	data,allfit=growthfit(data)
+
+
+
+	sheets=makesheets(data,metabolites)
+	writesheets(sheets,odir)
+	f = open('Biolog_data.pckl', 'w')
+	pickle.dump([data,allfit,metabolites,odir], f)
+	f.close()
 	
 	
 	#data,allfit=growthfit(data)
@@ -223,6 +224,9 @@ def plot_comparison(data,metabolites,dirn,figs):
 
 	for plate in sorted(data.keys()):
 		labels=data[plate]['Labels']
+		nwells=data[plate]['Wells']
+		plsize=data[plate]['Used wells']
+		buffered=data[plate]['Bufferd']
 		ref=data[plate]
 		figures_temp=data[plate]['Figures']
 
@@ -259,21 +263,39 @@ def plot_comparison(data,metabolites,dirn,figs):
 				time=data[plate]['Time']
 
 			#Need to fix metabolites
-			plot=plot_2D('{} {}'.format(plate,fg),ref[fgl],time, labels,gfitc)
+			plot=plot_2D('{} {}'.format(plate,fg),ref[fgl],time,labels,gfitc,plsize)
 			plot.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg))
 			plot.close()
 #
 	return data
 
-def plot_2D(title,datac,time,labels,gfitc):
-	
+def plot_2D(title,datac,time,labels,gfitc,plsize):
+	if plsize==96:
+		minrow=1
+		maxrow=8
+		mincol=1
+		maxcol=12
+		cols=12
+		rows=8
+	elif plsize==384:
+		minrow=1
+		maxrow=16
+		mincol=1
+		maxcol=24
+		cols=24
+		rows=16
+	elif plsize==240:
+		minrow=1
+		maxrow=14
+		maxcol=22
+		cols=20
+		rows=12
 	xmax=24
-	plate_size=96
 	#print title
 	plate,fg=title.split()
 	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
 	
-	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
+	fig,axes=plt.subplots(nrows=rows, ncols=cols, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
 	fig.suptitle(title)
 	plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
 	
@@ -296,21 +318,21 @@ def plot_2D(title,datac,time,labels,gfitc):
 	if fg=='600nm':
 		totalmax=0.2
 		ticks=3
-		ylabel='OD@590nm'
+		ylabel='OD@600nm'
 		decimals=1
 
 	
 	if fg=='Growth':
 		totalmax=totalmaxc+0.1
 		ticks=3
-		ylabel='Growth@590nm'
+		ylabel='Growth@600nm'
 		decimals=1
 
 	if fg=='Growth_log':
 		totalmax=0
 		totalmin=-6
 		ticks=4
-		ylabel='log2 Growth@590nm'
+		ylabel='log2 Growth@600nm'
 		decimals=1
 
 	if fg=='Growth_dt':
@@ -329,10 +351,16 @@ def plot_2D(title,datac,time,labels,gfitc):
 	fig.text(0.5, 0.04, xlabel, ha='center')
 	fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
 
-	for v,l in IT.izip(range(plate_size),labels):
-		row=string.uppercase.index(l[0])+1
-		col=int(l.replace(l[0],''))
+	for v,l in IT.izip(range(plsize),labels):
+		if plsize==240:
+			#Numbering inside plot arrangement differs from real numbers by buffer size
+			row=string.uppercase.index(l[0])+1-2
+			col=int(l.replace(l[0],''))-2
+		else:
+			row=string.uppercase.index(l[0])+1
+			col=int(l.replace(l[0],''))
 		#print (row,col)
+
 		if divmod(float(v)/12,1)[1]==0:
 			sh_y=l
 		#print sh_y
@@ -344,18 +372,20 @@ def plot_2D(title,datac,time,labels,gfitc):
 		if fg=='Growth_log':
 			ca,cc,ct=gfitc[l]
 
-		elif fg=='Resp&Growth':
-			rc=gfitc[l]
+		#elif fg=='Resp&Growth':
+		#	rc=gfitc[l]
 
 		plt.sca(axes[row-1,col-1])
 		ax=axes[row-1,col-1]
-		if col==12:
+		#print col,cols
+		#print row,rows
+		if col==cols:
 			ax.yaxis.set_label_position("right")
 			plt.ylabel(l[0],rotation='horizontal')
-		if row==1:
-			plt.title(col)    				
+		if row==minrow:
+			plt.title(str(int(l.replace(l[0],''))))
 
-		if col>1 and row<11:
+		if col>1 and row<rows-1:
 			plt.setp(ax.get_yticklabels(), visible=False)
 
 		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
@@ -547,9 +577,7 @@ def cut(x, y, a,b):
 	
 	return x2,y2 
 
-def growth(x,a,c):
-	y=x*a+c
-	return y
+
 
 def growthfit(data):
 	allfit=NestedDict()
@@ -611,53 +639,83 @@ def collect(ilist):
 			sheet=readacs(ifl)
 		else:
 			print 'Unknown file format'
+			sys.exit(1)
 
+		datarange=sheet[0].index('Well positions')
+
+
+		sheet=[r for r in sheet if len(r)>1]
 
 		nrows=len(sheet)
-		nm_labels=list(set(sheet[0]))
-		#print nm_labels
-		#print nrows
-		#waves=[600]
-		waves=[numerize(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
-		#print waves
-		lengths=[sheet[0].index(wave) for wave in waves]
-		#Selection of time cells does not depend om the order of wavelengths		
-		
-		#print waves, lengths
-		time_row=[t for t in sheet[1] if t!='']
-		check=list(set([s for s in time_row if isinstance(s,float)]))
-		if check:
+		datarange=sheet[0].index('Well positions')
+		nm_labels=[lab for lab in list(set(sheet[0])) if lab not in ['Layout','Well positions','','Replicate Info']]
+
+		if len(nm_labels)>1:
+			starts=[sheet[0].index(lab) for lab in nm_labels]
+		else:
+			starts=[sheet[0].index(nm_labels[0])]
+			if nm_labels[0]=='Raw data':
+				nm_labels[0]='600'
+
+		waves=[numerize(wlen) for wlen in nm_labels]
+
+
+		if len(waves)>1:
+			length=(datarange+1)/len(waves)
+		else:
+			length=datarange+1
+		#Selection of time cells does not depend om the order of wavelengths
+
+		#Extract time
+		time_row=sheet[1][:length-1]
+		if list(set([s for s in time_row if isinstance(s,float)])):
 			time_t=time_row
 		else:
-			time_t=[int(t.replace('s','')) for t in time_row]
-		length=time_t.index(max(time_t))+1
-		temp=[float(t.split()[0]) for t in sheet[2][:length]]
-		timemax_h=round_to(float(time_t[length-1])/3600,1)
-		
-		timestep=round_to(float(time_t[length-1])/(length-1),1)
-		time=np.linspace(0,timemax_h*3600,length)
+			time_t=[int(str(t).replace('s','')) for t in time_row]
 
-		labels=[r[length] for r in sheet if r[length] not in ['','Well positions']	] #Sheet
+		#length=time_t.index(max(time_t))+1
+		temp=[float(t.split()[0]) for t in sheet[2][:length-1]]
+
+		timemax_h=int(round_to(float(time_t[-1])/3600,0.1))
+
+		time=np.linspace(0,timemax_h*3600,length-1)
+
+		timestep=round_to(float(time_t[-1])/(length-2),1)
+		#timestep=time[-1]-time[-2]
+
+		alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
+		labels=[l for l in alllabels if l!='']#Sheet
 		print labels
+
+
+		plsize=len(labels)
+		if 96<plsize<384 or 0<plsize<96:
+			buffer=True
+		else:
+			buffer=False
+
 		data[plate]['Labels']=labels
 		data[plate]['Spectra']=waves
 		data[plate]['Time']=time
 		data[plate]['Temp']=temp
 		data[plate]['Time_max']=timemax_h
 		data[plate]['Time_step']=timestep
-		data[plate]['Wells']=nrows-3
+		data[plate]['Wells']=len(labels)
+		data[plate]['Used wells']=plsize
+		data[plate]['Bufferd']=str(buffer)
 		data[plate]['Figures']=[str(w)+'nm' for w in waves]
 		data[plate]['File']=inm
 		print "Wavelengths: {}".format(*waves)
 		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
-		for row in range(0,len(labels)):
-			for wave in waves:
-				data_row=[val for val in sheet[row+3][length*(waves.index(wave)):length*(waves.index(wave)+1)]]
-				#print data_row				
-				swave=str(int(wave))				
-				data[plate][swave+'nm'][labels[row]]=np.array(data_row)
-				data[plate][swave+'nm'][labels[row]+'_max']=max(data_row)
-				data[plate][swave+'nm'][labels[row]+'_min']=min(data_row)
+		for lab in range(0,len(alllabels)):
+			if alllabels[lab]!='':
+				for wave in waves:
+					data_row=[val for val in sheet[lab+3][length*(waves.index(wave)):length*(waves.index(wave)+1)-1]]
+					#print alllabels[lab],data_row
+					swave=str(int(wave))
+					data[plate][swave+'nm'][alllabels[lab]]=np.array(data_row)
+					data[plate][swave+'nm'][alllabels[lab]+'_max']=max(data_row)
+					data[plate][swave+'nm'][alllabels[lab]+'_min']=min(data_row)
 
 	return data
 
@@ -718,27 +776,26 @@ def makesheets(data,metabolites):
 	ghead=['a','c','t0']
 	gfit.append(header+ghead)
 	for plate in data.keys():
+		output=data[plate]['Figures']
+		output=output+['GrowthFit']
+		time_dt=data[plate]['Time_dt']
+		time_lin=data[plate]['Time']
+		labels=data[plate]['Labels']
+		for fig in output:
+			print plate,fig
+			for well in labels:
+				datrow=data[plate][fig][well]
+				rowhead=[plate,well,fig]
+				if not isinstance(datrow,list):
+					datrow=datrow.tolist()
+				newrow=rowhead+datrow
+				if '_dt' in fig:
+					dt.append(newrow)
 
-			output=data[plate]['Figures']
-			output=output+['GrowthFit']
-			time_dt=data[plate]['Time_dt']
-			time_lin=data[plate]['Time']
-			labels=data[plate]['Labels']
-			for fig in output:
-				print plate,fig
-				for well in labels:
-					datrow=data[plate][fig][well]
-					rowhead=[plate,well,fig]
-					if not isinstance(datrow,list):
-						datrow=datrow.tolist()
-					newrow=rowhead+datrow
-					if '_dt' in fig:
-						dt.append(newrow)
-				
-					elif fig=='GrowthFit':
-						gfit.append(newrow)
-					else:
-						regular.append(newrow)
+				elif fig=='GrowthFit':
+					gfit.append(newrow)
+				else:
+					regular.append(newrow)
 
 	time_lin=time_lin.tolist()
 	time_dt=time_dt.tolist()
@@ -863,10 +920,11 @@ def readacs(ifile):
 	f=open(ifile,'r')
 	sheet=[]
 	for l in f:
-		if len(l.split('\t'))>200:
-			row=[cell.strip() for cell in l.split('\t')]
-			row=[numerize(cell) for cell in row]
-			sheet.append(row)
+		#print l
+		#if len(l.split('\t'))>200:
+		row=[cell.strip() for cell in l.split('\t')]
+		row=[numerize(cell) for cell in row]
+		sheet.append(row)
 	f.close()
 	return sheet
 	

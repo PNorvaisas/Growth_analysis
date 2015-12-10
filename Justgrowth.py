@@ -394,7 +394,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)  u 
 
 		#label=greek_check(metabolites[l]['Name'],12)
-		#plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
+		plt.text(0.05, 0.9, l, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 
 		#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
 		plt.plot(x,yc,'r-')

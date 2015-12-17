@@ -70,9 +70,9 @@ Flags:
 	-v  Verbose output
 Arguments:
 	-i <files>   Input file
-	-d <file>    CSV file with data labels
-	-o <dir>     directory to write output to
-
+	-d <file>    Plate arrangement
+	-o <dir>     Directory to write output to
+	-p <list>	 List of substitutions for each file
 Options:
 	load	     Load pickled data
 
@@ -92,7 +92,7 @@ optionsset='''
 Options:
 <--------------------------------------------->
       Files:	%(ifile)s
-	 DB:	%(dfile)s
+	 	 DB:	%(dfile)s
         Out:	%(odir)s
        Load:	%(load)s
 <--------------------------------------------->
@@ -107,13 +107,14 @@ def main(argv=None):
 	msize=20
 	odir='Output'
 	load=False
+	subs=''
 	comparison=False
 	
 	if argv is None:
 		argv = sys.argv
 	try:
 		try:
-			opts, args = getopt.getopt(argv[1:], "hi:f:d:o:", ["help"])
+			opts, args = getopt.getopt(argv[1:], "hi:f:d:o:p:", ["help"])
 		except getopt.error, msg:
 			raise Usage(msg)
 
@@ -124,8 +125,10 @@ def main(argv=None):
 				return	
 			if option in ("-i", "--input"):
 				ifile=value
-			if option in ("-d", "--db"):
+			if option in ("-d", "--desc"):
 				dfile=value
+			if option in ("-p", "--parameters"):
+				subst=value
 			if option in ("-o", "--out"):
 				odir=value
 	
@@ -145,31 +148,31 @@ def main(argv=None):
 
 	print '''\n\n---------------------------\n\n'''
 	
-	if not load:
-		try:
-			if ifile!="":
-				ifiles=ifile.split(',')
-				for ifl in ifiles:
-					print '{} {}'.format(ifl,os.path.isfile(ifl))
-					ipath, iname, itype = filename(ifile)			
-			else:
-				raise Exception("No files specified.")
-			if dfile!="":
-				dpath, dname, dtype = filename(dfile)
-				metabolites=readmet(dfile)		
-			else:
-				print "No database file specified."
-				metabolites={}
-				#sys.exit(1)
-				
-			
-	
-		except Exception, e:
-			print e
-			#print "!!!-------------------------------------------!!!"
-			sys.exit(1)
+	# if not load:
+	# 	try:
+	# 		if ifile!="":
+	# 			ifiles=ifile.split(',')
+	# 			for ifl in ifiles:
+	# 				print '{} {}'.format(ifl,os.path.isfile(ifl))
+	# 				ipath, iname, itype = filename(ifile)
+	# 		else:
+	# 			raise Exception("No files specified.")
+	# 		if dfile!="":
+	# 			dpath, dname, dtype = filename(dfile)
+	# 			metabolites=readmet(dfile)
+	# 		else:
+	# 			print "No database file specified."
+	# 			metabolites={}
+	# 			#sys.exit(1)
+	#
+	#
+	#
+	# 	except Exception, e:
+	# 		print e
+	# 		#print "!!!-------------------------------------------!!!"
+	# 		sys.exit(1)
 
-		print optionsset %vars()
+	print optionsset %vars()
 	#----------------------------
 
 	if odir!="":
@@ -183,10 +186,20 @@ def main(argv=None):
     #
 	#
 	# else:
-		
+
+
 	ilist=genlist(ifile)
-	print ilist
-	#print metabolites
+	if dfile!='':
+		dlist=genlist(dfile)
+		if subst!='':
+			subs=[st.split('|') for st in subst.split(',')]
+		else:
+			subs=[['']*len(ilist)]
+		descriptors=readdesc(ilist,dlist,subs)
+	else:
+			descriptors={}
+	#print ilist
+	#print dlist
 
 
 	#checkfiles(ilist)
@@ -196,16 +209,16 @@ def main(argv=None):
 
 
 
-	sheets=makesheets(data,metabolites)
+	sheets=makesheets(data,descriptors)
 	writesheets(sheets,odir)
 	f = open('Biolog_data.pckl', 'w')
-	pickle.dump([data,allfit,metabolites,odir], f)
+	pickle.dump([data,allfit,descriptors,odir], f)
 	f.close()
 	
 	
 	#data,allfit=growthfit(data)
 
-	plot_comparison(data,metabolites,odir,['Respiration_log','Respiration','Resp&Growth','Growth_log','Growth','Dye_log'])
+	plot_comparison(data,odir,['Growth_log','Growth','600nm'])
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
 	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
@@ -220,7 +233,7 @@ def main(argv=None):
 
 
 
-def plot_comparison(data,metabolites,dirn,figs):
+def plot_comparison(data,dirn,figs):
 
 	for plate in sorted(data.keys()):
 		labels=data[plate]['Labels']
@@ -685,7 +698,7 @@ def collect(ilist):
 
 		alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
 		labels=[l for l in alllabels if l!='']#Sheet
-		print labels
+		#print labels
 
 
 		plsize=len(labels)
@@ -766,15 +779,24 @@ def tableout(inp):
 
 	return table
 
-def makesheets(data,metabolites):
+def makesheets(data,descriptors):
 	sheets=NestedDict()
 	dt=[]
 	gfit=[]
 	regular=[]
 	
-	header=['Plate','Well','Data']
+	header_temp=['Plate','Well','Data']
+
+	desckeys=[]
+	if len(descriptors.keys())>0:
+		hasdesc=[pl for pl in descriptors.keys() if len(descriptors[pl].keys())>0]
+		if len(hasdesc)>0:
+			desckeys=sorted(descriptors[hasdesc[0]].keys())
+			header=header_temp+desckeys
+	header=header_temp+desckeys
+
 	ghead=['a','c','t0']
-	gfit.append(header+ghead)
+
 	for plate in data.keys():
 		output=data[plate]['Figures']
 		output=output+['GrowthFit']
@@ -786,8 +808,14 @@ def makesheets(data,metabolites):
 			for well in labels:
 				datrow=data[plate][fig][well]
 				rowhead=[plate,well,fig]
+				if len(descriptors.keys())>0:
+					if len(descriptors[plate].keys())>0:
+						rowhead=rowhead+[descriptors[plate][dk][well] for dk in desckeys]
+				else:
+					rowhead=rowhead+['']*len(desckeys)
 				if not isinstance(datrow,list):
 					datrow=datrow.tolist()
+
 				newrow=rowhead+datrow
 				if '_dt' in fig:
 					dt.append(newrow)
@@ -801,6 +829,7 @@ def makesheets(data,metabolites):
 	time_dt=time_dt.tolist()
 	dt.insert(0,header+time_dt)
 	regular.insert(0,header+time_lin)
+	gfit.insert(0,header)
 	sheets['Data_dt']=dt
 	sheets['Data']=regular
 	sheets['Growth_fit']=gfit
@@ -927,6 +956,30 @@ def readacs(ifile):
 		sheet.append(row)
 	f.close()
 	return sheet
+
+
+def readdesc(ilist,dlist,subs):
+	descriptors=NestedDict()
+	for din in range(0,len(dlist)):
+		ipath, iname, itype=filename(ilist[din])
+		dfile=dlist[din]
+		sub=subs[din]
+		substitutes={par.split(':')[0]:par.split(':')[1] for par in sub }
+		book=xlrd.open_workbook(dfile,formatting_info=False)
+		for nm in book.sheet_names():
+			data=book.sheet_by_name(nm)
+			headers=data.row_values(0)[1:]
+			for r in range(1,data.nrows):
+				rh=data.row_values(r)[0]
+				row=data.row_values(r)[1:]
+				for vin in range(0,len(row)):
+					val=row[vin]
+					ch=headers[vin]
+					if nm in substitutes.keys():
+						descriptors[iname][nm][rh+str(int(ch))]=substitutes[nm]
+					else:
+						descriptors[iname][nm][rh+str(int(ch))]=val
+	return descriptors
 	
 
 

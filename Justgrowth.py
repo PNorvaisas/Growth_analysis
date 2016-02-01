@@ -107,7 +107,7 @@ def main(argv=None):
 	msize=20
 	odir='Output'
 	load=False
-	subs=''
+	subst=''
 	comparison=False
 	
 	if argv is None:
@@ -189,15 +189,21 @@ def main(argv=None):
 
 
 	ilist=genlist(ifile)
+	#print ilist
 	if dfile!='':
 		dlist=genlist(dfile)
+		# print dlist
 		if subst!='':
 			subs=[st.split('|') for st in subst.split(',')]
 		else:
-			subs=[['']*len(ilist)]
+			subs=[[]]*len(ilist)
+		#print subs
 		descriptors=readdesc(ilist,dlist,subs)
 	else:
-			descriptors={}
+		descriptors={}
+
+	#print 'Descriptors'
+	#print descriptors
 	#print ilist
 	#print dlist
 
@@ -964,7 +970,10 @@ def readdesc(ilist,dlist,subs):
 		ipath, iname, itype=filename(ilist[din])
 		dfile=dlist[din]
 		sub=subs[din]
-		substitutes={par.split(':')[0]:par.split(':')[1] for par in sub }
+		if not sub:
+			substitutes={}
+		else:
+			substitutes={par.split(':')[0]:par.split(':')[1] for par in sub }
 		book=xlrd.open_workbook(dfile,formatting_info=False)
 		for nm in book.sheet_names():
 			data=book.sheet_by_name(nm)

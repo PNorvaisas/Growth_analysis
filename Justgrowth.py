@@ -245,7 +245,7 @@ def plot_comparison(data,dirn,figs):
 		labels=data[plate]['Labels']
 		nwells=data[plate]['Wells']
 		plsize=data[plate]['Used wells']
-		buffered=data[plate]['Bufferd']
+		buffered=data[plate]['Buffered']
 		ref=data[plate]
 		figures_temp=data[plate]['Figures']
 
@@ -296,6 +296,13 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 		maxcol=12
 		cols=12
 		rows=8
+	elif plsize==12:
+		minrow=1
+		maxrow=3
+		mincol=1
+		maxcol=4
+		cols=4
+		rows=3
 	elif plsize==384:
 		minrow=1
 		maxrow=16
@@ -336,28 +343,40 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 	decimals=1
 	if fg=='600nm':
 		totalmax=0.2
-		ticks=3
+		if plsize>12:
+			ticks=3
+		else:
+			ticks=5
 		ylabel='OD@600nm'
 		decimals=1
 
 	
 	if fg=='Growth':
 		totalmax=totalmaxc+0.1
-		ticks=3
+		if plsize>12:
+			ticks=3
+		else:
+			ticks=5
 		ylabel='Growth@600nm'
 		decimals=1
 
 	if fg=='Growth_log':
 		totalmax=0
 		totalmin=-6
-		ticks=4
+		if plsize>12:
+			ticks=4
+		else:
+			ticks=6
 		ylabel='log2 Growth@600nm'
 		decimals=1
 
 	if fg=='Growth_dt':
 		totalmax=0.2
 		totalmin=0
-		ticks=3
+		if plsize>12:
+			ticks=3
+		else:
+			ticks=5
 		ylabel='Growth@600nm/dt'
 		decimals=1
 
@@ -506,7 +525,7 @@ def analyze(data):
 		npts=len(time)
 		nyf=0.5/dt
 		print plate
-		data[plate]['Time_dt']=(time+dt/2)[:-1]
+		data[plate]['Time_dt']=time_dt
 		for well in data[plate]['Labels']:
 			gs=np.mean(data[plate]['600nm'][well][:window])
 
@@ -514,12 +533,12 @@ def analyze(data):
 			rawod=data[plate]['600nm'][well]
 
 
-			growth=setbar(rawod-gs,thres)
+			growth=setbar(rawod-gs,0.0)
 
 
 
-			growth=setbar(Wiener(growth-thres,msize),0.0)+thres
-			growth_dt=np.diff(growth)/(dt/3600)
+			#growth=setbar(Wiener(growth-thres,msize),0.0)+thres
+			growth_dt=np.diff(setbar(Wiener(growth-thres,msize),0.0)+thres)/(dt/3600)
 			growth_dt=setbar(Wiener(growth_dt,msize),0.0)
 			
 			
@@ -532,7 +551,7 @@ def analyze(data):
 
 
 			data[plate]['Growth'][well]=growth
-			data[plate]['Growth_log'][well]=np.log2(growth)
+			data[plate]['Growth_log'][well]=np.log2(setbar(growth,thres))
 			data[plate]['Growth_dt'][well]=growth_dt
 			data[plate]['Growth_dt_norm'][well]=growth_dt_norm
 
@@ -708,7 +727,7 @@ def collect(ilist):
 
 
 		plsize=len(labels)
-		if 96<plsize<384 or 0<plsize<96:
+		if 96<plsize<384 or 12<plsize<96:
 			buffer=True
 		else:
 			buffer=False
@@ -721,7 +740,7 @@ def collect(ilist):
 		data[plate]['Time_step']=timestep
 		data[plate]['Wells']=len(labels)
 		data[plate]['Used wells']=plsize
-		data[plate]['Bufferd']=str(buffer)
+		data[plate]['Buffered']=str(buffer)
 		data[plate]['Figures']=[str(w)+'nm' for w in waves]
 		data[plate]['File']=inm
 		print "Wavelengths: {}".format(*waves)

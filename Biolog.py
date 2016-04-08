@@ -150,7 +150,7 @@ def main(argv=None):
 				ifiles=ifile.split(',')
 				for ifl in ifiles:
 					print '{} {}'.format(ifl,os.path.isfile(ifl))
-					ipath, iname, itype = filename(ifile)			
+					ipath, iname, itype = filename(ifile)
 			else:
 				raise Exception("No files specified.")
 			if dfile!="":
@@ -182,28 +182,28 @@ def main(argv=None):
 		
 	else:	
 		
-		ilist=genlist(ifile)
+		ilist,info=genlist(ifile)
 		print ilist
 		#print metabolites
 				
 		
 		#checkfiles(ilist)	
-		data=collect(ilist)		
+		data=collect(ilist,info)
 		data=analyze(data)
 		data,allfit=growthfit(data)
 
 		
 		
 		sheets=makesheets(data,metabolites)
-		writesheets(sheets,odir)
-		f = open('Biolog_data.pckl', 'w')
-		pickle.dump([data,allfit,metabolites,odir], f)
-		f.close()
+		writesheets(sheets,odir,sep=',')
+		#f = open('Biolog_data.pckl', 'w')
+		#pickle.dump([data,allfit,metabolites,odir], f)
+		#f.close()
 	
 	
 	#data,allfit=growthfit(data)
 
-	plot_comparison(data,metabolites,odir,['Respiration_log','Respiration','Resp&Growth','Growth_log','Growth','Dye_log'])
+	plot_comparison(data,metabolites,odir,['Respiration_log','Respiration','Resp&Growth','Growth_log','Growth','Dye','Dye_log','Growth_dt'])
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
 	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
@@ -222,10 +222,10 @@ def plot_comparison(data,metabolites,dirn,figs):
 
 	for plate in sorted(data.keys()):
 		for strain in data[plate].keys():
-			labels=data[plate][strain]['NoMetf']['Labels']
-			ref=data[plate][strain]['NoMetf']
-			exp=data[plate][strain]['Metf']
-			figures_temp=data[plate][strain]['NoMetf']['Figures']
+			labels=data[plate][strain]['Control']['Labels']
+			ref=data[plate][strain]['Control']
+			exp=data[plate][strain]['Treatment']
+			figures_temp=data[plate][strain]['Control']['Figures']
 			figures_temp=figures_temp+['Growth_abolished','Respiration_abolished','Resp&Growth']
 
 			if figs=='all':
@@ -266,9 +266,9 @@ def plot_comparison(data,metabolites,dirn,figs):
 					gfite=''
 				print "Plotting plate {} {} {}...".format(plate,strain,fg)
 				if '_dt' in fg or fg=='Resp&Growth':
-					time=data[plate][strain]['NoMetf']['Time_dt']
+					time=data[plate][strain]['Control']['Time_dt']
 				else:
-					time=data[plate][strain]['NoMetf']['Time']
+					time=data[plate][strain]['Control']['Time']
 
 				#Need to fix metabolites
 				plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fgl],exp[fgl],time, labels, metabolites[plate],gfitc,gfite)
@@ -571,23 +571,24 @@ def analyze(data):
 					rawod=data[plate][strain][tp]['590nm'][well]
 					rawdye=data[plate][strain][tp]['750nm'][well]
 
-					growth=setbar(rawod-gs,thres)
-					dye=setbar(rawdye-ds,thresd)
+					growth=setbar(rawod-gs,0.0)
+					dye=setbar(rawdye-ds,0.0)
 
 
-					growth=setbar(Wiener(growth-thres,msize),0.0)+thres
-					growth_dt=np.diff(growth)/(dt/3600)
+					growthf=Wiener(growth,msize)
+					growth_log=np.log2(setbar(growthf,thres))
+					growth_dt=np.diff(growthf)/(dt/3600)
 					growth_dt=setbar(Wiener(growth_dt,msize),0.0)
 					
 
-					dye=setbar(Wiener(dye-thresd,msize),0.0)+thresd
-					dye_log=np.log2(dye)
+					dyef=Wiener(dye,msize)
+					dye_log=np.log2(setbar(dyef,thresd))
 					dye_dt=np.diff(dye)/(dt/3600)
 					dye_dt=setbar(Wiener(dye_dt,msize),0.0)
 					
 
-										
-					resp=dye/growth
+					#Need threshold
+					resp=setbar(dyef,thresd)/setbar(growthf,thres)
 					rs=np.mean(resp[:window])
 					resp=Wiener(resp-rs,msize)
 					resp_log=np.log2(setbar(resp,thresd/4))
@@ -619,7 +620,7 @@ def analyze(data):
 					data[plate][strain][tp]['Dye_log'][well]=dye_log
 					data[plate][strain][tp]['Dye_dt'][well]=dye_dt	
 					data[plate][strain][tp]['Growth'][well]=growth
-					data[plate][strain][tp]['Growth_log'][well]=np.log2(growth)
+					data[plate][strain][tp]['Growth_log'][well]=growth_log
 					data[plate][strain][tp]['Growth_dt'][well]=growth_dt
 					data[plate][strain][tp]['Growth_dt_norm'][well]=growth_dt_norm
 					data[plate][strain][tp]['Respiration'][well]=resp
@@ -760,13 +761,20 @@ def growthfit(data):
 
 	return data,allfit
 
-def collect(ilist):
+def collect(ilist,info):
 	data=NestedDict()
 	for ifl in sorted(ilist):		
-		ipt, inm, itp = filename(ifl)	
-		plate=inm.split('_')[2]
-		strain=inm.split('_')[3]
-		tp=inm.split('_')[4]
+		ipt, inm, itp = filename(ifl)
+		if ifl in info.keys():
+			#fin=info[ifl]
+			plate=info[ifl]['Plate']
+			strain=info[ifl]['Strain']
+			tp=info[ifl]['Type']
+			#rpl=info[ifl]['Replicate']
+		else:
+			plate=inm.split('_')[2]
+			strain=inm.split('_')[3]
+			tp='Control' if inm.split('_')[4]=='NoMetf' else 'Treatment'
 		print "File: {}\nPlate: {}\nStrain: {}\nType: {}".format(ifl,plate,strain,tp)
 		if itp=='xlsx':
 			sheet=readxls(ifl)
@@ -827,6 +835,7 @@ def collect(ilist):
 def genlist(ifile):
 	#Generates list of input files, checks their existance
 	ilist=[]
+	info=NestedDict()
 	if ',' in ifile:
 		ifiles=ifile.split(',')
 		for ifl in ifiles:
@@ -835,6 +844,10 @@ def genlist(ifile):
 		ipath, iname, itype=filename(ifile)
 		if itype in ['xls','xlsx','asc'] and os.path.isfile(ifile):
 			ilist.append(ifile)
+		elif itype in ['csv'] and os.path.isfile(ifile):
+			ilist,info=readinfo(ifile)
+			#for flt in ilistt:
+			#	ilist.extend(genlist(flt))
 		elif itype in ['txt',''] and os.path.isfile(ifile):
 			ifl=open(ifile,'r')
 			idata=ifl.read().split('\n')
@@ -852,7 +865,33 @@ def genlist(ifile):
 					ilist.extend(genlist(tfile))
 			else:
 				print "Bad file type %(inp)s!" % vars()	
-	return ilist
+	return ilist,info
+
+def readinfo(ifile):
+	print ifile
+	info=NestedDict()
+	ilist=[]
+	rdr=csv.reader(open(ifile,'r'), delimiter=',')
+	data=[ln for ln in rdr]
+	headers=data[0]
+	filein=headers.index('File')
+	platein=headers.index('Plate')
+	strainin=headers.index('Strain')
+	typein=headers.index('Type')
+	#print metin, ecoin,plate,well
+	for ln in data[1:]:
+		fl=ln[filein].encode('ascii','ignore').strip()
+		pl=ln[platein].encode('ascii','ignore').strip()
+		st=ln[strainin].encode('ascii','ignore').strip()
+		tp=ln[typein].encode('ascii','ignore').strip()
+		ilist.append(fl)
+		info[fl]['Plate']=pl
+		info[fl]['Strain']=st
+		info[fl]['Type']=tp
+
+	#print genes
+	return ilist, info
+
 
 
 def tableout(inp):
@@ -918,7 +957,7 @@ def makesheets(data,metabolites):
 
 	
 
-def writesheets(sheets,odir):
+def writesheets(sheets,odir,sep='\t'):
 	#Writes organized data to file.
 	#odir=dircheck('Split')
 	print sheets.keys()
@@ -928,7 +967,7 @@ def writesheets(sheets,odir):
 		sheet=sheets[fig]
 		print len(sheet)
 		f=open(oname,"wb")
-		ofile=csv.writer(f, delimiter='\t') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
+		ofile=csv.writer(f, delimiter=sep) # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
 		for row in sheet:
 			#row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
 			ofile.writerow(row)

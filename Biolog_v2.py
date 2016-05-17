@@ -482,7 +482,7 @@ def plot_2D(title,datac,datae,time,labels,metabolites,gfitc,gfite):
 
 	return plt
 
-def uniquecomb(info):
+# def uniquecomb(info):
 
 
 def myround(a, decimals=1):

@@ -210,6 +210,7 @@ def main(argv=None):
 
 	#checkfiles(ilist)
 	data=collect(ilist)
+	#sys.exit(1)
 	data=analyze(data)
 	data,allfit=growthfit(data)
 
@@ -224,7 +225,7 @@ def main(argv=None):
 	
 	#data,allfit=growthfit(data)
 
-	plot_comparison(data,odir,['Growth_log','Growth','600nm'])
+	plot_comparison(data,odir,['Growth_log','Growth','600nm','590nm','750nm','750nmC'])
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
 	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
@@ -254,10 +255,10 @@ def plot_comparison(data,dirn,figs):
 			
 		elif isinstance(figs, list):
 			figs_ch=[f for f in figs if f in figures_temp]
-			if len(figs)>0:
+			if len(figs_ch)>0:
 				figures=figs_ch
 			else:
-				print 'Figures {} not found'.format(figs_ch)
+				print 'Figures {} not found'.format(figs)
 		elif isinstance(figs, str) or isinstance(figs, unicode):
 			if figs in figures_temp:
 				figures=[figs]
@@ -341,13 +342,13 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 	xlabel='Time, h'
 	ylabel=''
 	decimals=1
-	if fg=='600nm':
+	if fg in ['600nm','590nm']:
 		totalmax=0.2
 		if plsize>12:
 			ticks=3
 		else:
 			ticks=5
-		ylabel='OD@600nm'
+		ylabel='OD@600nm' if fg=='600nm' else 'OD@590nm'
 		decimals=1
 
 	
@@ -357,7 +358,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 			ticks=3
 		else:
 			ticks=5
-		ylabel='Growth@600nm'
+		ylabel='Growth'
 		decimals=1
 
 	if fg=='Growth_log':
@@ -367,7 +368,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 			ticks=4
 		else:
 			ticks=6
-		ylabel='log2 Growth@600nm'
+		ylabel='log2 Growth'
 		decimals=1
 
 	if fg=='Growth_dt':
@@ -377,7 +378,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 			ticks=3
 		else:
 			ticks=5
-		ylabel='Growth@600nm/dt'
+		ylabel='Growth/dt'
 		decimals=1
 
 
@@ -517,6 +518,7 @@ def analyze(data):
 	window=20
 	thres=np.power(2.0,-5)
 	thresd=np.power(2.0,-5)
+
 	for plate in sorted(data.keys()):			
 		time=data[plate]['Time']
 		
@@ -526,39 +528,41 @@ def analyze(data):
 		nyf=0.5/dt
 		print plate
 		data[plate]['Time_dt']=time_dt
-		for well in data[plate]['Labels']:
-			gs=np.mean(data[plate]['600nm'][well][:window])
-
-
-			rawod=data[plate]['600nm'][well]
-
-
-			growth=setbar(rawod-gs,0.0)
-
-
-
-			#growth=setbar(Wiener(growth-thres,msize),0.0)+thres
-			growth_dt=np.diff(setbar(Wiener(growth-thres,msize),0.0)+thres)/(dt/3600)
-			growth_dt=setbar(Wiener(growth_dt,msize),0.0)
-			
-			
-			#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
-
-			if max(growth_dt)>0.01:
-				growth_dt_norm=growth_dt/max(growth_dt)
+		waves=data[plate]['Spectra']
+		for wave in waves:
+			if wave in ['590nm','600nm']:
+				wabl='Growth'
 			else:
-				growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
+				wabl=wave+'C'
+
+			for well in data[plate]['Labels']:
+				#print data[plate][wave][well][:window]
+				gs=np.mean(data[plate][wave][well][:window])
 
 
-			data[plate]['Growth'][well]=growth
-			data[plate]['Growth_log'][well]=np.log2(setbar(growth,thres))
-			data[plate]['Growth_dt'][well]=growth_dt
-			data[plate]['Growth_dt_norm'][well]=growth_dt_norm
+				rawod=data[plate][wave][well]
 
-		
-			
 
-		data[plate]['Figures']=data[plate]['Figures']+['Growth','Growth_dt','Growth_log','Growth_dt_norm']
+				growth=setbar(rawod-gs,0.0)
+				#growth=setbar(Wiener(growth-thres,msize),0.0)+thres
+				growth_dt=np.diff(setbar(Wiener(growth-thres,msize),0.0)+thres)/(dt/3600)
+				growth_dt=setbar(Wiener(growth_dt,msize),0.0)
+
+
+				#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
+
+				if max(growth_dt)>0.01:
+					growth_dt_norm=growth_dt/max(growth_dt)
+				else:
+					growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
+
+
+				data[plate][wabl][well]=growth
+				data[plate][wabl+'_log'][well]=np.log2(setbar(growth,thres))
+				data[plate][wabl+'_dt'][well]=growth_dt
+				data[plate][wabl+'_dt_norm'][well]=growth_dt_norm
+
+			data[plate]['Figures']=data[plate]['Figures']+[wabl,wabl+'_dt',wabl+'_log',wabl+'_dt_norm']
 
 	return data
 
@@ -676,7 +680,7 @@ def collect(ilist):
 		elif itp=='asc':
 			sheet=readacs(ifl)
 		else:
-			print 'Unknown file format'
+			print 'Unknown file format: {}!'.format(itp)
 			sys.exit(1)
 
 		datarange=sheet[0].index('Well positions')
@@ -686,8 +690,8 @@ def collect(ilist):
 
 		nrows=len(sheet)
 		datarange=sheet[0].index('Well positions')
-		nm_labels=[lab for lab in list(set(sheet[0])) if lab not in ['Layout','Well positions','','Replicate Info']]
-
+		nm_labels=[lab for lab in sheet[0] if lab not in ['Layout','Well positions','','Replicate Info']]
+		print nm_labels
 		if len(nm_labels)>1:
 			starts=[sheet[0].index(lab) for lab in nm_labels]
 		else:
@@ -696,30 +700,37 @@ def collect(ilist):
 				nm_labels[0]='600'
 
 		waves=[numerize(wlen) for wlen in nm_labels]
-
-
-		if len(waves)>1:
-			length=(datarange+1)/len(waves)
-		else:
-			length=datarange+1
+		#print 'Identified wavelengths: {}'.format(waves)
+		print datarange
+		# if len(waves)>1:
+		# 	length=(datarange)/len(waves)
+		# else:
+		length=(datarange)/len(waves)
 		#Selection of time cells does not depend om the order of wavelengths
 
 		#Extract time
-		time_row=sheet[1][:length-1]
+
+		time_row=sheet[1][:length]
+		#print 'Length:{}'.format(length)
+		#print time_row
+		#print len(time_row)
 		if list(set([s for s in time_row if isinstance(s,float)])):
 			time_t=time_row
 		else:
 			time_t=[int(str(t).replace('s','')) for t in time_row]
 
 		#length=time_t.index(max(time_t))+1
-		temp=[float(t.split()[0]) for t in sheet[2][:length-1]]
+		temp=[float(t.split()[0]) for t in sheet[2][:length]]
 
 		timemax_h=int(round_to(float(time_t[-1])/3600,0.1))
 
-		time=np.linspace(0,timemax_h*3600,length-1)
+		time=np.linspace(0,timemax_h*3600,length)
 
-		timestep=round_to(float(time_t[-1])/(length-2),1)
+		timestep=round_to(float(time_t[-1])/(length-1),1)
 		#timestep=time[-1]-time[-2]
+
+		print time_t[-1],timemax_h,time[-1],timestep
+
 
 		alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
 		labels=[l for l in alllabels if l!='']#Sheet
@@ -733,7 +744,7 @@ def collect(ilist):
 			buffer=False
 
 		data[plate]['Labels']=labels
-		data[plate]['Spectra']=waves
+		data[plate]['Spectra']=[str(int(w))+'nm' for w in waves]
 		data[plate]['Time']=time
 		data[plate]['Temp']=temp
 		data[plate]['Time_max']=timemax_h
@@ -743,13 +754,15 @@ def collect(ilist):
 		data[plate]['Buffered']=str(buffer)
 		data[plate]['Figures']=[str(w)+'nm' for w in waves]
 		data[plate]['File']=inm
-		print "Wavelengths: {}".format(*waves)
+		print "Wavelengths: {}".format(waves)
 		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
 		for lab in range(0,len(alllabels)):
 			if alllabels[lab]!='':
 				for wave in waves:
-					data_row=[val for val in sheet[lab+3][length*(waves.index(wave)):length*(waves.index(wave)+1)-1]]
-					#print alllabels[lab],data_row
+					scol=(length)*(waves.index(wave))
+					ecol=(length)*(waves.index(wave)+1)
+					data_row=[val for val in sheet[lab+3][scol:ecol]]
+					#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
 					swave=str(int(wave))
 					data[plate][swave+'nm'][alllabels[lab]]=np.array(data_row)
 					data[plate][swave+'nm'][alllabels[lab]+'_max']=max(data_row)

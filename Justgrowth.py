@@ -175,8 +175,7 @@ def main(argv=None):
 	print optionsset %vars()
 	#----------------------------
 
-	if odir!="":
-		dirn=dircheck(odir)
+
 
 
 	# if load:
@@ -187,20 +186,31 @@ def main(argv=None):
 	#
 	# else:
 
-
-	ilist=genlist(ifile)
-	#print ilist
-	if dfile!='':
-		dlist=genlist(dfile)
-		# print dlist
-		if subst!='':
-			subs=[st.split('|') for st in subst.split(',')]
+	if not 'Design' in ifile:
+		ilist=genlist(ifile)
+		#print ilist
+		if dfile!='':
+			dlist=genlist(dfile)
+			# print dlist
+			if subst!='':
+				subs=[st.split('|') for st in subst.split(',')]
+			else:
+				subs=[[]]*len(ilist)
+			#print subs
+			descriptors=readdesc(ilist,dlist,subs)
 		else:
-			subs=[[]]*len(ilist)
-		#print subs
-		descriptors=readdesc(ilist,dlist,subs)
+			descriptors={}
 	else:
-		descriptors={}
+		ilist,dlist,odirn=readinfo(ifile)
+		subs=[[]]*len(ilist)
+		descriptors=readdesc(ilist,dlist,subs)
+
+	if odirn!='' and odir=='Output':
+		odir=odirn
+
+	if odir!="":
+		dirn=dircheck(odir)
+
 
 	#print 'Descriptors'
 	#print descriptors
@@ -238,6 +248,49 @@ def main(argv=None):
 
 #-------------Functions------------
 
+def readinfo(ifile):
+	print ifile
+	ilist=[]
+	dlist=[]
+	odirs=[]
+	ipt, inm, itp = filename(ifile)
+	if itp in ['xlsx','xls']:
+		data=readxls_s(ifile)
+	elif itp=='csv':
+		data=readcsv(ifile)
+	headers=data[0]
+	#Automatically find variables
+	headin={ hd : headers.index(hd) for hd in headers}
+	nec=['File','Pattern']
+	if all(n in headers for n in nec):
+		print 'Necessary headers found!'
+	else:
+		print 'Missing essential headers in description file!'
+		print headers
+		sys.exit(0)
+	#filein=headers.index('File')
+	# platein=headers.index('Plate')
+	# strainin=headers.index('Strain')
+	# typein=headers.index('Type')
+	#print metin, ecoin,plate,well
+	for ln in data[1:]:
+		fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
+		dsc=str(ln[headin['Pattern']]).encode('ascii','ignore').strip()
+		ilist.append(fl)
+		dlist.append(dsc)
+		if 'Odir' in headin.keys():
+			odr=str(ln[headin['Odir']]).encode('ascii','ignore').strip()
+			odirs.append(odr)
+	# print odirs
+	# sys.exit(1)
+	if len(list(set(odirs)))!=0:
+		odir=list(set(odirs))[0]
+	else:
+		odir=''
+
+	#print genes
+	print odir
+	return ilist, dlist, odir
 
 
 def plot_comparison(data,dirn,figs):
@@ -834,12 +887,19 @@ def makesheets(data,descriptors):
 	header=header_temp+desckeys
 
 	ghead=['a','c','t0']
+	times=[]
+	timemax=0
+	maxplate=''
+	for plate in data.keys():
+		if data[plate]['Time_max']>timemax:
+			timemax=data[plate]['Time_max']
+			maxplate=plate
+	timespan=len(data[maxplate]['Time'])
+	timespandt=len(data[maxplate]['Time_dt'])
 
 	for plate in data.keys():
 		output=data[plate]['Figures']
 		output=output+['GrowthFit']
-		time_dt=data[plate]['Time_dt']
-		time_lin=data[plate]['Time']
 		labels=data[plate]['Labels']
 		for fig in output:
 			print plate,fig
@@ -854,6 +914,14 @@ def makesheets(data,descriptors):
 				if not isinstance(datrow,list):
 					datrow=datrow.tolist()
 
+				if '_dt' in fig:
+					datrow=datrow+['']*(timespandt-len(datrow))
+				elif fig=='GrowthFit':
+					datrow=datrow
+				else:
+					datrow=datrow+['']*(timespan-len(datrow))
+				
+				#print len(datrow), timespan,timespan-len(datrow)
 				newrow=rowhead+datrow
 				if '_dt' in fig:
 					dt.append(newrow)
@@ -862,7 +930,9 @@ def makesheets(data,descriptors):
 					gfit.append(newrow)
 				else:
 					regular.append(newrow)
-
+	#sys.exit(1)
+	time_dt=data[maxplate]['Time_dt']
+	time_lin=data[maxplate]['Time']
 	time_lin=time_lin.tolist()
 	time_dt=time_dt.tolist()
 	dt.insert(0,header+time_dt)
@@ -994,6 +1064,24 @@ def readacs(ifile):
 		sheet.append(row)
 	f.close()
 	return sheet
+
+def readxls_s(ifile):
+	book=xlrd.open_workbook(ifile,formatting_info=False)
+	data=book.sheet_by_name(book.sheet_names()[0])
+	sheet=[]
+	for r in range(0,data.nrows):
+		#print set(data.row_values(r))
+		sheet.append(data.row_values(r))
+	return sheet
+
+def readcsv(ifile):
+	f=open(ifile,'r')
+	sheet=[]
+
+	rdr=csv.reader(f, delimiter=',')
+	data=[ln for ln in rdr]
+	f.close()
+	return data
 
 
 def readdesc(ilist,dlist,subs):

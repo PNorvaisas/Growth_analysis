@@ -17,7 +17,7 @@ except ImportError, e:
 def install(package):
 	pip.main(['install', package])
 
-for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','operator','getopt','subprocess','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types']:
+for mod in ['pip','scipy','string','math','re','csv','sys','os','commands','datetime','operator','getopt','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types']:
 	try:
 		exec "import %(mod)s" % vars()
 	except ImportError, e:
@@ -25,7 +25,13 @@ for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','o
 		install(mod)		
 		#pass # module doesn't exist, deal with it.
 import unicodedata
+
+#Removes the annoying rocket icon in Mac!
+import matplotlib
+matplotlib.use("Agg")
+#
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import matplotlib.ticker as ticker
 from matplotlib import rc
 
@@ -47,10 +53,9 @@ import numpy as np
 from operator import itemgetter
 from itertools import groupby
 import textwrap as tw
-from multiprocessing import Pool
+#from multiprocessing import Pool
 
 
-compare = lambda x, y: Counter(x) == Counter(y)
 
 try:
 	import itertools as IT
@@ -58,7 +63,7 @@ except ImportError, e:
 	print "Module itertools not found"
 
 
-
+compare = lambda x, y: Counter(x) == Counter(y)
 
 
 help_message = '''
@@ -183,13 +188,17 @@ def main(argv=None):
 	else:	
 		
 		ilist,info=genlist(ifile)
-		print ilist
+		#print ilist
 		#print info
+		uniques=uniquecomb(info,['Plate','Strain'],'Type')
+		#print uniques
+		#sys.exit(1)
 		#print metabolites
 		#sys.exit(0)
 		
 		#checkfiles(ilist)	
 		data=collect(ilist)
+		#sys.exit(1)
 		data=analyze(data)
 		data=growthfit(data)
 
@@ -204,7 +213,10 @@ def main(argv=None):
 	
 	#data,allfit=growthfit(data)
 
-	#plot_comparison(data,metabolites,odir,['Respiration_log','Respiration','Resp&Growth','Growth_log','Growth','Dye','Dye_log','Growth_dt'],info)
+	plot_comparison(data,metabolites,odir,['590nm_dt','750nm_dt',
+	                                       '590nm_f','590nm_log','750nm_f','750nm_log',
+	                                       '590nm750nm_diff','590nm750nm_difflog'],info,uniques)
+	#'Respiration_log','Respiration','Resp&Growth',
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
 	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
@@ -219,202 +231,152 @@ def main(argv=None):
 
 
 
-def plot_comparison(data,metabolites,dirn,figs,info):
+def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 
-	for plate in sorted(data.keys()):
-		strain=info[plate]['Strain']
-		labels=data[plate][strain]['Control']['Labels']
+	for uk in sorted(uniques.keys()):
+		comvalues=uniques[uk]['Compare-by-values']
+		comname=uniques[uk]['Compare-by']
+		unks=uniques[uk]['Unique-keys']
+		unval=uniques[uk]['Unique-values']
+
+		combmap={ uc:unks.index(uc) for uc in unks}
+
+		if 'Plate' in unks and 'Strain' in unks:
+			strain=unval[combmap['Strain']]
+			bplate=unval[combmap['Plate']]
+		else:
+			print 'No data provided on used strain and plate ID!'
+			strain='Unknown strain'
+			bplate='Unknown plate'
+
+		print 'Plot unique combinations of: {}'.format(unks)
+		print 'Combination: {}'.format(unval)
+		print 'Compare by {}: {}'.format(comname,comvalues)
+		#sys.exit(1)
+
+		if len(comvalues)==2 and all([cvt in ['Control', 'Treatment'] for cvt in comvalues]):
+			for cv in comvalues:
+				if cv=='Control':
+					cgroup=uniques[uk][cv]
+				elif cv=='Treatment':
+					egroup=uniques[uk][cv]
+		else:
+			print 'Unknown types found as descriptors: {}'.format([cvt for cvt in comvalues if cvt not in ['Control', 'Treatment']])
+			print 'Currently supported descriptors: {}'.format(['Control', 'Treatment'])
+		#group=uniques[uk][cv]
+		#strain=info[plate]['Strain']
+		#labels=data[plate]['Labels']
 
 
-		ref=data[plate][strain]['Control']
-		exp=data[plate][strain]['Treatment']
-		figures_temp=data[plate][strain]['Control']['Figures']
-		figures_temp=figures_temp+['Growth_abolished','Respiration_abolished','Resp&Growth']
+		# ref=data[plate]['Control']
+		# exp=data[plate]['Treatment']
+
+		figures_temp=data[cgroup[0]]['Figures']
+		#figures_temp=figures_temp+['Growth_abolished','Respiration_abolished','Resp&Growth']
 
 		if figs=='all':
 			figures=figures_temp
 
 		elif isinstance(figs, list):
 			figs_ch=[f for f in figs if f in figures_temp]
-			if len(figs)>0:
-				figures=figs_ch
-			else:
-				print 'Figures {} not found'.format(figs_ch)
+			figures=figs_ch
+			if len(figs_ch)!=len(figs):
+				print 'Figures {} not found'.format([f for f in figs if f not in figures_temp])
 		elif isinstance(figs, str) or isinstance(figs, unicode):
 			if figs in figures_temp:
 				figures=[figs]
 			else:
 				print 'Figures {} not found'.format(figs)
+				figures=[]
 
-		#print figures
+		print figures
 		for fg in figures:
-			if fg=='Growth_abolished':
-				fgl='Growth'
-			elif fg=='Respiration_abolished':
-				fgl='Respiration'
-
-			elif fg=='Resp&Growth':
-				fgl='Growth_dt_norm'
-				gfitc=ref['dRespiration_dt_norm']
-				gfite=exp['dRespiration_dt_norm']
-
-			elif fg=='Growth_log':
-				fgl=fg
-				gfitc=ref['GrowthFit']
-				gfite=exp['GrowthFit']
-
-			else:
-				fgl=fg
-				gfitc=''
-				gfite=''
-			print "Plotting plate {} {} {}...".format(plate,strain,fg)
-			if '_dt' in fg or fg=='Resp&Growth':
-				time=data[plate][strain]['Control']['Time_dt']
-			else:
-				time=data[plate][strain]['Control']['Time']
-
+			print "Plotting plate {} {} {}...".format(bplate,strain,fg)
 			#Need to fix metabolites
-			plot=plot_2D('{} {} {}'.format(plate,strain,fg),ref[fgl],exp[fgl],time, labels, metabolites[plate],gfitc,gfite)
-			plot.savefig('{}/{}.pdf'.format(dirn,plate+'-'+strain+'_'+fg))
+			plot=plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites[bplate])
+			plot.savefig('{}/{}.pdf'.format(dirn,bplate+'-'+strain+'_'+fg))
 			plot.close()
-	#
+
 	return data
 
-def plot_2D(title,datac,datae,time,labels,metabolites,gfitc,gfite):
-	
+def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
 	xmax=24
 	plate_size=96
 	#print title
-	plate,strain,fg=title.split()
+
+	if '_dt' in fg:
+		time=data[data.keys()[0]]['Time_dt']
+	else:
+		time=data[data.keys()[0]]['Time']
+	labels=data[data.keys()[0]]['Labels']
+
 	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
-	
+
+	title='{} {} {}'.format(bplate,strain,fg)
+
 	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
 	fig.suptitle(title)
 	plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
-	
 
-	if fg in ['Fluorescence','Fluorescence_norm']:
-		rnd=1
-	else:
-		rnd=0.1
-	maxc=max([max(datac[l]) for l in labels])
-	maxe=max([max(datae[l]) for l in labels])
-	if maxc>0:		
-		totalmaxc=round_to(maxc,rnd)
-	else:
-		totalmaxc=0
-	if maxe>0:		
-		totalmaxe=round_to(maxe,rnd)
-	else:
-		totalmaxe=0
-	totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
-	totalmine=round_to(min([min(datae[l]) for l in labels]),rnd)
-	totalmax=max([totalmaxc,totalmaxe])
+
+	rnd=0.1
+	#Determine range of figure, probably manually
+	# maxc=max([max(datac[l]) for l in labels])
+	# maxe=max([max(datae[l]) for l in labels])
+	#
+	# if maxc>0:
+	# 	totalmaxc=round_to(maxc,rnd)
+	# else:
+	# 	totalmaxc=0
+	# if maxe>0:
+	# 	totalmaxe=round_to(maxe,rnd)
+	# else:
+	# 	totalmaxe=0
+	# totalminc=round_to(min([min(datac[l]) for l in labels]),rnd)
+	# totalmine=round_to(min([min(datae[l]) for l in labels]),rnd)
+	# totalmax=max([totalmaxc,totalmaxe])
+
+	#Range
 	totalmin=0
+
 	ticks=3
 	xlabel='Time, h'
 	ylabel=''
 	decimals=1
-	if fg=='590nm':
-		totalmax=1
-		ticks=3
-		ylabel='OD@590nm'
-		decimals=1
-	if fg=='750nm':
-		totalmax=2
-		ticks=4
-		ylabel='OD@750nm'
-		decimals=1
-	
-	if fg=='Growth':
-		totalmax=1
-		ticks=3
-		ylabel='Growth@590nm'
-		decimals=1
 
-	if fg=='Growth_log':
+	if '_log' in fg or '_difflog' in fg:
 		totalmax=0
 		totalmin=-6
 		ticks=4
-		ylabel='log2 Growth@590nm'
+		ylabel='log2 OD'
 		decimals=1
 
-	if fg=='Growth_dt':
-		totalmax=0.2
+	if '_dt' in fg:
+		totalmax=0.25
 		totalmin=0
 		ticks=3
-		ylabel='Growth@590nm/dt'
-		decimals=1
+		ylabel='dOD/dt'
+		decimals=2
 
-	if fg=='Dye':
-		totalmax=1.6
-		ticks=3
-		ylabel='Dye@750nm'
-		decimals=1
-
-	if fg=='Dye_log':
-		totalmax=2
-		totalmin=-6
-		ticks=5
-		ylabel='log2 Dye@750nm'
-		decimals=1
-	if fg=='Dye_dt':
-		totalmax=0.3
-		totalmin=0
-		ticks=4
-		ylabel='Dye@750nm/dt'
-		decimals=1
-
-	if fg=='Respiration':
+	if '590nm_' in fg and '_log' not in fg and '_dt' not in fg:
 		totalmax=2
 		ticks=3
-		ylabel='Respiration, Dye/Growth'
+		ylabel='OD'
 		decimals=1
 
-	if fg=='Respiration_log':
-		totalmax=2
-		totalmin=-6
-		ticks=5
-		ylabel='log2 Respiration, Dye/OD'
-		decimals=0
-
-	if fg=='Respiration_dt':
-		totalmax=0.3
-		totalmin=0
-		ticks=4
-		ylabel='Respiration, Dye/OD/dt'
-		decimals=1
-	if fg=='dRespiration_dt':
-		totalmin=0
-		totalmax=1.5
-		ticks=3
-		ylabel='Respiration, Dye/dt/OD'
-		decimals=1
-
-	if fg=='Resp&Growth':
-		totalmin=0
+	if '750nm_' in fg and '_log' not in fg and '_dt' not in fg:
 		totalmax=1
+		totalmin=0
 		ticks=3
-		ylabel='Normalised growth/dt and respiration/dt (pale)'
+		ylabel='OD'
 		decimals=1
 
-	if fg=='Growth_abolished':
-		totalmax=100
-		totalmin=-100
+	if fg=='590nm750nm_diff':
+		totalmax=1
+		totalmin=0
 		ticks=3
+		ylabel='OD'
 		decimals=1
-		ylabel='Growth abolished, %'
-		thres=0.05
-
-	if fg=='Respiration_abolished':
-		totalmax=100
-		totalmin=-100
-		ticks=3
-		decimals=1
-		ylabel='Respiration abolished, %'
-		thres=0.15
-
-
 
 
 
@@ -432,14 +394,8 @@ def plot_2D(title,datac,datae,time,labels,metabolites,gfitc,gfite):
 		v=v+1
 	
 		x=time/3600
-		yc=datac[l]
-		ye=datae[l]
-		if fg=='Growth_log':
-			ca,cc,ct=gfitc[l]
-			ea,ec,et=gfite[l]
-		elif fg=='Resp&Growth':
-			rc=gfitc[l]
-			re=gfite[l]
+
+
 		plt.sca(axes[row-1,col-1])
 		ax=axes[row-1,col-1]
 		if col==12:
@@ -453,36 +409,76 @@ def plot_2D(title,datac,datae,time,labels,metabolites,gfitc,gfite):
 
 		plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')	
 		plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
+		#Need range here
 		plt.ylim([totalmin,totalmax])
 		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)  u 
 		label=greek_check(metabolites[l]['Name'],12)
 		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
-		if fg in ['Growth_abolished','Respiration_abolished']:
-			ye[ye<thres]=thres
-			yc[yc<thres]=thres
-			yd=(ye*100/yc)-100			
-			plt.plot(x,yd,'k-')
-			plt.fill_between(x, 0, yd, where=yd>=0, facecolor='blue', interpolate=True)
-			plt.fill_between(x, 0, yd, where=yd<=0, facecolor='red', interpolate=True)
 
-		else:
-			#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
-			plt.plot(x,yc,'r-',x,ye,'b-')
-			if fg=='Growth_log':
-				if ca>0:
-					yfitc=x*ca+cc
-					plt.plot(x,yfitc,'r-',alpha=0.5)
-				if ea>0:
-					yfite=x*ea+ec
-					plt.plot(x,yfite,'b-',alpha=0.5)
-			elif fg=='Resp&Growth':
-				#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
-				plt.plot(x,rc,'r-',alpha=0.5)
-				plt.plot(x,re,'b-',alpha=0.5)
+		for grp,mrk in IT.izip([cgroup,egroup],['r-','b-']):
+			for gdata in grp:
+				y=data[gdata][fg][l]
+				plt.plot(x,y,mrk)
+				if fg=='750nm_log':
+					a,c,t0=data[gdata]['GrowthFit'][l]
+					if c>0:
+						yfit=x*a+c
+						plt.plot(x,yfit,mrk,alpha=0.5)
+
+
+		# #Get y data
+		# yc=datac[l]
+		# ye=datae[l]
+		#
+		# if fg in ['Growth_abolished','Respiration_abolished']:
+		# 	ye[ye<thres]=thres
+		# 	yc[yc<thres]=thres
+		# 	yd=(ye*100/yc)-100
+		# 	plt.plot(x,yd,'k-')
+		# 	plt.fill_between(x, 0, yd, where=yd>=0, facecolor='blue', interpolate=True)
+		# 	plt.fill_between(x, 0, yd, where=yd<=0, facecolor='red', interpolate=True)
+		#
+
+		# 	elif fg=='Resp&Growth':
+		# 		rc=gfitc[l]
+		# 		re=gfite[l]
+		# 		#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
+		# 		plt.plot(x,rc,'r-',alpha=0.5)
+		# 		plt.plot(x,re,'b-',alpha=0.5)
+	blue_line = mlines.Line2D([], [], color='blue', label='Treatment')
+	red_line = mlines.Line2D([], [], color='red', label='Control')
+	#plt.figlegend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+	plt.figlegend((red_line,blue_line),('Control','Treatment'),'upper right')#
 
 	return plt
 
-# def uniquecomb(info):
+def uniquecomb(info,sortby,compareby):
+	summ=[]
+	uns=NestedDict()
+	for i in info.keys():
+		ks=[info[i][k] for k in sortby]
+		summ.append(ks)
+	uniqs=[list(i) for i in set(tuple(i) for i in summ)]
+	for unl in uniqs:
+		unin='|'.join(unl)
+		uns[unin]['Unique-keys']=sortby
+		uns[unin]['Unique-values']=unl
+		uns[unin]['Compare-by']=compareby
+		uns[unin]['Compare-by-values']=[]
+		for i in info.keys():
+			# print sortby
+			# print unl
+			# print type(unl)
+			check=[info[i][uk]==uv for uk,uv in IT.izip(sortby,unl)]
+			# print check
+			if all(check):
+				if info[i][compareby] in uns[unin].keys():
+					uns[unin][info[i][compareby]]=uns[unin][info[i][compareby]]+[i]
+				else:
+					uns[unin]['Compare-by-values']=uns[unin]['Compare-by-values']+[info[i][compareby]]
+					uns[unin][info[i][compareby]]=[i]
+
+	return uns
 
 
 def myround(a, decimals=1):
@@ -567,71 +563,103 @@ def analyze(data):
 		print 'Analyzing data in {}'.format(plate)
 		data[plate]['Time_dt']=(time+dt/2)[:-1]
 		for well in data[plate]['Labels']:
+			if well!='A1':
+				ref590=data[plate]['590nm_f']['A1']
+				ref750=data[plate]['750nm_f']['A1']
+				refl590=data[plate]['590nm_log']['A1']
+				refl750=data[plate]['750nm_log']['A1']
 			gs=np.mean(data[plate]['590nm'][well][:window])
 			ds=np.mean(data[plate]['750nm'][well][:window])
 
-			rawod=data[plate]['590nm'][well]
-			rawdye=data[plate]['750nm'][well]
+			raw590=data[plate]['590nm'][well]
+			raw750=data[plate]['750nm'][well]
 
-			growth=setbar(rawod-gs,0.0)
-			dye=setbar(rawdye-ds,0.0)
-
-
-			growthf=Wiener(growth,msize)
-			growth_log=np.log2(setbar(growthf,thres))
-			growth_dt=np.diff(growthf)/(dt/3600)
-			growth_dt=setbar(Wiener(growth_dt,msize),0.0)
+			back590=setbar(raw590-gs,0.0)
+			back750=setbar(raw750-ds,0.0)
 
 
-			dyef=Wiener(dye,msize)
-			dye_log=np.log2(setbar(dyef,thresd))
-			dye_dt=np.diff(dye)/(dt/3600)
-			dye_dt=setbar(Wiener(dye_dt,msize),0.0)
+			f590=Wiener(back590,msize)
+			log590=np.log2(setbar(f590,thres))
+			dt590=np.diff(f590)/(dt/3600)
+			dtf590=setbar(Wiener(dt590,msize),0.0)
+
+
+			f750=Wiener(back750,msize)
+			log750=np.log2(setbar(f750,thresd))
+			dt750=np.diff(f750)/(dt/3600)
+			dtf750=setbar(Wiener(dt750,msize),0.0)
+
+			if well=='A1':
+				refrl590=log590-log590
+				refrl750=log750-log750
+				refr590=f590-f590
+				refr750=f750-f750
+			else:
+				refrl590=log590-refl590
+				refrl750=log750-refl750
+				refr590=f590-ref590
+				refr750=f750-ref750
+
+			diff590750=f590-f750
+			diff590750log=log590-log750
+
 
 
 			#Need threshold
-			resp=setbar(dyef,thresd)/setbar(growthf,thres)
-			rs=np.mean(resp[:window])
-			resp=Wiener(resp-rs,msize)
-			resp_log=np.log2(setbar(resp,thresd/4))
-			resp=setbar(resp,0.0)
-			resp_dt=np.diff(resp)/(dt/3600)
-			resp_dt=Wiener(resp_dt,msize)
-			resp_dt=setbar(Wiener(resp_dt,msize),0.0)
-
-			dresp=(np.diff(dye)/(dt/3600))/interp(time,growth,time_dt)
-			dresp=Wiener(dresp,msize)
-			dresp=setbar(dresp,0.0)
+			# resp=setbar(f750,thresd)/setbar(f590,thres)
+			# rs=np.mean(resp[:window])
+			# resp=Wiener(resp-rs,msize)
+			# resp_log=np.log2(setbar(resp,thresd/4))
+			# resp=setbar(resp,0.0)
+			# resp_dt=np.diff(resp)/(dt/3600)
+			# resp_dt=Wiener(resp_dt,msize)
+			# resp_dt=setbar(Wiener(resp_dt,msize),0.0)
+			#
+			# dresp=(np.diff(dye)/(dt/3600))/interp(time,growth,time_dt)
+			# dresp=Wiener(dresp,msize)
+			# dresp=setbar(dresp,0.0)
 
 
 
 			#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
 
-			if max(dresp)>0.1:
-				dresp_norm=dresp/max(dresp)
-			else:
-				dresp_norm=np.zeros((len(dresp),), dtype=np.int)
-			if max(growth_dt)>0.01:
-				growth_dt_norm=growth_dt/max(growth_dt)
-			else:
-				growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
+			# if max(dresp)>0.1:
+			# 	dresp_norm=dresp/max(dresp)
+			# else:
+			# 	dresp_norm=np.zeros((len(dresp),), dtype=np.int)
+			# if max(growth_dt)>0.01:
+			# 	growth_dt_norm=growth_dt/max(growth_dt)
+			# else:
+			# 	growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
 
 
 
-			data[plate]['Dye'][well]=dye
-			data[plate]['Dye_log'][well]=dye_log
-			data[plate]['Dye_dt'][well]=dye_dt
-			data[plate]['Growth'][well]=growth
-			data[plate]['Growth_log'][well]=growth_log
-			data[plate]['Growth_dt'][well]=growth_dt
-			data[plate]['Growth_dt_norm'][well]=growth_dt_norm
-			data[plate]['Respiration'][well]=resp
-			data[plate]['Respiration_log'][well]=resp_log
-			data[plate]['Respiration_dt'][well]=resp_dt
-			data[plate]['dRespiration_dt'][well]=dresp
-			data[plate]['dRespiration_dt_norm'][well]=dresp_norm
+			data[plate]['750nm_b'][well]=back750
+			data[plate]['750nm_f'][well]=f750
+			data[plate]['750nm_log'][well]=log750
+			data[plate]['750nm_dt'][well]=dtf750
 
-			refresp=data[plate]['Respiration']['A1']
+			data[plate]['590nm_b'][well]=back590
+			data[plate]['590nm_f'][well]=f590
+			data[plate]['590nm_log'][well]=log590
+			data[plate]['590nm_dt'][well]=dtf590
+
+			data[plate]['590nm_reflog'][well]=refrl590
+			data[plate]['590nm_ref'][well]=refr590
+
+			data[plate]['750nm_reflog'][well]=refrl750
+			data[plate]['750nm_ref'][well]=refr750
+
+			data[plate]['590nm750nm_diff'][well]=diff590750
+			data[plate]['590nm750nm_difflog'][well]=diff590750log
+
+			#data[plate]['Growth_dt_norm'][well]=growth_dt_norm
+			# data[plate]['Respiration'][well]=resp
+			# data[plate]['Respiration_log'][well]=resp_log
+			# data[plate]['Respiration_dt'][well]=resp_dt
+			# data[plate]['dRespiration_dt'][well]=dresp
+			# data[plate]['dRespiration_dt_norm'][well]=dresp_norm
+
 
 			#if plate=='PM5':
 			#	rs=np.mean(resp[:window])
@@ -649,7 +677,10 @@ def analyze(data):
 			#data[plate][strain][tp]['Growth-Resp'][well]=gresp
 			#data[plate][strain][tp]['Resp-Growth'][well]=respg
 
-		data[plate]['Figures']=data[plate]['Figures']+['Growth','Growth_dt','Respiration','Respiration_log','Respiration_dt','Dye','Dye_dt','dRespiration_dt','Growth_log','Growth_dt_norm','dRespiration_dt_norm','Dye_log']
+		data[plate]['Figures']=data[plate]['Figures']+['590nm_b','590nm_f','590nm_log','590nm_dt',
+		                                               '750nm_b','750nm_f','750nm_log','750nm_dt',
+		                                               '750nm_ref','750nm_reflog','590nm_ref','590nm_reflog',
+		                                               '590nm750nm_diff','590nm750nm_difflog']
 
 	return data
 
@@ -716,9 +747,9 @@ def growthfit(data):
 		x=data[plate]['Time']
 		x=x/3600
 		labels=data[plate]['Labels']
-		ref=data[plate]['Growth']['A1']
+		#ref=data[plate]['590nm_f']['A1']
 		for l in labels:
-			y=data[plate]['Growth_log'][l]
+			y=data[plate]['750nm_log'][l]
 			#y=setbar(y,np.power(2,-5))
 			#maxy=max(y)
 			#miny=min(y)
@@ -767,13 +798,16 @@ def collect(ilist):
 
 
 		nrows=len(sheet)
-		nm_labels=list(set(sheet[0]))
+		nm_labels=sheet[0]
+		#converting first row to set rearanges the labels
+		#list(set(sheet[0]))
 		#print nm_labels
 		#print nrows
 		
 		waves=[numerize(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
+		#print waves
 		lengths=[sheet[0].index(wave) for wave in waves]
-		#Selection of time cells does not depend om the order of wavelengths		
+		#Selection of time cells does not depend on the order of wavelengths
 		length=max(lengths)
 		time_row=sheet[1][:length]
 		check=list(set([s for s in time_row if isinstance(s,float)]))
@@ -808,6 +842,8 @@ def collect(ilist):
 				data[ifl][swave+'nm'][labels[row]+'_max']=max(data_row)
 				data[ifl][swave+'nm'][labels[row]+'_min']=min(data_row)
 
+
+
 	return data
 
 
@@ -839,7 +875,9 @@ def genlist(ifile):
 			#print ffiles
 			ilist.extend(ffiles)
 		else:
+			print ifile
 			print "Bad file type %(inp)s!" % vars()
+			sys.exit(1)
 
 	if len(ilist)>0 and len(info.keys())==0:
 		for ifl in ilist:
@@ -1046,7 +1084,8 @@ def dircheck(somedir):
 
 def readxls(ifile):
 	book=xlrd.open_workbook(ifile,formatting_info=False)
-	data=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm][0])
+	#print book.sheet_names()
+	data=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm or 'RAW data' in nm][0])
 	sheet=[]	
 	for r in range(0,data.nrows):
 		if len(data.row_values(r))>200:

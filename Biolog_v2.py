@@ -214,8 +214,7 @@ def main(argv=None):
 	#data,allfit=growthfit(data)
 
 	plot_comparison(data,metabolites,odir,['590nm_dt','750nm_dt',
-	                                       '590nm_f','590nm_log','750nm_f','750nm_log',
-	                                       '590nm750nm_diff','590nm750nm_difflog'],info,uniques)
+	                                       '590nm_f','590nm_log','750nm_f','750nm_log'],info,uniques)
 	#'Respiration_log','Respiration','Resp&Growth',
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
@@ -420,16 +419,11 @@ def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
 				y=data[gdata][fg][l]
 				plt.plot(x,y,mrk)
 				if fg=='750nm_log':
-					a,c,t0=data[gdata]['GrowthFit'][l]
-					if c>0:
+					a,c,t0=data[gdata]['Summary']['GrowthFit'][l]
+					if a>0:
 						yfit=x*a+c
 						plt.plot(x,yfit,mrk,alpha=0.5)
 
-
-		# #Get y data
-		# yc=datac[l]
-		# ye=datae[l]
-		#
 		# if fg in ['Growth_abolished','Respiration_abolished']:
 		# 	ye[ye<thres]=thres
 		# 	yc[yc<thres]=thres
@@ -448,7 +442,7 @@ def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
 	blue_line = mlines.Line2D([], [], color='blue', label='Treatment')
 	red_line = mlines.Line2D([], [], color='red', label='Control')
 	#plt.figlegend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-	plt.figlegend((red_line,blue_line),('Control','Treatment'),'upper right')#
+	plt.figlegend((red_line,blue_line),('Control','Treatment'),'upper right',prop={'size':10})#
 
 	return plt
 
@@ -552,6 +546,9 @@ def analyze(data):
 	window=20
 	thres=np.power(2.0,-5)
 	thresd=np.power(2.0,-5)
+	ind16=data[data.keys()[0]]['Time'].tolist().index(16*3600)
+	ind24=data[data.keys()[0]]['Time'].tolist().index(24*3600)
+
 	for plate in sorted(data.keys()):
 		#Needs to be checked
 		time=data[plate]['Time']
@@ -633,7 +630,6 @@ def analyze(data):
 			# 	growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
 
 
-
 			data[plate]['750nm_b'][well]=back750
 			data[plate]['750nm_f'][well]=f750
 			data[plate]['750nm_log'][well]=log750
@@ -681,6 +677,17 @@ def analyze(data):
 		                                               '750nm_b','750nm_f','750nm_log','750nm_dt',
 		                                               '750nm_ref','750nm_reflog','590nm_ref','590nm_reflog',
 		                                               '590nm750nm_diff','590nm750nm_difflog']
+	for plate in sorted(data.keys()):
+		for fg in data[plate]['Figures']:
+			for well in data[plate]['Labels']:
+				data[plate]['Summary']['Max_{}'.format(fg)][well]=max(data[plate][fg][well])
+				data[plate]['Summary']['Int_{}'.format(fg)][well]=sum(data[plate][fg][well])/(60/float(data[plate]['Time_step']))
+				if '_dt' in fg:
+					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24-1]
+					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16-1]
+				else:
+					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24]
+					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16]
 
 	return data
 
@@ -781,7 +788,7 @@ def growthfit(data):
 			# 		allfit[tp]['Log'][nm]=allfit[tp]['Log'][nm]+[par]
 			# 	else:
 			# 		allfit[tp]['Log'][nm]=[par]
-			data[plate]['GrowthFit'][l]=[a,c,t0]
+			data[plate]['Summary']['GrowthFit'][l]=[a,c,t0]
 
 	return data
 
@@ -831,6 +838,7 @@ def collect(ilist):
 		data[ifl]['Wells']=nrows-3
 		data[ifl]['Figures']=[str(w)+'nm' for w in waves]
 		data[ifl]['File']=inm
+
 		print "File: {}".format(ifl)
 		print "Wavelengths: {}, {}".format(*waves)
 		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
@@ -939,18 +947,22 @@ def tableout(inp):
 def makesheets(data,metabolites,info):
 	sheets=NestedDict()
 	dt=[]
-	gfit=[]
+	allsum=[]
 	regular=[]
 	
 	header=info[info.keys()[0]].keys()+['Well','Index','Data','Name','EcoCycID']
-	ghead=['a','c','t0']
-	gfit.append(header+ghead)
+	allsumhead=['a','c','t0']+['Max_750nm','Max_750nm_log','24h_750nm','24h_750nm_log','Int_750nm',
+	                           'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm']
+	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log','Int_750nm_f',
+	         'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f']#'a','c','t0'
+	allsum.append(header+allsumhead)
 	for fln in data.keys():
 		# strain=info[plate]['Strain']
 		# tp=info[plate]['Type']
+		sums=data[fln]['Summary']
 
 		output=data[fln]['Figures']
-		output=output+['GrowthFit']
+		#output=output+['GrowthFit']
 		time_dt=data[fln]['Time_dt']
 		time_lin=data[fln]['Time']
 		labels=data[fln]['Labels']
@@ -959,9 +971,8 @@ def makesheets(data,metabolites,info):
 		for fig in output:
 			#print '{}...{}'.format(fln,fig)
 			for well in labels:
-				indx=plate+'-'+well
 				datrow=data[fln][fig][well]
-				rowhead=annot+[well,indx,fig,metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
+				rowhead=annot+[well,plate+'-'+well,fig,metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
 
 				if not isinstance(datrow,list):
 					datrow=datrow.tolist()
@@ -969,10 +980,18 @@ def makesheets(data,metabolites,info):
 				if '_dt' in fig:
 					dt.append(newrow)
 
-				elif fig=='GrowthFit':
-					gfit.append(newrow)
-				else:
-					regular.append(newrow)
+				regular.append(newrow)
+		for well in labels:
+			rowhead=annot+[well,plate+'-'+well,'Summary',metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
+			#print sums['GrowthFit'][well]
+			datrow=sums['GrowthFit'][well]+[sums[sm][well] for sm in selsums]
+			if not isinstance(datrow,list):
+				datrow=datrow.tolist()
+			newrow=rowhead+datrow
+			allsum.append(newrow)
+
+
+
 
 	time_lin=time_lin.tolist()
 	time_dt=time_dt.tolist()
@@ -980,7 +999,7 @@ def makesheets(data,metabolites,info):
 	regular.insert(0,header+time_lin)
 	sheets['Data_dt']=dt
 	sheets['Data']=regular
-	sheets['Growth_fit']=gfit
+	sheets['Summary']=allsum
 	
 	#print len(dt[0]),len(dt[1])
 	#print dt[0],dt[1]

@@ -714,17 +714,16 @@ def analyze(data,g750,d750):
 				try:
 					popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
 					A,lam,u=popt
-					if A>0 and lam>0 and u>0:
-						yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
-						freducedf = interpolate.UnivariateSpline(time_h, yreducedf, s=0)
-						tmaxf=freducedf.roots()[0]
-					else:
-						tmaxf=np.inf
 					#print popt,tmaxf
-
 				except OptimizeWarning:
 					print 'Curve_fit encountered an error!'
 					A,lam,u=[0,np.inf,0]
+
+				if A>0 and lam<np.inf and u>0:
+					yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
+					freducedf = interpolate.UnivariateSpline(time_h, yreducedf, s=0)
+					tmaxf=freducedf.roots()[0]
+				else:
 					tmaxf=np.inf
 
 				yreduced = growc - maxg*(1-margin)

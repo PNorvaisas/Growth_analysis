@@ -715,7 +715,7 @@ def analyze(data,g750,d750):
 					popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
 					A,lam,u=popt
 					#print popt,tmaxf
-				except OptimizeWarning:
+				except (RuntimeError, TypeError, NameError):
 					print 'Curve_fit encountered an error!'
 					A,lam,u=[0,np.inf,0]
 

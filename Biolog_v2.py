@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.ticker as ticker
 from matplotlib import rc
+from scipy import interpolate
 
 
 #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
@@ -111,6 +112,9 @@ def main(argv=None):
 	msize=20
 	odir='Output'
 	load=False
+	#Constant values may change
+	g750=0.748596
+	d750=0.4
 	comparison=False
 	
 	if argv is None:
@@ -180,8 +184,8 @@ def main(argv=None):
 
 
 	if load:
-		f = open('Biolog_data.pckl','rb')
-		data,allfit,metabolites,odir = pickle.load(f)
+		f = open('{}/Biolog_data_all.pckl'.format(odir),'rb')
+		data,metabolites,ilist,info,uniques= pickle.load(f)
 		f.close()
 
 		
@@ -190,7 +194,7 @@ def main(argv=None):
 		ilist,info=genlist(ifile)
 		#print ilist
 		#print info
-		uniques=uniquecomb(info,['Plate','Strain'],'Type')
+		uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
 		#print uniques
 		#sys.exit(1)
 		#print metabolites
@@ -198,23 +202,31 @@ def main(argv=None):
 		
 		#checkfiles(ilist)	
 		data=collect(ilist)
-		#sys.exit(1)
-		data=analyze(data)
-		data=growthfit(data)
 
-		
-		
-		sheets=makesheets(data,metabolites,info)
-		writesheets(sheets,odir,sep=',')
-		#f = open('Biolog_data.pckl', 'w')
-		#pickle.dump([data,allfit,metabolites,odir], f)
-		#f.close()
+
+
+		#sys.exit(1)
+		data=analyze(data,g750,d750)
+		data=growthfit(data)
+		f = open('{}/Biolog_data_all.pckl'.format(odir), 'w')
+		pickle.dump([data,metabolites,ilist,info,uniques], f)
+		f.close()
+
+
+
+	sheets=makesheets(data,metabolites,info)
+	writesheets(sheets,odir,sep=',')
+	#f = open('Biolog_data.pckl', 'w')
+	#pickle.dump([data,allfit,metabolites,odir], f)
+	#f.close()
 	
 	
 	#data,allfit=growthfit(data)
 
-	plot_comparison(data,metabolites,odir,['590nm_dt','750nm_dt',
-	                                       '590nm_f','590nm_log','750nm_f','750nm_log'],info,uniques)
+	plot_comparison(data,metabolites,odir,['Growth_Respiration',
+	                                       '750nm_dt','750nm_f','750nm_log'],info,uniques)
+	#,'Growth','Growth_log','Growth_dt'
+	#'590nm_dt','590nm_f','590nm_log',
 	#'Respiration_log','Respiration','Resp&Growth',
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
@@ -237,6 +249,7 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 		comname=uniques[uk]['Compare-by']
 		unks=uniques[uk]['Unique-keys']
 		unval=uniques[uk]['Unique-values']
+		#print unks,unval
 
 		combmap={ uc:unks.index(uc) for uc in unks}
 
@@ -271,7 +284,7 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 		# exp=data[plate]['Treatment']
 
 		figures_temp=data[cgroup[0]]['Figures']
-		#figures_temp=figures_temp+['Growth_abolished','Respiration_abolished','Resp&Growth']
+		figures_temp=figures_temp+['Growth_Respiration']
 
 		if figs=='all':
 			figures=figures_temp
@@ -290,16 +303,33 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 
 		print figures
 		for fg in figures:
-			print "Plotting plate {} {} {}...".format(bplate,strain,fg)
+			lbl=''
+			for unk in unks:
+				if unks.index(unk)==0:
+					sep=''
+				else:
+					sep='_'
+				if unk=='Sugar_20mM':
+					lbl=lbl+sep+'Sugar20mM-{}'
+				elif unk=='Uracil_uM':
+					lbl=lbl+sep+'Uracil{}uM'
+				elif unk=='Replicate':
+					lbl=lbl+sep+'Rep{}'
+				else:
+					lbl=lbl+sep+'{}'
+			lbl=lbl.format(*unval)
+			ttl=lbl.replace('_',' ')
+
+
+			print "Plotting: "+ttl+' '+fg
 			#Need to fix metabolites
-			plot=plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites[bplate])
-			plot.savefig('{}/{}.pdf'.format(dirn,bplate+'-'+strain+'_'+fg))
+			plot=plot_2D(ttl,fg,data,cgroup,egroup,metabolites[bplate])
+			plot.savefig('{}/{}.pdf'.format(dirn,'{}_{}'.format(lbl,fg)))
 			plot.close()
 
 	return data
 
-def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
-	xmax=24
+def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 	plate_size=96
 	#print title
 
@@ -311,7 +341,8 @@ def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
 
 	#fig=plt.figure(figsize=(11.69,8.27), dpi=100)
 
-	title='{} {} {}'.format(bplate,strain,fg)
+	title='{} {}'.format(ttl,fg)
+	#title='{} {} {}'.format(bplate,strain,fg)
 
 	fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
 	fig.suptitle(title)
@@ -337,11 +368,29 @@ def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
 
 	#Range
 	totalmin=0
+	xmax=24
 
 	ticks=3
 	xlabel='Time, h'
 	ylabel=''
 	decimals=1
+
+	if fg=='Growth_Respiration':
+		totalmax=1
+		totalmin=0
+		ticks=3
+		ylabel='OD(750nm)'
+		decimals=1
+		xlabel='OD(590nm)'
+		xmax=2
+
+	if fg=='Growth':
+		totalmax=1
+		totalmin=0
+		ticks=3
+		ylabel='OD'
+		decimals=1
+
 
 	if '_log' in fg or '_difflog' in fg:
 		totalmax=0
@@ -414,15 +463,25 @@ def plot_2D(bplate,strain,fg,data,cgroup,egroup,metabolites):
 		label=greek_check(metabolites[l]['Name'],12)
 		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 
+		linx=np.array([0,2])
 		for grp,mrk in IT.izip([cgroup,egroup],['r-','b-']):
 			for gdata in grp:
-				y=data[gdata][fg][l]
-				plt.plot(x,y,mrk)
-				if fg=='750nm_log':
-					a,c,t0=data[gdata]['Summary']['GrowthFit'][l]
-					if a>0:
-						yfit=x*a+c
-						plt.plot(x,yfit,mrk,alpha=0.5)
+				if fg=='Growth_Respiration':
+					xnm=data[gdata]['590nm'][l]
+					y=data[gdata]['750nm'][l]
+					rho,const,d=data[gdata]['Summary']['Respiration'][l]
+					plt.plot(linx,lin(linx,rho,const),mrk,alpha=0.2)
+					plt.plot(xnm,y,mrk)
+					#plt.text(0.05, 0.05, 'rho={0:1.2f}, d={1:1.2f}'.format(rho,d),
+					# fontsize=6,verticalalignment='top',transform=ax.transAxes)
+				else:
+					y=data[gdata][fg][l]
+					plt.plot(x,y,mrk)
+					if fg=='750nm_log':
+						a,c,t0,tmax=data[gdata]['Summary']['GrowthFit_log'][l]
+						if a>0:
+							yfit=x*a+c
+							plt.plot(x,yfit,mrk,alpha=0.5)
 
 		# if fg in ['Growth_abolished','Respiration_abolished']:
 		# 	ye[ye<thres]=thres
@@ -450,8 +509,13 @@ def uniquecomb(info,sortby,compareby):
 	summ=[]
 	uns=NestedDict()
 	for i in info.keys():
-		ks=[info[i][k] for k in sortby]
-		summ.append(ks)
+		if all([k in info[i].keys() for k in sortby]):
+			ks=[info[i][k] for k in sortby]
+			summ.append(ks)
+		else:
+			missing=[k for k in sortby if k not in info[i].keys()]
+			print 'Keys defined in for unique sets have not been found in Design file!\n{}'.format(missing)
+	#print summ
 	uniqs=[list(i) for i in set(tuple(i) for i in summ)]
 	for unl in uniqs:
 		unin='|'.join(unl)
@@ -536,7 +600,7 @@ def Butter(x, y, par1, par2):
 
 
 
-def analyze(data):
+def analyze(data,g750,d750):
 	filterf='wiener'
 	waves=['590nm','750nm']
 	msize=20
@@ -552,7 +616,9 @@ def analyze(data):
 	for plate in sorted(data.keys()):
 		#Needs to be checked
 		time=data[plate]['Time']
-
+		time_h=time/3600
+		#print time
+		#print time_h
 		dt=time[1]-time[0]
 		time_dt=(time+dt/2)[:-1]
 		npts=len(time)
@@ -560,11 +626,17 @@ def analyze(data):
 		print 'Analyzing data in {}'.format(plate)
 		data[plate]['Time_dt']=(time+dt/2)[:-1]
 		for well in data[plate]['Labels']:
+			#print plate, well
 			if well!='A1':
 				ref590=data[plate]['590nm_f']['A1']
 				ref750=data[plate]['750nm_f']['A1']
+				refgrowth=data[plate]['Growth']['A1']
+				refdye=data[plate]['Dye']['A1']
 				refl590=data[plate]['590nm_log']['A1']
 				refl750=data[plate]['750nm_log']['A1']
+				reflgrowth=data[plate]['Growth_log']['A1']
+				refldye=data[plate]['Dye_log']['A1']
+
 			gs=np.mean(data[plate]['590nm'][well][:window])
 			ds=np.mean(data[plate]['750nm'][well][:window])
 
@@ -586,48 +658,97 @@ def analyze(data):
 			dt750=np.diff(f750)/(dt/3600)
 			dtf750=setbar(Wiener(dt750,msize),0.0)
 
+			raw750c,raw590c=cut(raw750,raw590,0.1,0.8,equalize=False)
+			poptd, pcovd = curve_fit(lin, raw590c, raw750c)
+
+			rho=poptd[0]
+			const=poptd[1]
+			d=(rho-g750)/(d750-rho)
+			# if d>0:
+			# 	growthr=f750/(g750+d*d750)
+			# else:
+			# 	growthr=f750/g750
+			growthr=f750/(g750+d*d750)
+
+			dyer=growthr*d
+
+			loggrowth=np.log2(setbar(growthr,thres))
+			dtgrowth=np.diff(growthr)/(dt/3600)
+
+			logdye=np.log2(setbar(dyer,thres))
+			dtdye=np.diff(dyer)/(dt/3600)
+
+
 			if well=='A1':
 				refrl590=log590-log590
 				refrl750=log750-log750
+				refrlgrowth=loggrowth-loggrowth
+				refrldye=logdye-logdye
 				refr590=f590-f590
 				refr750=f750-f750
+				refrgrowth=growthr-growthr
+				refrdye=dyer-dyer
 			else:
 				refrl590=log590-refl590
 				refrl750=log750-refl750
+				refrlgrowth=loggrowth-reflgrowth
+				refrldye=logdye-refldye
 				refr590=f590-ref590
 				refr750=f750-ref750
+				refrgrowth=growthr-refgrowth
+				refrdye=dyer-refdye
 
 			diff590750=f590-f750
 			diff590750log=log590-log750
 
 
 
-			#Need threshold
-			# resp=setbar(f750,thresd)/setbar(f590,thres)
-			# rs=np.mean(resp[:window])
-			# resp=Wiener(resp-rs,msize)
-			# resp_log=np.log2(setbar(resp,thresd/4))
-			# resp=setbar(resp,0.0)
-			# resp_dt=np.diff(resp)/(dt/3600)
-			# resp_dt=Wiener(resp_dt,msize)
-			# resp_dt=setbar(Wiener(resp_dt,msize),0.0)
-			#
-			# dresp=(np.diff(dye)/(dt/3600))/interp(time,growth,time_dt)
-			# dresp=Wiener(dresp,msize)
-			# dresp=setbar(dresp,0.0)
+			margin=0.01
+			#Select which channel to use for growth fitting
+			grow=f750
+			maxg=max(grow)
+			timec,growc=cut(time_h, grow, 0.05, maxg,equalize=True)
+			if len(timec)>2 and len(growc)>2:
+				#print len(timec), len(growc)
+				#print min(growc),max(growc)
+				try:
+					popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
+					A,lam,u=popt
+					if A>0 and lam>0 and u>0:
+						yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
+						freducedf = interpolate.UnivariateSpline(time_h, yreducedf, s=0)
+						tmaxf=freducedf.roots()[0]
+					else:
+						tmaxf=np.inf
+					#print popt,tmaxf
+
+				except OptimizeWarning:
+					print 'Curve_fit encountered an error!'
+					A,lam,u=[0,np.inf,0]
+					tmaxf=np.inf
+
+				yreduced = growc - maxg*(1-margin)
+				try:
+					freduced = interpolate.UnivariateSpline(timec, yreduced, s=0)
+					if len(freduced.roots()>0):
+						tmax=freduced.roots()[0]
+					else:
+						tmax=np.inf
+				except TypeError:
+					print 'Curve_fit encountered an error!'
+					tmax=np.inf
+			else:
+				A,lam,u=[0,np.inf,0]
+				tmaxf=np.inf
+				tmax=np.inf
+
+			# yreducedf = growth(tiem,*popt) - (popt[0]-popt[0]*margin) #maxg#
+			# freducedf = interpolate.UnivariateSpline(time, yreducedf, s=0)
+			# tmaxf=freducedf.roots()[0]
+			# #print tmaxf
 
 
-
-			#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
-
-			# if max(dresp)>0.1:
-			# 	dresp_norm=dresp/max(dresp)
-			# else:
-			# 	dresp_norm=np.zeros((len(dresp),), dtype=np.int)
-			# if max(growth_dt)>0.01:
-			# 	growth_dt_norm=growth_dt/max(growth_dt)
-			# else:
-			# 	growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
+			#print tmax
 
 
 			data[plate]['750nm_b'][well]=back750
@@ -640,8 +761,22 @@ def analyze(data):
 			data[plate]['590nm_log'][well]=log590
 			data[plate]['590nm_dt'][well]=dtf590
 
+			data[plate]['Growth'][well]=growthr
+			data[plate]['Growth_log'][well]=loggrowth
+			data[plate]['Growth_dt'][well]=dtgrowth
+
+			data[plate]['Dye'][well]=dyer
+			data[plate]['Dye_log'][well]=logdye
+			data[plate]['Dye_dt'][well]=dtdye
+
 			data[plate]['590nm_reflog'][well]=refrl590
 			data[plate]['590nm_ref'][well]=refr590
+
+			data[plate]['Growth_reflog'][well]=refrlgrowth
+			data[plate]['Growth_ref'][well]=refrgrowth
+
+			data[plate]['Dye_reflog'][well]=refrldye
+			data[plate]['Dye_ref'][well]=refrdye
 
 			data[plate]['750nm_reflog'][well]=refrl750
 			data[plate]['750nm_ref'][well]=refr750
@@ -649,45 +784,36 @@ def analyze(data):
 			data[plate]['590nm750nm_diff'][well]=diff590750
 			data[plate]['590nm750nm_difflog'][well]=diff590750log
 
-			#data[plate]['Growth_dt_norm'][well]=growth_dt_norm
-			# data[plate]['Respiration'][well]=resp
-			# data[plate]['Respiration_log'][well]=resp_log
-			# data[plate]['Respiration_dt'][well]=resp_dt
-			# data[plate]['dRespiration_dt'][well]=dresp
-			# data[plate]['dRespiration_dt_norm'][well]=dresp_norm
+
+			data[plate]['Summary']['Respiration'][well]=[rho,const,d]
+			data[plate]['Summary']['GrowthFit'][well]=[A,lam,u,tmax,tmaxf]
 
 
-			#if plate=='PM5':
-			#	rs=np.mean(resp[:window])
-			#	resp=resp-rs
-			#else:
-			#	resp=resp-refresp
-			#	rs=np.mean(resp[:window])
-			#	resp=resp-rs
-			#gresp=(growth+gs+0.1)/(resp+rs+0.1)
-			#respg=(resp+rs+0.1)/(growth+gs+0.1)
-			#gresp=gresp-np.mean(gresp[:window])
-			#respg=respg-np.mean(respg[:window])
-			#data[plate][strain][tp]['Respiration'][well]=resp
-			#data[plate][strain][tp]['Respiration_dt'][well]=np.diff(resp)/(dt/3600)
-			#data[plate][strain][tp]['Growth-Resp'][well]=gresp
-			#data[plate][strain][tp]['Resp-Growth'][well]=respg
-
-		data[plate]['Figures']=data[plate]['Figures']+['590nm_b','590nm_f','590nm_log','590nm_dt',
+		data[plate]['Figures']=data[plate]['Figures']+['Growth','Growth_log','Growth_dt',
+		                                               'Dye','Dye_log','Dye_dt',
+		                                               '590nm_b','590nm_f','590nm_log','590nm_dt',
 		                                               '750nm_b','750nm_f','750nm_log','750nm_dt',
-		                                               '750nm_ref','750nm_reflog','590nm_ref','590nm_reflog',
+		                                               'Growth_ref','Growth_reflog',
+		                                               'Dye_ref','Dye_reflog',
+		                                               '750nm_ref','750nm_reflog',
+		                                               '590nm_ref','590nm_reflog',
 		                                               '590nm750nm_diff','590nm750nm_difflog']
 	for plate in sorted(data.keys()):
 		for fg in data[plate]['Figures']:
 			for well in data[plate]['Labels']:
+				#print plate,fg,well
 				data[plate]['Summary']['Max_{}'.format(fg)][well]=max(data[plate][fg][well])
-				data[plate]['Summary']['Int_{}'.format(fg)][well]=sum(data[plate][fg][well])/(60/float(data[plate]['Time_step']))
 				if '_dt' in fg:
 					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24-1]
 					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16-1]
 				else:
 					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24]
 					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16]
+					data[plate]['Summary']['Int_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, 24)
+					data[plate]['Summary']['Int-tmax_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][3] if data[plate]['Summary']['GrowthFit'][well][3]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][3]!=np.inf else np.inf
+					data[plate]['Summary']['Int-tmaxf_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][4] if data[plate]['Summary']['GrowthFit'][well][4]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][4]!=np.inf else np.inf
+
+
 
 	return data
 
@@ -728,23 +854,39 @@ def readmet(ifile):
 	#print genes
 	return nutrients
 
-def cut(x, y, a,b):
+def cut(x, y, a,b,equalize=False):
 	x2=[]
 	y2=[]
+	maxy=max(y)
+	maxind=y.tolist().index(maxy)
 	last=0
 	for xt, yt in IT.izip(enumerate(x),enumerate(y)):
 		df=yt[0]-last
 		#print df
-		if yt[1]>a and yt[1]<b:# and df<3
-			last=yt[0]
+		if yt[1]>a and yt[1]<=b:# and df<3
 			x2.append(xt[1])
-			y2.append(yt[1])
+			last=yt[0]
+			if yt[0]<maxind:
+				y2.append(yt[1])
+			else:
+				if equalize:
+					y2.append(maxy)
+				else:
+					y2.append(yt[1])
 	y2=np.asarray(y2)
 	x2=np.asarray(x2)
-	
-	return x2,y2 
 
-def growth(x,a,c):
+	return x2,y2
+
+def growth(x,A,lam,u):
+	return A/(1+np.exp((4*u/A)*(lam-x)+2))
+
+def log_growth(x,A,lam,u):
+	y=np.log2(A)-np.log2(1+np.exp((4*u/A)*(lam-x)+2))
+	#print x,y
+	return np.log2(A)-np.log2(1+np.exp((4*u/A)*(lam-x)+2))
+
+def lin(x,a,c):
 	y=x*a+c
 	return y
 
@@ -769,26 +911,29 @@ def growthfit(data):
 			x2,y2=cut(x, y, thres+(maxy-thres)*0.1, thres+(maxy-thres)*0.6) #0.6
 			if len(y2)>0 and gscale>0.5:
 				try:
-					popt, pcov = curve_fit(growth, x2, y2)
+					popt, pcov = curve_fit(lin, x2, y2)
 					a=popt[0]
 					c=popt[1]
 					t0=(np.log2(y0)-c)/(a)
+					tmax=(maxy-c)/(a)
 				except TypeError:
 					print 'Curve_fit encountered an error!'
 					a=0
 					c=0
 					t0=float("inf")
+					tmax=float("inf")
 
 			else:
 				a=0
 				c=0
 				t0=float("inf")
+				tmax=float("inf")
 			# for par,nm in IT.izip([a,c,t0],['a','c','t0']):
 			# 	if allfit[tp]['Log'][nm]:
 			# 		allfit[tp]['Log'][nm]=allfit[tp]['Log'][nm]+[par]
 			# 	else:
 			# 		allfit[tp]['Log'][nm]=[par]
-			data[plate]['Summary']['GrowthFit'][l]=[a,c,t0]
+			data[plate]['Summary']['GrowthFit_log'][l]=[a,c,t0,tmax]
 
 	return data
 
@@ -921,9 +1066,11 @@ def readinfo(ifile):
 	#print metin, ecoin,plate,well
 	for ln in data[1:]:
 		fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
-		for hd in headin.keys():
-			info[fl][hd]=str(ln[headin[hd]]).encode('ascii','ignore').strip()
-		ilist.append(fl)
+		if fl!="":
+			for hd in headin.keys():
+				info[fl][hd]=str(numerize(ln[headin[hd]])).strip().encode('ascii','ignore')
+			#print info[fl]['Replicate']
+			ilist.append(fl)
 
 	#print genes
 	return ilist, info
@@ -951,18 +1098,19 @@ def makesheets(data,metabolites,info):
 	regular=[]
 	
 	header=info[info.keys()[0]].keys()+['Well','Index','Data','Name','EcoCycID']
-	allsumhead=['a','c','t0']+['Max_750nm','Max_750nm_log','24h_750nm','24h_750nm_log','Int_750nm',
-	                           'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm']
-	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log','Int_750nm_f',
-	         'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f']#'a','c','t0'
+	# 'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm','Int-tmax_590nm','Int-tmaxf_590nm'
+	allsumhead=['rho','C','d']+['A','lamda','u','tmax','tmaxf']+\
+	           ['a','c','t0','tmax-log']+\
+	           ['Max_750nm','Max_750nm_log','24h_750nm','24h_750nm_log','Int_750nm','Int-tmax_750nm','Int-tmaxf_750nm',
+	            'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']
+	#'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f','Int-tmax_590nm_f'
+	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log','Int_750nm_f','Int-tmax_750nm_f','Int-tmaxf_750nm_f',
+	         'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
 	allsum.append(header+allsumhead)
 	for fln in data.keys():
-		# strain=info[plate]['Strain']
-		# tp=info[plate]['Type']
 		sums=data[fln]['Summary']
 
 		output=data[fln]['Figures']
-		#output=output+['GrowthFit']
 		time_dt=data[fln]['Time_dt']
 		time_lin=data[fln]['Time']
 		labels=data[fln]['Labels']
@@ -983,8 +1131,7 @@ def makesheets(data,metabolites,info):
 				regular.append(newrow)
 		for well in labels:
 			rowhead=annot+[well,plate+'-'+well,'Summary',metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
-			#print sums['GrowthFit'][well]
-			datrow=sums['GrowthFit'][well]+[sums[sm][well] for sm in selsums]
+			datrow=sums['Respiration'][well]+sums['GrowthFit'][well]+sums['GrowthFit_log'][well]+[sums[sm][well] for sm in selsums]
 			if not isinstance(datrow,list):
 				datrow=datrow.tolist()
 			newrow=rowhead+datrow

@@ -112,6 +112,7 @@ def main(argv=None):
 	msize=20
 	odir='Output'
 	load=False
+	loadc=False
 	#Constant values may change
 	g750=0.748596
 	d750=0.4
@@ -141,6 +142,8 @@ def main(argv=None):
 		for argument in args:		
 			if argument in ("load", "--load"):
 				load = True
+			if argument in ("loadc", "--loadc"):
+				loadc = True
 			
 
 
@@ -188,22 +191,19 @@ def main(argv=None):
 		data,metabolites,ilist,info,uniques= pickle.load(f)
 		f.close()
 
-		
-	else:	
-		
-		ilist,info=genlist(ifile)
-		#print ilist
-		#print info
-		uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
-		#print uniques
-		#sys.exit(1)
-		#print metabolites
-		#sys.exit(0)
-		
-		#checkfiles(ilist)	
-		data=collect(ilist)
+	else:
 
-
+		if loadc:
+			f = open('{}/Biolog_data_collected.pckl'.format(odir),'rb')
+			data,metabolites,ilist,info,uniques= pickle.load(f)
+			f.close()
+		else:
+			ilist,info=genlist(ifile)
+			uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
+			data=collect(ilist)
+			f = open('{}/Biolog_data_collected.pckl'.format(odir), 'w')
+			pickle.dump([data,metabolites,ilist,info,uniques], f)
+			f.close()
 
 		#sys.exit(1)
 		data=analyze(data,g750,d750)
@@ -216,27 +216,12 @@ def main(argv=None):
 
 	sheets=makesheets(data,metabolites,info)
 	writesheets(sheets,odir,sep=',')
-	#f = open('Biolog_data.pckl', 'w')
-	#pickle.dump([data,allfit,metabolites,odir], f)
-	#f.close()
-	
-	
-	#data,allfit=growthfit(data)
 
-	plot_comparison(data,metabolites,odir,['Growth_Respiration',
-	                                       '750nm_dt','750nm_f','750nm_log'],info,uniques)
+
+	plot_comparison(data,metabolites,odir,['750nm_f','Growth_Respiration',
+	                                       '750nm_dt','750nm_log'],info,uniques)
 	#,'Growth','Growth_log','Growth_dt'
 	#'590nm_dt','590nm_f','590nm_log',
-	#'Respiration_log','Respiration','Resp&Growth',
-	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
-		
-	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
-
-	
-	#sheets=makesheets(data,metabolites)	
-	#writesheets(sheets,odir)
-	
-	
 
 #-------------Functions------------
 
@@ -470,7 +455,8 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 					xnm=data[gdata]['590nm'][l]
 					y=data[gdata]['750nm'][l]
 					rho,const,d=data[gdata]['Summary']['Respiration'][l]
-					plt.plot(linx,lin(linx,rho,const),mrk,alpha=0.2)
+					if rho!=0:
+						plt.plot(linx,lin(linx,rho,const),mrk,alpha=0.2)
 					plt.plot(xnm,y,mrk)
 					#plt.text(0.05, 0.05, 'rho={0:1.2f}, d={1:1.2f}'.format(rho,d),
 					# fontsize=6,verticalalignment='top',transform=ax.transAxes)
@@ -482,6 +468,11 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 						if a>0:
 							yfit=x*a+c
 							plt.plot(x,yfit,mrk,alpha=0.5)
+					if fg=='750nm_f':
+						A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
+						if 0<tmaxf<=24:
+							plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrk=='r-' else 'blue',alpha=0.1)#, interpolate=True
+						#, where=x<=tmaxf
 
 		# if fg in ['Growth_abolished','Respiration_abolished']:
 		# 	ye[ye<thres]=thres
@@ -659,18 +650,26 @@ def analyze(data,g750,d750):
 			dtf750=setbar(Wiener(dt750,msize),0.0)
 
 			raw750c,raw590c=cut(raw750,raw590,0.1,0.8,equalize=False)
-			poptd, pcovd = curve_fit(lin, raw590c, raw750c)
-
-			rho=poptd[0]
-			const=poptd[1]
-			d=(rho-g750)/(d750-rho)
-			# if d>0:
-			# 	growthr=f750/(g750+d*d750)
-			# else:
-			# 	growthr=f750/g750
+			if len(raw750c)>10 and len(raw590c)>10:
+				scale750=max(raw750c)-min(raw750c)
+				scale590=max(raw590c)-min(raw590c)
+				if scale590>0.1 and scale750>0.1:
+					poptd, pcovd = curve_fit(lin, raw590c, raw750c)
+					rho=poptd[0]
+					const=poptd[1]
+					d=(rho-g750)/(d750-rho)
+				else:
+					rho=0
+					const=0
+					d=0
+			else:
+				rho=0
+				const=0
+				d=0
 			growthr=f750/(g750+d*d750)
-
 			dyer=growthr*d
+
+
 
 			loggrowth=np.log2(setbar(growthr,thres))
 			dtgrowth=np.diff(growthr)/(dt/3600)
@@ -707,22 +706,30 @@ def analyze(data,g750,d750):
 			#Select which channel to use for growth fitting
 			grow=f750
 			maxg=max(grow)
-			timec,growc=cut(time_h, grow, 0.05, maxg,equalize=True)
-			if len(timec)>2 and len(growc)>2:
+			scaleg=maxg-min(grow)
+			timec,growc=cut(time_h, grow, 0, maxg,equalize=True)
+			if scaleg>0.1 and len(timec)>10 and len(growc)>10:
+				#print plate,well
 				#print len(timec), len(growc)
 				#print min(growc),max(growc)
+				#popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)
+				#A,lam,u=popt
 				try:
 					popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
 					A,lam,u=popt
 					#print popt,tmaxf
-				except (RuntimeError, TypeError, NameError):
-					print 'Curve_fit encountered an error!'
+				except (RuntimeError, ValueError, RuntimeWarning, UnboundLocalError) as e:
+					print e
+					print 'Curve_fit encountered an error in well {}!'.format(well)
 					A,lam,u=[0,np.inf,0]
 
 				if A>0 and lam<np.inf and u>0:
 					yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
 					freducedf = interpolate.UnivariateSpline(time_h, yreducedf, s=0)
-					tmaxf=freducedf.roots()[0]
+					if len(freducedf.roots())>0:
+						tmaxf=freducedf.roots()[0]
+					else:
+						tmaxf=np.inf
 				else:
 					tmaxf=np.inf
 
@@ -734,7 +741,7 @@ def analyze(data,g750,d750):
 					else:
 						tmax=np.inf
 				except TypeError:
-					print 'Curve_fit encountered an error!'
+					print 'Integration encountered an error in well {}!'.format(well)
 					tmax=np.inf
 			else:
 				A,lam,u=[0,np.inf,0]

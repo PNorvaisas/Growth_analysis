@@ -182,7 +182,7 @@ def main(argv=None):
 		print optionsset %vars()
 	#----------------------------
 
-	if odir!="":
+	if odir!="" and not (load or loadc):
 		dirn=dircheck(odir)
 
 
@@ -300,6 +300,8 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 					lbl=lbl+sep+'Uracil{}uM'
 				elif unk=='Replicate':
 					lbl=lbl+sep+'Rep{}'
+				elif unk=='Metformin_mM':
+					lbl=lbl+sep+'Metf{}'
 				else:
 					lbl=lbl+sep+'{}'
 			lbl=lbl.format(*unval)
@@ -308,13 +310,22 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 
 			print "Plotting: "+ttl+' '+fg
 			#Need to fix metabolites
-			plot=plot_2D(ttl,fg,data,cgroup,egroup,metabolites[bplate])
+			plot=plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites[bplate],info)
 			plot.savefig('{}/{}.pdf'.format(dirn,'{}_{}'.format(lbl,fg)))
 			plot.close()
 
 	return data
 
-def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
+def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
+
+	markers={'1':'-','2':'--','3':'-.','4':':'}
+	metfc={'0':'r','25':'c','50':'b'}
+	drugplates=['PM11C','PM12B','PM13B','PM14A','PM15B', 'PM16A', 'PM17A', 'PM18C',
+	            'PM19', 'PM20B', 'PM21D', 'PM22D', 'PM23A', 'PM24C', 'PM25D']
+	if bplate in drugplates:
+		metin='Name'
+	else:
+		metin='Metabolite'
 	plate_size=96
 	#print title
 
@@ -398,7 +409,7 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 		decimals=1
 
 	if '750nm_' in fg and '_log' not in fg and '_dt' not in fg:
-		totalmax=1
+		totalmax=0.5 if bplate=='PM5' else 1
 		totalmin=0
 		ticks=3
 		ylabel='OD'
@@ -417,6 +428,8 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 	fig.text(0.5, 0.04, xlabel, ha='center')
 	fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
 
+	repmax=1
+	metconcs=[]
 	for v,l in IT.izip(range(plate_size),labels):
 		row=string.uppercase.index(l[0])+1
 		col=int(l.replace(l[0],''))
@@ -445,12 +458,23 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 		#Need range here
 		plt.ylim([totalmin,totalmax])
 		#plt.axvline(x=3, ymin=0, ymax=1,c='green', hold=None)  u 
-		label=greek_check(metabolites[l]['Name'],12)
+		label=greek_check(metabolites[l][metin],12)
 		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 
 		linx=np.array([0,2])
-		for grp,mrk in IT.izip([cgroup,egroup],['r-','b-']):
+
+		for grp,mrkc in IT.izip([cgroup,egroup],['r','b']):
 			for gdata in grp:
+				#Needs further refinement
+				if 'Metformin_mM' in info[gdata].keys(): # and info[gdata]['Metformin_mM']!='50'
+					mrkc=metfc[info[gdata]['Metformin_mM']]
+					metconcs.append(info[gdata]['Metformin_mM'])
+				if 'Replicate' in info[gdata].keys():
+					mrk=mrkc+markers[info[gdata]['Replicate']]
+					if int(info[gdata]['Replicate'])>repmax:
+						repmax=int(info[gdata]['Replicate'])
+				else:
+					mrk=mrkc+'-'
 				if fg=='Growth_Respiration':
 					xnm=data[gdata]['590nm'][l]
 					y=data[gdata]['750nm'][l]
@@ -468,11 +492,13 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 						if a>0:
 							yfit=x*a+c
 							plt.plot(x,yfit,mrk,alpha=0.5)
-					if fg=='750nm_f':
-						A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
-						if 0<tmaxf<=24:
-							plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrk=='r-' else 'blue',alpha=0.1)#, interpolate=True
-						#, where=x<=tmaxf
+					# if fg=='750nm_f':
+					# 	A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
+					# 	if 0<tmaxf<=24:
+					# 		plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrk=='r-' else 'blue',alpha=0.1)#, interpolate=True
+					# 	if A>0 and lam<np.inf and u>0:
+					# 		yfit=growth(x,A,lam,u)
+					# 		plt.plot(x,yfit,mrk.replace('-','-.'),alpha=0.5)
 
 		# if fg in ['Growth_abolished','Respiration_abolished']:
 		# 	ye[ye<thres]=thres
@@ -489,43 +515,78 @@ def plot_2D(ttl,fg,data,cgroup,egroup,metabolites):
 		# 		#print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
 		# 		plt.plot(x,rc,'r-',alpha=0.5)
 		# 		plt.plot(x,re,'b-',alpha=0.5)
-	blue_line = mlines.Line2D([], [], color='blue', label='Treatment')
-	red_line = mlines.Line2D([], [], color='red', label='Control')
-	#plt.figlegend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-	plt.figlegend((red_line,blue_line),('Control','Treatment'),'upper right',prop={'size':10})#
+	typelines=[]
+	typelabels=[]
+	if len(metconcs)>0:
+		if '0' in metconcs:
+			typelines.append(mlines.Line2D([], [], color='red', label='Control'))
+			typelabels.append('Control')
+		if '25' in metconcs:
+			typelines.append(mlines.Line2D([], [], color='cyan', label='Metformin 25mM'))
+			typelabels.append('Metformin 25mM')
+		if '50' in metconcs:
+			typelines.append(mlines.Line2D([], [], color='blue', label='Metformin 50mM'))
+			typelabels.append('Metformin 50mM')
+		if '75' in metconcs:
+			typelines.append(mlines.Line2D([], [], color='blue', label='Metformin 75mM'))
+			typelabels.append('Metformin 75mM')
+
+	else:
+		blue_line = mlines.Line2D([], [], color='blue', label='Treatment')
+		red_line = mlines.Line2D([], [], color='red', label='Control')
+		typelines=[red_line,blue_line]
+		typelabels=['Control','Treatment']
+
+	replines=[]
+	replabels=[]
+
+	for rep in range(1,repmax+1):
+		replines.append( mlines.Line2D([], [],linestyle=markers[str(rep)], color='black', label='Replicate {}'.format(rep)))
+		replabels.append('Replicate {}'.format(rep))
+
+	plt.figlegend(typelines,typelabels,'upper right',prop={'size':5})#
+	plt.figlegend(replines,replabels,'upper left',prop={'size':5})#
 
 	return plt
 
 def uniquecomb(info,sortby,compareby):
 	summ=[]
 	uns=NestedDict()
-	for i in info.keys():
-		if all([k in info[i].keys() for k in sortby]):
-			ks=[info[i][k] for k in sortby]
-			summ.append(ks)
+	preskeys=info[info.keys()[0]].keys()
+	inkeys=[k for k in sortby if k in preskeys]
+	missing=[k for k in sortby if k not in preskeys]
+	if len(inkeys)>0:
+		if len(inkeys)==len(sortby):
+			print 'All defined keys have been found!'
 		else:
-			missing=[k for k in sortby if k not in info[i].keys()]
-			print 'Keys defined in for unique sets have not been found in Design file!\n{}'.format(missing)
-	#print summ
-	uniqs=[list(i) for i in set(tuple(i) for i in summ)]
-	for unl in uniqs:
-		unin='|'.join(unl)
-		uns[unin]['Unique-keys']=sortby
-		uns[unin]['Unique-values']=unl
-		uns[unin]['Compare-by']=compareby
-		uns[unin]['Compare-by-values']=[]
+			print 'Some keys were found!\n{}'.format(inkeys)
+			print 'Keys for unique sets have not been found in Design file!\n{}'.format(missing)
 		for i in info.keys():
-			# print sortby
-			# print unl
-			# print type(unl)
-			check=[info[i][uk]==uv for uk,uv in IT.izip(sortby,unl)]
-			# print check
-			if all(check):
-				if info[i][compareby] in uns[unin].keys():
-					uns[unin][info[i][compareby]]=uns[unin][info[i][compareby]]+[i]
-				else:
-					uns[unin]['Compare-by-values']=uns[unin]['Compare-by-values']+[info[i][compareby]]
-					uns[unin][info[i][compareby]]=[i]
+			ks=[info[i][k] for k in inkeys]
+			summ.append(ks)
+		#print summ
+		uniqs=[list(i) for i in set(tuple(i) for i in summ)]
+		for unl in uniqs:
+			unin='|'.join(unl)
+			uns[unin]['Unique-keys']=inkeys
+			uns[unin]['Unique-values']=unl
+			uns[unin]['Compare-by']=compareby
+			uns[unin]['Compare-by-values']=[]
+			for i in info.keys():
+				# print sortby
+				# print unl
+				# print type(unl)
+				check=[info[i][uk]==uv for uk,uv in IT.izip(inkeys,unl)]
+				# print check
+				if all(check):
+					if info[i][compareby] in uns[unin].keys():
+						uns[unin][info[i][compareby]]=uns[unin][info[i][compareby]]+[i]
+					else:
+						uns[unin]['Compare-by-values']=uns[unin]['Compare-by-values']+[info[i][compareby]]
+						uns[unin][info[i][compareby]]=[i]
+	else:
+		print 'None of the defined sorting keys have been found in Design file!\n{}'.format(missing)
+		sys.exit(1)
 
 	return uns
 
@@ -603,17 +664,18 @@ def analyze(data,g750,d750):
 	thresd=np.power(2.0,-5)
 	ind16=data[data.keys()[0]]['Time'].tolist().index(16*3600)
 	ind24=data[data.keys()[0]]['Time'].tolist().index(24*3600)
+	time=data[data.keys()[0]]['Time']
+	time_h=time/3600
+	#print time
+	#print time_h
+	dt=time[1]-time[0]
+	time_dt=(time+dt/2)[:-1]
+	npts=len(time)
+	nyf=0.5/dt
 
 	for plate in sorted(data.keys()):
 		#Needs to be checked
-		time=data[plate]['Time']
-		time_h=time/3600
-		#print time
-		#print time_h
-		dt=time[1]-time[0]
-		time_dt=(time+dt/2)[:-1]
-		npts=len(time)
-		nyf=0.5/dt
+
 		print 'Analyzing data in {}'.format(plate)
 		data[plate]['Time_dt']=(time+dt/2)[:-1]
 		for well in data[plate]['Labels']:
@@ -795,15 +857,16 @@ def analyze(data,g750,d750):
 			data[plate]['Summary']['GrowthFit'][well]=[A,lam,u,tmax,tmaxf]
 
 
-		data[plate]['Figures']=data[plate]['Figures']+['Growth','Growth_log','Growth_dt',
-		                                               'Dye','Dye_log','Dye_dt',
-		                                               '590nm_b','590nm_f','590nm_log','590nm_dt',
+		data[plate]['Figures']=data[plate]['Figures']+['590nm_b','590nm_f','590nm_log','590nm_dt',
 		                                               '750nm_b','750nm_f','750nm_log','750nm_dt',
-		                                               'Growth_ref','Growth_reflog',
-		                                               'Dye_ref','Dye_reflog',
-		                                               '750nm_ref','750nm_reflog',
-		                                               '590nm_ref','590nm_reflog',
-		                                               '590nm750nm_diff','590nm750nm_difflog']
+		                                               #'Growth','Growth_log','Growth_dt',
+		                                               #'Dye','Dye_log','Dye_dt',
+		                                               #'Growth_ref','Growth_reflog',
+		                                               #'Dye_ref','Dye_reflog',
+		                                               #'750nm_ref','750nm_reflog',
+		                                               #'590nm_ref','590nm_reflog',
+		                                               #'590nm750nm_diff','590nm750nm_difflog',
+		                                               ]
 	for plate in sorted(data.keys()):
 		for fg in data[plate]['Figures']:
 			for well in data[plate]['Labels']:
@@ -818,7 +881,7 @@ def analyze(data,g750,d750):
 					data[plate]['Summary']['Int_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, 24)
 					data[plate]['Summary']['Int-tmax_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][3] if data[plate]['Summary']['GrowthFit'][well][3]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][3]!=np.inf else np.inf
 					data[plate]['Summary']['Int-tmaxf_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][4] if data[plate]['Summary']['GrowthFit'][well][4]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][4]!=np.inf else np.inf
-
+					data[plate]['Summary']['Int_{}_log'.format(fg)][well]=np.log2(data[plate]['Summary']['Int_{}'.format(fg)][well])
 
 
 	return data
@@ -840,25 +903,52 @@ def readmet(ifile):
 	rdr=csv.reader(open(ifile,'r'), delimiter=',')
 	data=[ln for ln in rdr]
 	headers=data[0]
-	metin=headers.index('Metabolite')
-	ecoin=headers.index('EcoCycID')
-	plate=headers.index('Plate')
-	well=headers.index('Well')
-	indx=headers.index('Index')
-	print metin, ecoin,plate,well
+	headin={ hd : headers.index(hd) for hd in headers}
+	nec=['Metabolite','EcoCycID','Plate','Well','Index']
+	if all(n in headers for n in nec):
+		print 'Necessary headers found!'
+	else:
+		print 'Missing essential headers in metabolites file!'
+		print headers
+		sys.exit(0)
 	for ln in data[1:]:
-		met=ln[metin].encode('ascii','ignore').strip()
-		eco=ln[ecoin].encode('ascii','ignore').strip()
-		pl=ln[plate].encode('ascii','ignore').strip()
-		wl=ln[well].encode('ascii','ignore').strip()
-		ind=ln[indx].encode('ascii','ignore').strip()
-		nutrients[pl][wl]['ID']=eco
-		nutrients[pl][wl]['Name']=met
-		nutrients[pl][wl]['Index']=ind
+		pl=str(numerize(ln[headin['Plate']])).strip().encode('ascii','ignore')
+		wl=str(numerize(ln[headin['Well']])).strip().encode('ascii','ignore')
+		for hd in headin.keys():
+			nutrients[pl][wl][hd]=str(numerize(ln[headin[hd]])).strip().encode('ascii','ignore')
+	return nutrients
 
+def readinfo(ifile):
+	print ifile
+	info=NestedDict()
+	ilist=[]
+	ipt, inm, itp = filename(ifile)
+	if itp in ['xlsx','xls']:
+		data=readxls_s(ifile)
+	elif itp=='csv':
+		data=readcsv(ifile)
+	headers=data[0]
+	#Automatically find variables
+	headin={ hd : headers.index(hd) for hd in headers}
+	nec=['File','Plate','Type']
+
+	#filein=headers.index('File')
+	# platein=headers.index('Plate')
+	# strainin=headers.index('Strain')
+	# typein=headers.index('Type')
+	#print metin, ecoin,plate,well
+	for ln in data[1:]:
+		fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
+		if fl!="":
+			for hd in headin.keys():
+				info[fl][hd]=str(numerize(ln[headin[hd]])).strip().encode('ascii','ignore')
+			#print info[fl]['Replicate']
+			ilist.append(fl)
 
 	#print genes
-	return nutrients
+	return ilist, info
+
+
 
 def cut(x, y, a,b,equalize=False):
 	x2=[]
@@ -1046,42 +1136,6 @@ def genlist(ifile):
 			info[ifl]['Type']='Control' if 'Control' in inm or 'NoMetf' in inm else 'Treatment'
 	return ilist,info
 
-def readinfo(ifile):
-	print ifile
-	info=NestedDict()
-	ilist=[]
-	ipt, inm, itp = filename(ifile)
-	if itp in ['xlsx','xls']:
-		data=readxls_s(ifile)
-	elif itp=='csv':
-		data=readcsv(ifile)
-	headers=data[0]
-	#Automatically find variables
-	headin={ hd : headers.index(hd) for hd in headers}
-	nec=['File','Plate','Type']
-	if all(n in headers for n in nec):
-		print 'Necessary headers found!'
-	else:
-		print 'Missing essential headers in description file!'
-		print headers
-		sys.exit(0)
-	#filein=headers.index('File')
-	# platein=headers.index('Plate')
-	# strainin=headers.index('Strain')
-	# typein=headers.index('Type')
-	#print metin, ecoin,plate,well
-	for ln in data[1:]:
-		fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
-		if fl!="":
-			for hd in headin.keys():
-				info[fl][hd]=str(numerize(ln[headin[hd]])).strip().encode('ascii','ignore')
-			#print info[fl]['Replicate']
-			ilist.append(fl)
-
-	#print genes
-	return ilist, info
-
-
 
 def tableout(inp):
 	#Read file to a list
@@ -1102,54 +1156,73 @@ def makesheets(data,metabolites,info):
 	dt=[]
 	allsum=[]
 	regular=[]
-	
-	header=info[info.keys()[0]].keys()+['Well','Index','Data','Name','EcoCycID']
+	drugplates=['PM11C','PM12B','PM13B','PM14A','PM15B', 'PM16A', 'PM17A', 'PM18C',
+	            'PM19', 'PM20B', 'PM21D', 'PM22D', 'PM23A', 'PM24C', 'PM25D']
+
+	defannkeys=['File','Plate','Strain','Type','Metformin_mM','Media','Inoculum','Replicate']
+	annotdefkeys=[k for k in defannkeys if k in info[info.keys()[0]].keys()]
+	annotextrakeys=[k for k in info[info.keys()[0]].keys() if k not in annotdefkeys]
+	annotkeys=annotdefkeys+annotextrakeys
+	#print annotdefkeys
+
+	metdesc=metabolites[metabolites.keys()[0]]['A1'].keys()
+	defmetkeys=['Plate','Well','EcoCycID','Well index','Index','Metabolite','Name']
+	#metdefkeys=[m for m in defmetkeys if m in metdesc]
+	metinfo=[m for m in metdesc if m not in defmetkeys]
+
+	header=annotdefkeys+annotextrakeys+['Well','Index','Data','Name','EcoCycID']+metinfo
 	# 'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm','Int-tmax_590nm','Int-tmaxf_590nm'
-	allsumhead=['rho','C','d']+['A','lamda','u','tmax','tmaxf']+\
-	           ['a','c','t0','tmax-log']+\
-	           ['Max_750nm','Max_750nm_log','24h_750nm','24h_750nm_log','Int_750nm','Int-tmax_750nm','Int-tmaxf_750nm',
-	            'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']
+	allsumhead=['rho','c','d']+['A','lamda','u','tmax','tmaxf']+\
+	           ['a_log','c_log','t0_log','tmax_log']+\
+	           ['Max_750nm','Max_750nm_log','24h_750nm','24h_750nm_log']+\
+	           ['Int_750nm','Int_750nm_log','Int-tmax_750nm','Int-tmaxf_750nm']\
+		#,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']
 	#'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f','Int-tmax_590nm_f'
-	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log','Int_750nm_f','Int-tmax_750nm_f','Int-tmaxf_750nm_f',
-	         'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
-	allsum.append(header+allsumhead)
+	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log']+\
+	        ['Int_750nm_f','Int_750nm_f_log','Int-tmax_750nm_f','Int-tmaxf_750nm_f']
+	         #,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
+
 	for fln in data.keys():
 		sums=data[fln]['Summary']
-
-		output=data[fln]['Figures']
+		output=['Summary']+data[fln]['Figures']
 		time_dt=data[fln]['Time_dt']
 		time_lin=data[fln]['Time']
 		labels=data[fln]['Labels']
-		annot=[info[fln][k] for k in info[fln].keys()]
+		#Reorder file information keys
+
+		annot=[info[fln][k] for k in annotkeys]
+		#print annot
 		plate=info[fln]['Plate']
+		if plate in drugplates:
+			metind='Name'
+		else:
+			metind='Metabolite'
 		for fig in output:
 			#print '{}...{}'.format(fln,fig)
 			for well in labels:
-				datrow=data[fln][fig][well]
-				rowhead=annot+[well,plate+'-'+well,fig,metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
-
+				rowhead=annot+\
+				        [well,plate+'-'+well,fig,metabolites[plate][well][metind],metabolites[plate][well]['EcoCycID']]+\
+					[metabolites[plate][well][metk] for metk in metinfo]
+				if fig=='Summary':
+					datrow=sums['Respiration'][well]+sums['GrowthFit'][well]+sums['GrowthFit_log'][well]+[sums[sm][well] for sm in selsums]
+				else:
+					datrow=data[fln][fig][well]
 				if not isinstance(datrow,list):
 					datrow=datrow.tolist()
 				newrow=rowhead+datrow
+
 				if '_dt' in fig:
 					dt.append(newrow)
-
-				regular.append(newrow)
-		for well in labels:
-			rowhead=annot+[well,plate+'-'+well,'Summary',metabolites[plate][well]['Name'],metabolites[plate][well]['ID']]
-			datrow=sums['Respiration'][well]+sums['GrowthFit'][well]+sums['GrowthFit_log'][well]+[sums[sm][well] for sm in selsums]
-			if not isinstance(datrow,list):
-				datrow=datrow.tolist()
-			newrow=rowhead+datrow
-			allsum.append(newrow)
-
-
-
+				elif fig=='Summary':
+					allsum.append(newrow)
+				else:
+					regular.append(newrow)
 
 	time_lin=time_lin.tolist()
 	time_dt=time_dt.tolist()
 	dt.insert(0,header+time_dt)
 	regular.insert(0,header+time_lin)
+	allsum.insert(0,header+allsumhead)
 	sheets['Data_dt']=dt
 	sheets['Data']=regular
 	sheets['Summary']=allsum

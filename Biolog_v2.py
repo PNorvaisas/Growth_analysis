@@ -317,6 +317,8 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 	return data
 
 def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
+	fullintegrals=True
+	integrals=False
 
 	markers={'1':'-','2':'--','3':'-.','4':':'}
 	metfc={'0':'r','25':'c','50':'b'}
@@ -462,7 +464,7 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 		plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 
 		linx=np.array([0,2])
-
+		#Need to unify coloring in universal way
 		for grp,mrkc in IT.izip([cgroup,egroup],['r','b']):
 			for gdata in grp:
 				#Needs further refinement
@@ -492,14 +494,15 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 						if a>0:
 							yfit=x*a+c
 							plt.plot(x,yfit,mrk,alpha=0.5)
-					# if fg=='750nm_f':
-					# 	A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
-					# 	if 0<tmaxf<=24:
-					# 		plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrk=='r-' else 'blue',alpha=0.1)#, interpolate=True
-					# 	if A>0 and lam<np.inf and u>0:
-					# 		yfit=growth(x,A,lam,u)
-					# 		plt.plot(x,yfit,mrk.replace('-','-.'),alpha=0.5)
-
+					if fg=='750nm_f' and integrals:
+						A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
+						if 0<tmaxf<=24:
+							plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrkc=='r' else 'blue',alpha=0.1)#, interpolate=True
+						if A>0 and lam<np.inf and u>0:
+							yfit=growth(x,A,lam,u)
+							plt.plot(x,yfit,mrk.replace('-','-.'),alpha=0.5)
+					if fg=='750nm_f' and fullintegrals:
+							plt.fill_between(x, 0,y,where=x<=24, facecolor='red' if mrkc=='r' else 'blue',alpha=0.1)
 		# if fg in ['Growth_abolished','Respiration_abolished']:
 		# 	ye[ye<thres]=thres
 		# 	yc[yc<thres]=thres
@@ -544,8 +547,8 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 		replines.append( mlines.Line2D([], [],linestyle=markers[str(rep)], color='black', label='Replicate {}'.format(rep)))
 		replabels.append('Replicate {}'.format(rep))
 
-	plt.figlegend(typelines,typelabels,'upper right',prop={'size':5})#
-	plt.figlegend(replines,replabels,'upper left',prop={'size':5})#
+	plt.figlegend(typelines,typelabels,'upper right',prop={'size':7})#
+	plt.figlegend(replines,replabels,'upper left',prop={'size':7})#
 
 	return plt
 

@@ -117,6 +117,7 @@ def main(argv=None):
 	g750=0.748596
 	d750=0.4
 	comparison=False
+	integrals=''
 	
 	if argv is None:
 		argv = sys.argv
@@ -144,6 +145,10 @@ def main(argv=None):
 				load = True
 			if argument in ("loadc", "--loadc"):
 				loadc = True
+			if argument in ("integrals", "--integrals"):
+				integrals='integrals'
+			if argument in ("fullintegrals", "--fullintegrals"):
+				integrals='fullintegrals'
 			
 
 
@@ -219,7 +224,7 @@ def main(argv=None):
 
 
 	plot_comparison(data,metabolites,odir,['750nm_f','Growth_Respiration',
-	                                       '750nm_dt','750nm_log'],info,uniques)
+	                                       '750nm_dt','750nm_log'],info,uniques,integrals)
 	#,'Growth','Growth_log','Growth_dt'
 	#'590nm_dt','590nm_f','590nm_log',
 
@@ -227,7 +232,7 @@ def main(argv=None):
 
 
 
-def plot_comparison(data,metabolites,dirn,figs,info,uniques):
+def plot_comparison(data,metabolites,dirn,figs,info,uniques,integrals):
 
 	for uk in sorted(uniques.keys()):
 		comvalues=uniques[uk]['Compare-by-values']
@@ -310,15 +315,15 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques):
 
 			print "Plotting: "+ttl+' '+fg
 			#Need to fix metabolites
-			plot=plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites[bplate],info)
+			plot=plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites[bplate],info,integrals)
 			plot.savefig('{}/{}.pdf'.format(dirn,'{}_{}'.format(lbl,fg)))
 			plot.close()
 
 	return data
 
-def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
-	fullintegrals=True
-	integrals=False
+def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info,integrals):
+
+
 
 	markers={'1':'-','2':'--','3':'-.','4':':'}
 	metfc={'0':'r','25':'c','50':'b'}
@@ -472,7 +477,7 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 					mrkc=metfc[info[gdata]['Metformin_mM']]
 					metconcs.append(info[gdata]['Metformin_mM'])
 				if 'Replicate' in info[gdata].keys():
-					mrk=mrkc+markers[info[gdata]['Replicate']]
+					mrk=mrkc+markers[info[gdata]['Replicate']] if int(info[gdata]['Replicate'])<5 else mrkc+markers['4']
 					if int(info[gdata]['Replicate'])>repmax:
 						repmax=int(info[gdata]['Replicate'])
 				else:
@@ -494,14 +499,14 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 						if a>0:
 							yfit=x*a+c
 							plt.plot(x,yfit,mrk,alpha=0.5)
-					if fg=='750nm_f' and integrals:
+					if fg=='750nm_f' and integrals=='integrals':
 						A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
 						if 0<tmaxf<=24:
 							plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrkc=='r' else 'blue',alpha=0.1)#, interpolate=True
 						if A>0 and lam<np.inf and u>0:
 							yfit=growth(x,A,lam,u)
 							plt.plot(x,yfit,mrk.replace('-','-.'),alpha=0.5)
-					if fg=='750nm_f' and fullintegrals:
+					if fg=='750nm_f' and integrals=='fullintegrals':
 							plt.fill_between(x, 0,y,where=x<=24, facecolor='red' if mrkc=='r' else 'blue',alpha=0.1)
 		# if fg in ['Growth_abolished','Respiration_abolished']:
 		# 	ye[ye<thres]=thres
@@ -544,7 +549,7 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 	replabels=[]
 
 	for rep in range(1,repmax+1):
-		replines.append( mlines.Line2D([], [],linestyle=markers[str(rep)], color='black', label='Replicate {}'.format(rep)))
+		replines.append( mlines.Line2D([], [],linestyle=markers[str(rep)] if rep<5  else ':', color='black', label='Replicate {}'.format(rep)))
 		replabels.append('Replicate {}'.format(rep))
 
 	plt.figlegend(typelines,typelabels,'upper right',prop={'size':7})#

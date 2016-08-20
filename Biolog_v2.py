@@ -223,7 +223,7 @@ def main(argv=None):
 	writesheets(sheets,odir,sep=',')
 
 
-	plot_comparison(data,metabolites,odir,['750nm_f','Growth_Respiration',
+	plot_comparison(data,metabolites,odir,['590nm','750nm','590nm_f','750nm_f','Growth_Respiration',
 	                                       '750nm_dt','750nm_log'],info,uniques,integrals)
 	#,'Growth','Growth_log','Growth_dt'
 	#'590nm_dt','590nm_f','590nm_log',
@@ -326,7 +326,7 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info,integrals):
 
 
 	markers={'1':'-','2':'--','3':'-.','4':':'}
-	metfc={'0':'r','25':'c','50':'b'}
+	metfc={'0':'r','25':'c','50':'b','75':'k','100':'k'}
 	drugplates=['PM11C','PM12B','PM13B','PM14A','PM15B', 'PM16A', 'PM17A', 'PM18C',
 	            'PM19', 'PM20B', 'PM21D', 'PM22D', 'PM23A', 'PM24C', 'PM25D']
 	if bplate in drugplates:
@@ -409,13 +409,13 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info,integrals):
 		ylabel='dOD/dt'
 		decimals=2
 
-	if '590nm_' in fg and '_log' not in fg and '_dt' not in fg:
+	if '590nm' in fg and '_log' not in fg and '_dt' not in fg and '_diff' not in fg:
 		totalmax=2
 		ticks=3
 		ylabel='OD'
 		decimals=1
 
-	if '750nm_' in fg and '_log' not in fg and '_dt' not in fg:
+	if '750nm' in fg and '_log' not in fg and '_dt' not in fg and '_diff' not in fg:
 		totalmax=0.5 if bplate=='PM5' else 1
 		totalmin=0
 		ticks=3

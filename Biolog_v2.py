@@ -1174,11 +1174,11 @@ def makesheets(data,metabolites,info):
 	#print annotdefkeys
 
 	metdesc=metabolites[metabolites.keys()[0]]['A1'].keys()
-	defmetkeys=['Plate','Well','EcoCycID','Well index','Index','Metabolite','Name']
+	defmetkeys=['Plate','Well','EcoCycID','KEGG_ID','CAS_ID','Well index','Index','Metabolite','Name']
 	#metdefkeys=[m for m in defmetkeys if m in metdesc]
 	metinfo=[m for m in metdesc if m not in defmetkeys]
 
-	header=annotdefkeys+annotextrakeys+['Well','Index','Data','Name','EcoCycID']+metinfo
+	header=annotdefkeys+annotextrakeys+['Well','Index','Data','Name','EcoCycID','KEGG_ID','CAS_ID']+metinfo
 	# 'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm','Int-tmax_590nm','Int-tmaxf_590nm'
 	allsumhead=['rho','c','d']+['A','lamda','u','tmax','tmaxf']+\
 	           ['a_log','c_log','t0_log','tmax_log']+\
@@ -1209,7 +1209,8 @@ def makesheets(data,metabolites,info):
 			#print '{}...{}'.format(fln,fig)
 			for well in labels:
 				rowhead=annot+\
-				        [well,plate+'-'+well,fig,metabolites[plate][well][metind],metabolites[plate][well]['EcoCycID']]+\
+				        [well,plate+'-'+well,fig,metabolites[plate][well][metind],
+				         metabolites[plate][well]['EcoCycID'],metabolites[plate][well]['KEGG_ID'],metabolites[plate][well]['CAS_ID']]+\
 					[metabolites[plate][well][metk] for metk in metinfo]
 				if fig=='Summary':
 					datrow=sums['Respiration'][well]+sums['GrowthFit'][well]+sums['GrowthFit_log'][well]+[sums[sm][well] for sm in selsums]

@@ -106,6 +106,7 @@ def main(argv=None):
 	dfile=""
 	msize=20
 	odir='Output'
+	odirn=''
 	load=False
 	subst=''
 	comparison=False
@@ -147,30 +148,7 @@ def main(argv=None):
 	#Check for the input integrity
 
 	print '''\n\n---------------------------\n\n'''
-	
-	# if not load:
-	# 	try:
-	# 		if ifile!="":
-	# 			ifiles=ifile.split(',')
-	# 			for ifl in ifiles:
-	# 				print '{} {}'.format(ifl,os.path.isfile(ifl))
-	# 				ipath, iname, itype = filename(ifile)
-	# 		else:
-	# 			raise Exception("No files specified.")
-	# 		if dfile!="":
-	# 			dpath, dname, dtype = filename(dfile)
-	# 			metabolites=readmet(dfile)
-	# 		else:
-	# 			print "No database file specified."
-	# 			metabolites={}
-	# 			#sys.exit(1)
-	#
-	#
-	#
-	# 	except Exception, e:
-	# 		print e
-	# 		#print "!!!-------------------------------------------!!!"
-	# 		sys.exit(1)
+
 
 	print optionsset %vars()
 	#----------------------------
@@ -186,7 +164,15 @@ def main(argv=None):
 	#
 	# else:
 
-	if not 'Design' in ifile:
+	if 'Design' in ifile:
+		print 'Reading experimental design information!'
+				#
+		ilist,dlist,odirn=readinfo(ifile)
+		subs=[[]]*len(ilist)
+		descriptors=readdesc(ilist,dlist,subs)
+	else:
+		print 'Reading data files!'
+		print ifile
 		ilist=genlist(ifile)
 		#print ilist
 		if dfile!='':
@@ -200,16 +186,13 @@ def main(argv=None):
 			descriptors=readdesc(ilist,dlist,subs)
 		else:
 			descriptors={}
-	else:
-		ilist,dlist,odirn=readinfo(ifile)
-		subs=[[]]*len(ilist)
-		descriptors=readdesc(ilist,dlist,subs)
+
 
 	if odirn!='' and odir=='Output':
 		odir=odirn
 
 	if odir!="":
-		dirn=dircheck(odir)
+		odirn=dircheck(odir)
 
 
 	#print 'Descriptors'
@@ -228,9 +211,9 @@ def main(argv=None):
 
 	sheets=makesheets(data,descriptors)
 	writesheets(sheets,odir)
-	f = open('Biolog_data.pckl', 'w')
-	pickle.dump([data,allfit,descriptors,odir], f)
-	f.close()
+	# f = open('Biolog_data.pckl', 'w')
+	# pickle.dump([data,allfit,descriptors,odir], f)
+	# f.close()
 	
 	
 	#data,allfit=growthfit(data)
@@ -534,31 +517,31 @@ def Butter(x, y, par1, par2):
 	return fl
 
 
-
-def checkfiles(ilist):
-	
-	print '\n\n-------------Checking integrity of the file list!-------------'
-	Pass=False
-	allUAL=[fl for fl in ilist if 'UAL_' in fl ]
-	Control=[fl for fl in ilist if '_NoMetf_' in fl ]
-	Experiment=[fl for fl in ilist if '_Metf_' in fl ]
-	CPlates=[fl.split('_')[1] for fl in Control]
-	EPlates=[fl.split('_')[1] for fl in Experiment]
-	if comparison:
-		Pass=True
-	else:	
-		if len(allUAL)==len(ilist):
-			print 'All files UAL!'
-			if len(Control)==len(Experiment):
-				print 'Same number of control and experiment files!'
-				if compare(CPlates,EPlates):
-					print 'Corresponding plate indexes found!'
-					print '-----------------File list check passed!-------------\n\n'
-					Pass=True
-	if not Pass:
-		print 'File list integrity check failed!'
-		sys.exit(1)
-
+#
+# def checkfiles(ilist):
+#
+# 	print '\n\n-------------Checking integrity of the file list!-------------'
+# 	Pass=False
+# 	allUAL=[fl for fl in ilist if 'UAL_' in fl ]
+# 	Control=[fl for fl in ilist if '_NoMetf_' in fl ]
+# 	Experiment=[fl for fl in ilist if '_Metf_' in fl ]
+# 	CPlates=[fl.split('_')[1] for fl in Control]
+# 	EPlates=[fl.split('_')[1] for fl in Experiment]
+# 	if comparison:
+# 		Pass=True
+# 	else:
+# 		if len(allUAL)==len(ilist):
+# 			print 'All files UAL!'
+# 			if len(Control)==len(Experiment):
+# 				print 'Same number of control and experiment files!'
+# 				if compare(CPlates,EPlates):
+# 					print 'Corresponding plate indexes found!'
+# 					print '-----------------File list check passed!-------------\n\n'
+# 					Pass=True
+# 	if not Pass:
+# 		print 'File list integrity check failed!'
+# 		sys.exit(1)
+#
 
 
 def analyze(data):
@@ -628,33 +611,6 @@ def interp(x,y,x2):
 	tck = ip.splrep(x, y, s=0)
 	y2=ip.splev(x2, tck, der=0)
 	return y2
-
-def readmet(ifile):
-	print ifile
-	nutrients=NestedDict()
-
-	rdr=csv.reader(open(ifile,'r'), delimiter=',')
-	data=[ln for ln in rdr]
-	headers=data[0]
-	metin=headers.index('Metabolite')
-	ecoin=headers.index('EcoCycID')
-	plate=headers.index('Plate')
-	well=headers.index('Well')
-	indx=headers.index('Index')
-	print metin, ecoin,plate,well
-	for ln in data[1:]:
-		met=ln[metin].encode('ascii','ignore').strip()
-		eco=ln[ecoin].encode('ascii','ignore').strip()
-		pl=ln[plate].encode('ascii','ignore').strip()
-		wl=ln[well].encode('ascii','ignore').strip()
-		ind=ln[indx].encode('ascii','ignore').strip()
-		nutrients[pl][wl]['ID']=eco
-		nutrients[pl][wl]['Name']=met
-		nutrients[pl][wl]['Index']=ind
-
-
-	#print genes
-	return nutrients
 
 def cut(x, y, a,b):
 	x2=[]
@@ -732,6 +688,8 @@ def collect(ilist):
 			sheet=readxls(ifl)
 		elif itp=='asc':
 			sheet=readacs(ifl)
+		elif itp=='txt':
+			sheet=readtxt(ifl)
 		else:
 			print 'Unknown file format: {}!'.format(itp)
 			sys.exit(1)
@@ -834,16 +792,16 @@ def genlist(ifile):
 			ilist.extend(genlist(ifl))
 	else:
 		ipath, iname, itype=filename(ifile)
-		if itype in ['xls','xlsx','asc'] and os.path.isfile(ifile):
+		if itype in ['xls','xlsx','asc','txt'] and os.path.isfile(ifile):
 			ilist.append(ifile)
-		elif itype in ['txt',''] and os.path.isfile(ifile):
+		elif itype in [''] and os.path.isfile(ifile):#'txt',
 			ifl=open(ifile,'r')
 			idata=ifl.read().split('\n')
 			idata=[fl.strip() for fl in idata if fl!='']
 			for fld in idata:
 				ilist.extend(genlist(fld))
 
-		elif iname=='' and itype in ['xls','xlsx','asc']:
+		elif iname=='' and itype in ['xls','xlsx','asc','txt']:
 			if itype in ['xls','xlsx']:
 				ffiles=glob.glob('*.%(itype)s' % vars())
 				#print ffiles
@@ -1060,6 +1018,18 @@ def readacs(ifile):
 		#print l
 		#if len(l.split('\t'))>200:
 		row=[cell.strip() for cell in l.split('\t')]
+		row=[numerize(cell) for cell in row]
+		sheet.append(row)
+	f.close()
+	return sheet
+
+def readtxt(ifile):
+	f=open(ifile,'r')
+	sheet=[]
+	for l in f:
+		#print l
+		#if len(l.split('\t'))>200:
+		row=[cell.strip() for cell in l.split(',')]
 		row=[numerize(cell) for cell in row]
 		sheet.append(row)
 	f.close()

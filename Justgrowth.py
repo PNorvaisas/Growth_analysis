@@ -17,13 +17,20 @@ except ImportError, e:
 def install(package):
 	pip.main(['install', package])
 
-for mod in ['pip','string','math','re','csv','sys','os','commands','datetime','operator','getopt','subprocess','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types']:
+for mod in ['pip','string','math','re','csv','sys','os',
+            'commands','datetime','operator','getopt','subprocess','pickle','shutil','glob',
+            'types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types','warnings']:
 	try:
 		exec "import %(mod)s" % vars()
 	except ImportError, e:
 		print "Module not found %(mod)s\nTrying to install!" % vars()
 		install(mod)		
 		#pass # module doesn't exist, deal with it.
+
+
+#import warnings
+#Disable simple warnings
+warnings.filterwarnings("ignore")
 
 import unicodedata
 import matplotlib.pyplot as plt
@@ -36,10 +43,11 @@ from matplotlib import rc
 #rc('font',**{'family':'serif','serif':['Palatino']})
 #rc('text', usetex=True)
 #from pylab import *
-
+from scipy import interpolate
+from scipy import interpolate as ip
 import scipy.signal as sig
 from scipy.fftpack import rfft, irfft, fftfreq
-from scipy import interpolate as ip
+
 from collections import OrderedDict
 from collections import defaultdict
 from collections import Counter
@@ -70,9 +78,9 @@ Flags:
 	-v  Verbose output
 Arguments:
 	-i <files>   Input file
-	-d <file>    Plate arrangement
+	-p <file>    Plate arrangement
 	-o <dir>     Directory to write output to
-	-p <list>	 List of substitutions for each file
+	-d <list>	 List of descriptors for each file
 Options:
 	load	     Load pickled data
 
@@ -91,8 +99,9 @@ optionsset='''
 
 Options:
 <--------------------------------------------->
-      Files:	%(ifile)s
-	 	 DB:	%(dfile)s
+      Files:    %(ifile)s
+    Pattern:	%(pfile)s
+Descriptors:    %(subst)s
         Out:	%(odir)s
        Load:	%(load)s
 <--------------------------------------------->
@@ -101,9 +110,8 @@ Options:
 
 
 def main(argv=None):
-
 	ifile=""
-	dfile=""
+	pfile=""
 	msize=20
 	odir='Output'
 	odirn=''
@@ -126,9 +134,9 @@ def main(argv=None):
 				return	
 			if option in ("-i", "--input"):
 				ifile=value
-			if option in ("-d", "--desc"):
-				dfile=value
-			if option in ("-p", "--parameters"):
+			if option in ("-p", "--pattern"):
+				pfile=value
+			if option in ("-d", "--descriptors"):
 				subst=value
 			if option in ("-o", "--out"):
 				odir=value
@@ -166,7 +174,7 @@ def main(argv=None):
 
 	if 'Design' in ifile:
 		print 'Reading experimental design information!'
-				#
+		#
 		ilist,dlist,odirn=readinfo(ifile)
 		subs=[[]]*len(ilist)
 		descriptors=readdesc(ilist,dlist,subs)
@@ -175,8 +183,8 @@ def main(argv=None):
 		print ifile
 		ilist=genlist(ifile)
 		#print ilist
-		if dfile!='':
-			dlist=genlist(dfile)
+		if pfile!='':
+			dlist=genlist(pfile)
 			# print dlist
 			if subst!='':
 				subs=[st.split('|') for st in subst.split(',')]
@@ -205,7 +213,7 @@ def main(argv=None):
 	data=collect(ilist)
 	#sys.exit(1)
 	data=analyze(data)
-	data,allfit=growthfit(data)
+	data=growthfit(data)
 
 
 
@@ -218,7 +226,8 @@ def main(argv=None):
 	
 	#data,allfit=growthfit(data)
 
-	plot_comparison(data,odir,['Growth_log','Growth','600nm','590nm','750nm','750nmC'])
+	plot_comparison(data,odir,'all')
+	#['600nm','590nm','595nm','600nm_log','590nm_log','595nm_log','750nm','750nmC']
 	#plot_comparison(data,metabolites,odir,['Resp&Growth','Growth_log','Growth_dt','dRespiration_dt','Growth','Respiration'])
 		
 	#plot_comparison(data,metabolites,odir,['Growth','Respiration','Growth_dt','Respiration_dt','Growth_abolished','Respiration_abolished','dRespiration_dt']) #['Growth','Respiration','Growth_dt','Respiration_dt']
@@ -302,9 +311,10 @@ def plot_comparison(data,dirn,figs):
 				print 'Figures {} not found'.format(figs)
 
 		#print figures
+		print 'File: {}'.format(plate)
 		for fg in figures:
 				
-			if fg=='Growth_log':
+			if '_log' in fg:
 				fgl=fg
 				gfitc=ref['GrowthFit']
 			
@@ -312,7 +322,7 @@ def plot_comparison(data,dirn,figs):
 				fgl=fg
 				gfitc=''
 
-			print "Plotting plate {} {}...".format(plate,fg)
+			print "\tPlotting {}...".format(fg)
 			if '_dt' in fg or fg=='Resp&Growth':
 				time=data[plate]['Time_dt']
 			else:
@@ -378,47 +388,34 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 	xlabel='Time, h'
 	ylabel=''
 	decimals=1
-	if fg in ['600nm','590nm']:
-		totalmax=0.2
-		if plsize>12:
-			ticks=3
-		else:
-			ticks=5
-		ylabel='OD@600nm' if fg=='600nm' else 'OD@590nm'
-		decimals=1
+	if 'nm' in fg:
+		totalmax=1
+		ylabel='OD@'+fg
+		decimals=2
 
 	
-	if fg=='Growth':
-		totalmax=totalmaxc+0.1
-		if plsize>12:
-			ticks=3
-		else:
-			ticks=5
-		ylabel='Growth'
-		decimals=1
+	# if fg=='Growth':
+	# 	totalmax=totalmaxc+0.1
+	# 	ylabel='Growth'
+	# 	decimals=1
 
-	if fg=='Growth_log':
+	if '_log' in fg:
 		totalmax=0
 		totalmin=-6
-		if plsize>12:
-			ticks=4
-		else:
-			ticks=6
 		ylabel='log2 Growth'
 		decimals=1
 
-	if fg=='Growth_dt':
+	if '_dt' in fg:
 		totalmax=0.2
 		totalmin=0
-		if plsize>12:
-			ticks=3
-		else:
-			ticks=5
 		ylabel='Growth/dt'
-		decimals=1
+		decimals=2
 
 
-
+	if plsize>12:
+		ticks=3
+	else:
+		ticks=5
 
 
 
@@ -483,29 +480,11 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 def myround(a, decimals=1):
      return np.around(a-10**(-(decimals+5)), decimals=decimals)
 
-def greek_check(text,slen):
-	text=unicode(text)
-	greek_alphabet ={'alpha':u'\u03B1','beta':u'\u03B2','gamma':u'\u03B3','delta':u'\u03B4','epsilon':u'\u03B5'}
-	greek_alphabet2 ={'alpha':u'α','beta':u'β','gamma':u'γ','delta':u'δ','epsilon':u'ε'}	
-	tex_alphabet ={u'α':u'$α$',u'β':u'$β$',u'γ':u'$γ$',u'δ':u'$δ$',u'ε':u'$ε$'}
-	uni_alphabet ={'alpha':u'α','beta':u'β','gamma':u'γ','delta':u'δ','epsilon':u'ε'}
-	for k in uni_alphabet.keys():
-		if k in text:
-			text=text.replace(k,uni_alphabet[k])
-	text='\n'.join(tw.wrap(text,slen))
-	for k in tex_alphabet.keys():
-		if k in text:
-			text=text.replace(k,tex_alphabet[k])
-	return text
 
 
-
-
-
-
-def growth(x,a,c):
-	y=x*a+c
-	return y
+# def growth(x,a,c):
+# 	y=x*a+c
+# 	return y
 
 def Wiener(y, n):
 	wi = sig.wiener(y, mysize=n)
@@ -517,90 +496,18 @@ def Butter(x, y, par1, par2):
 	return fl
 
 
-#
-# def checkfiles(ilist):
-#
-# 	print '\n\n-------------Checking integrity of the file list!-------------'
-# 	Pass=False
-# 	allUAL=[fl for fl in ilist if 'UAL_' in fl ]
-# 	Control=[fl for fl in ilist if '_NoMetf_' in fl ]
-# 	Experiment=[fl for fl in ilist if '_Metf_' in fl ]
-# 	CPlates=[fl.split('_')[1] for fl in Control]
-# 	EPlates=[fl.split('_')[1] for fl in Experiment]
-# 	if comparison:
-# 		Pass=True
-# 	else:
-# 		if len(allUAL)==len(ilist):
-# 			print 'All files UAL!'
-# 			if len(Control)==len(Experiment):
-# 				print 'Same number of control and experiment files!'
-# 				if compare(CPlates,EPlates):
-# 					print 'Corresponding plate indexes found!'
-# 					print '-----------------File list check passed!-------------\n\n'
-# 					Pass=True
-# 	if not Pass:
-# 		print 'File list integrity check failed!'
-# 		sys.exit(1)
-#
+def growth(x,A,lam,u):
+	return A/(1+np.exp((4*u/A)*(lam-x)+2))
 
+def log_growth(x,A,lam,u):
+	y=np.log2(A)-np.log2(1+np.exp((4*u/A)*(lam-x)+2))
+	#print x,y
+	return np.log2(A)-np.log2(1+np.exp((4*u/A)*(lam-x)+2))
 
-def analyze(data):
-	filterf='wiener'
-	waves=['590nm','750nm']
-	msize=20
-	par1=4
-	par2=0.1
-	method='pre'
-	window=20
-	thres=np.power(2.0,-5)
-	thresd=np.power(2.0,-5)
+def lin(x,a,c):
+	y=x*a+c
+	return y
 
-	for plate in sorted(data.keys()):			
-		time=data[plate]['Time']
-		
-		dt=time[1]-time[0]
-		time_dt=(time+dt/2)[:-1]
-		npts=len(time)
-		nyf=0.5/dt
-		print plate
-		data[plate]['Time_dt']=time_dt
-		waves=data[plate]['Spectra']
-		for wave in waves:
-			if wave in ['590nm','600nm']:
-				wabl='Growth'
-			else:
-				wabl=wave+'C'
-
-			for well in data[plate]['Labels']:
-				#print data[plate][wave][well][:window]
-				gs=np.mean(data[plate][wave][well][:window])
-
-
-				rawod=data[plate][wave][well]
-
-
-				growth=setbar(rawod-gs,0.0)
-				#growth=setbar(Wiener(growth-thres,msize),0.0)+thres
-				growth_dt=np.diff(setbar(Wiener(growth-thres,msize),0.0)+thres)/(dt/3600)
-				growth_dt=setbar(Wiener(growth_dt,msize),0.0)
-
-
-				#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
-
-				if max(growth_dt)>0.01:
-					growth_dt_norm=growth_dt/max(growth_dt)
-				else:
-					growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
-
-
-				data[plate][wabl][well]=growth
-				data[plate][wabl+'_log'][well]=np.log2(setbar(growth,thres))
-				data[plate][wabl+'_dt'][well]=growth_dt
-				data[plate][wabl+'_dt_norm'][well]=growth_dt_norm
-
-			data[plate]['Figures']=data[plate]['Figures']+[wabl,wabl+'_dt',wabl+'_log',wabl+'_dt_norm']
-
-	return data
 
 def setbar(x,bar):
 	x2=[xi if xi>bar else bar for xi in x]
@@ -612,37 +519,251 @@ def interp(x,y,x2):
 	y2=ip.splev(x2, tck, der=0)
 	return y2
 
-def cut(x, y, a,b):
+
+def analyze(data):
+	msize=20
+	window=20
+	thres=np.power(2.0,-5)
+	for plate in sorted(data.keys()):
+		time=data[plate]['Time']
+		time_h=time/3600
+		dt=time[1]-time[0]
+		time_dt=(time+dt/2)[:-1]
+		data[plate]['Time_dt']=time_dt
+		#Needs to be checked
+		waves=data[plate]['Spectra']
+		for wave in waves:
+			wv=wave.replace('nm','')
+			print 'Analyzing data in {}: {}'.format(plate,wave)
+
+			for well in data[plate]['Labels']:
+				start=np.mean(data[plate][wave][well][:window])
+
+				raw=data[plate][wave][well]
+
+				back=setbar(raw-start,0.0)
+
+
+				filtered=Wiener(back,msize)
+				logfilt=np.log2(setbar(filtered,thres))
+				dtfilt=np.diff(filtered)/(dt/3600)
+
+				margin=0.01
+
+
+				#Select which channel to use for growth fitting
+				#In this setting only one channel is used
+				if wave in ['590nm','595nm','600nm','750nm']:
+					grow=filtered
+					maxg=max(grow)
+					scaleg=maxg-min(grow)
+					timec,growc=cut(time_h, grow, 0, maxg,equalize=True)
+					if scaleg>0.1 and len(timec)>10 and len(growc)>10:
+						#print plate,well
+						#print len(timec), len(growc)
+						#print min(growc),max(growc)
+						#popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)
+						#A,lam,u=popt
+						try:
+							popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
+							A,lam,u=popt
+							#print popt,tmaxf
+						except (RuntimeError, ValueError, RuntimeWarning, UnboundLocalError) as e:
+							print e
+							print 'Curve_fit encountered an error in well {}!'.format(well)
+							A,lam,u=[0,np.inf,0]
+
+						if A>0 and lam<np.inf and u>0:
+							yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
+							freducedf = interpolate.UnivariateSpline(time_h, yreducedf, s=0)
+							if len(freducedf.roots())>0:
+								tmaxf=freducedf.roots()[0]
+							else:
+								tmaxf=np.inf
+						else:
+							tmaxf=np.inf
+
+						yreduced = growc - maxg*(1-margin)
+						try:
+							freduced = interpolate.UnivariateSpline(timec, yreduced, s=0)
+							if len(freduced.roots()>0):
+								tmax=freduced.roots()[0]
+							else:
+								tmax=np.inf
+						except TypeError:
+							print 'Integration encountered an error in well {}!'.format(well)
+							tmax=np.inf
+					else:
+						A,lam,u=[0,np.inf,0]
+						tmaxf=np.inf
+						tmax=np.inf
+					data[plate]['Summary']['GrowthFit'][well]=[A,lam,u,tmax,tmaxf]
+
+				data[plate][wave+'_b'][well]=back
+				data[plate][wave+'_f'][well]=filtered
+				data[plate][wave+'_log'][well]=logfilt
+				data[plate][wave+'_dt'][well]=dtfilt
+
+			data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']
+
+		for fg in data[plate]['Figures']:
+			time=data[plate]['Time']
+			maxt=round_to(max(time)/3600,1)
+			#print maxt
+			if maxt>=16:
+				ind16=time.tolist().index(16*3600)
+			else:
+				ind16=time.tolist().index(maxt*3600)
+			if maxt>=24:
+				ind24=time.tolist().index(24*3600)
+			else:
+				ind24=time.tolist().index(maxt*3600)
+			for well in data[plate]['Labels']:
+				data[plate]['Summary']['Max_{}'.format(fg)][well]=max(data[plate][fg][well])
+				if '_dt' in fg:
+					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24-1]
+					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16-1]
+				else:
+					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24]
+					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16]
+
+					data[plate]['Summary']['Int_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, 24)
+					data[plate]['Summary']['Int-tmax_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][3] if data[plate]['Summary']['GrowthFit'][well][3]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][3]!=np.inf else np.inf
+					data[plate]['Summary']['Int-tmaxf_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][4] if data[plate]['Summary']['GrowthFit'][well][4]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][4]!=np.inf else np.inf
+					data[plate]['Summary']['Int_{}_log'.format(fg)][well]=np.log2(data[plate]['Summary']['Int_{}'.format(fg)][well]) if data[plate]['Summary']['Int_{}'.format(fg)][well]>0 else None
+
+	return data
+
+
+
+#
+#
+# def analyze(data):
+# 	filterf='wiener'
+# 	waves=['590nm','750nm']
+# 	msize=20
+# 	par1=4
+# 	par2=0.1
+# 	method='pre'
+# 	window=20
+# 	thres=np.power(2.0,-5)
+# 	thresd=np.power(2.0,-5)
+#
+# 	for plate in sorted(data.keys()):
+# 		time=data[plate]['Time']
+#
+# 		dt=time[1]-time[0]
+# 		time_dt=(time+dt/2)[:-1]
+# 		print plate
+# 		data[plate]['Time_dt']=time_dt
+# 		waves=data[plate]['Spectra']
+# 		for wave in waves:
+# 			if wave in ['590nm','595nm','600nm']:
+# 				wabl='Growth'
+# 			else:
+# 				wabl=wave+'C'
+#
+# 			for well in data[plate]['Labels']:
+# 				#print data[plate][wave][well][:window]
+# 				gs=np.mean(data[plate][wave][well][:window])
+#
+#
+# 				rawod=data[plate][wave][well]
+#
+#
+# 				growth=setbar(rawod-gs,0.0)
+# 				#growth=setbar(Wiener(growth-thres,msize),0.0)+thres
+# 				growth_dt=np.diff(setbar(Wiener(growth-thres,msize),0.0)+thres)/(dt/3600)
+# 				growth_dt=setbar(Wiener(growth_dt,msize),0.0)
+#
+#
+# 				#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
+#
+# 				if max(growth_dt)>0.01:
+# 					growth_dt_norm=growth_dt/max(growth_dt)
+# 				else:
+# 					growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
+#
+#
+# 				data[plate][wabl][well]=growth
+# 				data[plate][wabl+'_log'][well]=np.log2(setbar(growth,thres))
+# 				data[plate][wabl+'_dt'][well]=growth_dt
+# 				data[plate][wabl+'_dt_norm'][well]=growth_dt_norm
+#
+# 			data[plate]['Figures']=data[plate]['Figures']+[wabl,wabl+'_dt',wabl+'_log',wabl+'_dt_norm']
+#
+# 	return data
+
+def setbar(x,bar):
+	x2=[xi if xi>bar else bar for xi in x]
+	x2=np.array(x2)
+	return x2
+
+def interp(x,y,x2):
+	tck = ip.splrep(x, y, s=0)
+	y2=ip.splev(x2, tck, der=0)
+	return y2
+
+# def cut(x, y, a,b):
+# 	x2=[]
+# 	y2=[]
+# 	last=0
+# 	for xt, yt in IT.izip(enumerate(x),enumerate(y)):
+# 		df=yt[0]-last
+# 		#print df
+# 		if yt[1]>a and yt[1]<b:# and df<3
+# 			last=yt[0]
+# 			x2.append(xt[1])
+# 			y2.append(yt[1])
+# 	y2=np.asarray(y2)
+# 	x2=np.asarray(x2)
+#
+# 	return x2,y2
+
+def cut(x, y, a,b,equalize=False):
 	x2=[]
 	y2=[]
+	maxy=max(y)
+	maxind=y.tolist().index(maxy)
 	last=0
 	for xt, yt in IT.izip(enumerate(x),enumerate(y)):
 		df=yt[0]-last
 		#print df
-		if yt[1]>a and yt[1]<b:# and df<3
-			last=yt[0]
+		if yt[1]>a and yt[1]<=b:# and df<3
 			x2.append(xt[1])
-			y2.append(yt[1])
+			last=yt[0]
+			if yt[0]<maxind:
+				y2.append(yt[1])
+			else:
+				if equalize:
+					y2.append(maxy)
+				else:
+					y2.append(yt[1])
 	y2=np.asarray(y2)
 	x2=np.asarray(x2)
-	
-	return x2,y2 
 
+	return x2,y2
 
 
 def growthfit(data):
-	allfit=NestedDict()
-
 	y0=np.power(2.0,-4)
-	
 	for plate in data.keys():
 		x=data[plate]['Time']
 		x=x/3600
 		labels=data[plate]['Labels']
-		ref=data[plate]['Growth']['A1']
+		waves=data[plate]['Spectra']
+		if len(waves)>1 and '750nm' in waves:
+			wave='750nm'
+		elif len(waves)>1 and '590nm' in waves:
+			wave='590nm'
+		elif len(waves)>1 and '595nm' in waves:
+			wave='590nm'
+		elif len(waves)>1 and '600nm' in waves:
+			wave='590nm'
+		else:
+			wave=waves[0]
 		for l in labels:
-
-			y=data[plate]['Growth_log'][l]
+			y=data[plate][wave+'_log'][l]
 			#y=setbar(y,np.power(2,-5))
 			#maxy=max(y)
 			#miny=min(y)
@@ -653,133 +774,247 @@ def growthfit(data):
 			thres=-5 #-4
 			#print miny, maxy
 			x2,y2=cut(x, y, thres+(maxy-thres)*0.1, thres+(maxy-thres)*0.6) #0.6
-			if len(y2)>0 and gscale>0.5:						
+			if len(y2)>0 and gscale>0.5:
 				try:
-					popt, pcov = curve_fit(growth, x2, y2)
+					popt, pcov = curve_fit(lin, x2, y2)
 					a=popt[0]
 					c=popt[1]
 					t0=(np.log2(y0)-c)/(a)
+					tmax=(maxy-c)/(a)
 				except TypeError:
 					print 'Curve_fit encountered an error!'
 					a=0
 					c=0
 					t0=float("inf")
+					tmax=float("inf")
 
 			else:
 				a=0
 				c=0
 				t0=float("inf")
-			for par,nm in IT.izip([a,c,t0],['a','c','t0']):
-				if allfit['Log'][nm]:
-					allfit['Log'][nm]=allfit['Log'][nm]+[par]
-				else:
-					allfit['Log'][nm]=[par]
-			data[plate]['GrowthFit'][l]=[a,c,t0]
+				tmax=float("inf")
+			# for par,nm in IT.izip([a,c,t0],['a','c','t0']):
+			# 	if allfit[tp]['Log'][nm]:
+			# 		allfit[tp]['Log'][nm]=allfit[tp]['Log'][nm]+[par]
+			# 	else:
+			# 		allfit[tp]['Log'][nm]=[par]
+			data[plate]['Summary']['GrowthFit_log'][l]=[a,c,t0,tmax]
 
-	return data,allfit
+	return data
+
+def collect_Tecan(sheet):
+	sheetdata=NestedDict()
+	datarange=sheet[0].index('Well positions')
+
+	sheet=[r for r in sheet if len(r)>1]
+
+	nrows=len(sheet)
+	datarange=sheet[0].index('Well positions')
+	nm_labels=[lab for lab in sheet[0] if lab not in ['Layout','Well positions','','Replicate Info']]
+	#print nm_labels
+	if len(nm_labels)>1:
+		starts=[sheet[0].index(lab) for lab in nm_labels]
+	else:
+		starts=[sheet[0].index(nm_labels[0])]
+		if nm_labels[0]=='Raw data':
+			nm_labels[0]='600'
+
+	waves=[numerize(wlen) for wlen in nm_labels]
+	#print 'Identified wavelengths: {}'.format(waves)
+	#print datarange
+
+	length=(datarange)/len(waves)
+
+	#Selection of time cells does not depend om the order of wavelengths
+
+	#Extract time
+
+	time_row=sheet[1][:length]
+	#print 'Length:{}'.format(length)
+	#print time_row
+	#print len(time_row)
+	if list(set([s for s in time_row if isinstance(s,float)])):
+		time_t=time_row
+	else:
+		time_t=[int(str(t).replace('s','')) for t in time_row]
+
+	#length=time_t.index(max(time_t))+1
+	temp=[float(t.split()[0]) for t in sheet[2][:length]]
+
+	timemax_min=int(round_to(float(time_t[-1])/60,5))
+	timemax_h,timemax_remmin=divmod(timemax_min,60)
+
+	#Time in seconds
+	time=np.linspace(0,timemax_min*60,length)
+
+	timestep=round_to(float(time_t[-1])/(length-1),1)
+	#timestep=time[-1]-time[-2]
+
+	#print time_t[-1],timemax_h,time[-1],timestep
+
+
+	alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
+	labels=[l for l in alllabels if l!='']#Sheet
+	#print labels
+
+
+	plsize=len(labels)
+	if plsize not in [12,48,96,384]:
+		buffer=True
+	else:
+		buffer=False
+
+	sheetdata['Labels']=labels
+	sheetdata['Spectra']=[str(int(w))+'nm' for w in waves]
+	sheetdata['Time']=time
+	sheetdata['Temp']=temp
+	sheetdata['Time_max']=timemax_min
+	sheetdata['Time_step']=timestep
+	sheetdata['Wells']=len(labels)
+	sheetdata['Used wells']=plsize
+	sheetdata['Buffered']=str(buffer)
+	sheetdata['Figures']=[str(w)+'nm' for w in waves]
+	#sheetdata['File']=inm
+	print "Wavelengths: {}".format(waves)
+	print "Run time {}, step {}min in {} wells\n".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
+	for lab in range(0,len(alllabels)):
+		if alllabels[lab]!='':
+			for wave in waves:
+				scol=(length)*(waves.index(wave))
+				ecol=(length)*(waves.index(wave)+1)
+				data_row=[val for val in sheet[lab+3][scol:ecol]]
+				#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
+				swave=str(int(wave))
+				sheetdata[swave+'nm'][alllabels[lab]]=np.array(data_row)
+				sheetdata[swave+'nm'][alllabels[lab]+'_max']=max(data_row)
+				sheetdata[swave+'nm'][alllabels[lab]+'_min']=min(data_row)
+
+
+	return sheetdata
+
+def collect_Biotek(sheet):
+	sheetdata=NestedDict()
+
+	#sheet=readtxt(ilist[0])
+
+	allwells=getallwells()
+
+	rownames=[row[0] if len(row)!=0 else '' for row in sheet]
+
+	#print rownames
+
+	alllabels=[rn if rn in allwells else '' for rn in rownames]
+
+	labels=[l for l in alllabels if l!='']
+
+	time_row=sheet[rownames.index('Time')]
+
+
+	#Currently works with single wavelength
+
+	temp_rows=[ sheet[rownames.index(r)] for r in rownames if 'T' in r and 'OD:' in r ]
+	temp_row=temp_rows[0]
+	#print temp_row
+	nm_labels=[ rn  if 'OD:' in rn and 'T' not in rn else '' for rn in rownames]
+
+
+	waves=[numerize(wlen.replace('OD:','')) for wlen in nm_labels if wlen!='']
+	time_t=[time_to_sec(tval) for tval in time_row if tval not in ['Time','']]
+	length=len(time_t)
+
+	timemax_min=int(round_to(float(time_t[-1])/60,5))
+	timemax_h,timemax_remmin=divmod(timemax_min,60)
+
+	time=np.linspace(0,timemax_min*60,length)
+	timestep=round_to(float(timemax_min*60)/(length-1),1)
+
+	temp=[float(t) for t in temp_row[1:] if t not in ['']]
+
+	#print time_t[-1],timemax_h,time[-1],timestep
+
+
+	plsize=len(labels)
+	if plsize not in [12,48,96,384]:
+		buffer=True
+	else:
+		buffer=False
+
+	sheetdata['Labels']=labels
+	sheetdata['Spectra']=[str(int(w))+'nm' for w in waves]
+	sheetdata['Time']=time
+	sheetdata['Temp']=temp
+	sheetdata['Time_max']=timemax_min
+	sheetdata['Time_step']=timestep
+	sheetdata['Wells']=len(labels)
+	sheetdata['Used wells']=plsize
+	sheetdata['Buffered']=str(buffer)
+	sheetdata['Figures']=[str(w)+'nm' for w in waves]
+	#sheetdata['File']=inm
+	print "Wavelengths: {}".format(waves)
+	print "Run time {}, step {}min in {} wells\n".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
+
+	for wnum, wave in enumerate(waves):
+		wavestart=nm_labels.index('OD:{}'.format(wave))
+		if len(waves)>1 and wnum < len(waves)-1:
+			waveend=nm_labels.index('OD:{}'.format(waves[wnum+1]))-1
+		else:
+			waveend=len(alllabels)
+		for rnum,well in enumerate(alllabels):
+			if well!='' and rnum>wavestart and rnum<waveend:
+					data_row=[float(val) for val in sheet[rnum][1:] if val not in ['']]
+					#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
+					swave=str(int(wave))
+					sheetdata[swave+'nm'][well]=np.array(data_row)
+
+					sheetdata[swave+'nm'][well+'_max']=max(data_row)
+					sheetdata[swave+'nm'][well+'_min']=min(data_row)
+
+
+	return sheetdata
 
 def collect(ilist):
 	data=NestedDict()
-	for ifl in sorted(ilist):		
-		ipt, inm, itp = filename(ifl)	
+	for ifl in sorted(ilist):
+		print ifl
+		ipt, inm, itp = filename(ifl)
 		plate=inm
-
+		#Currently formatting is determined by filetype
 		if itp=='xlsx':
-			sheet=readxls(ifl)
+			sheet=readxls_s(ifl)
+			data[plate]=collect_Tecan(sheet)
 		elif itp=='asc':
-			sheet=readacs(ifl)
+			sheet=readtext(ifl)
+			data[plate]=collect_Tecan(sheet)
 		elif itp=='txt':
-			sheet=readtxt(ifl)
+			sheet=readtext(ifl)
+			data[plate]=collect_Biotek(sheet)
 		else:
 			print 'Unknown file format: {}!'.format(itp)
 			sys.exit(1)
-
-		datarange=sheet[0].index('Well positions')
-
-
-		sheet=[r for r in sheet if len(r)>1]
-
-		nrows=len(sheet)
-		datarange=sheet[0].index('Well positions')
-		nm_labels=[lab for lab in sheet[0] if lab not in ['Layout','Well positions','','Replicate Info']]
-		print nm_labels
-		if len(nm_labels)>1:
-			starts=[sheet[0].index(lab) for lab in nm_labels]
-		else:
-			starts=[sheet[0].index(nm_labels[0])]
-			if nm_labels[0]=='Raw data':
-				nm_labels[0]='600'
-
-		waves=[numerize(wlen) for wlen in nm_labels]
-		#print 'Identified wavelengths: {}'.format(waves)
-		print datarange
-		# if len(waves)>1:
-		# 	length=(datarange)/len(waves)
-		# else:
-		length=(datarange)/len(waves)
-		#Selection of time cells does not depend om the order of wavelengths
-
-		#Extract time
-
-		time_row=sheet[1][:length]
-		#print 'Length:{}'.format(length)
-		#print time_row
-		#print len(time_row)
-		if list(set([s for s in time_row if isinstance(s,float)])):
-			time_t=time_row
-		else:
-			time_t=[int(str(t).replace('s','')) for t in time_row]
-
-		#length=time_t.index(max(time_t))+1
-		temp=[float(t.split()[0]) for t in sheet[2][:length]]
-
-		timemax_h=int(round_to(float(time_t[-1])/3600,0.1))
-
-		time=np.linspace(0,timemax_h*3600,length)
-
-		timestep=round_to(float(time_t[-1])/(length-1),1)
-		#timestep=time[-1]-time[-2]
-
-		print time_t[-1],timemax_h,time[-1],timestep
-
-
-		alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
-		labels=[l for l in alllabels if l!='']#Sheet
-		#print labels
-
-
-		plsize=len(labels)
-		if 96<plsize<384 or 12<plsize<96:
-			buffer=True
-		else:
-			buffer=False
-
-		data[plate]['Labels']=labels
-		data[plate]['Spectra']=[str(int(w))+'nm' for w in waves]
-		data[plate]['Time']=time
-		data[plate]['Temp']=temp
-		data[plate]['Time_max']=timemax_h
-		data[plate]['Time_step']=timestep
-		data[plate]['Wells']=len(labels)
-		data[plate]['Used wells']=plsize
-		data[plate]['Buffered']=str(buffer)
-		data[plate]['Figures']=[str(w)+'nm' for w in waves]
-		data[plate]['File']=inm
-		print "Wavelengths: {}".format(waves)
-		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
-		for lab in range(0,len(alllabels)):
-			if alllabels[lab]!='':
-				for wave in waves:
-					scol=(length)*(waves.index(wave))
-					ecol=(length)*(waves.index(wave)+1)
-					data_row=[val for val in sheet[lab+3][scol:ecol]]
-					#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
-					swave=str(int(wave))
-					data[plate][swave+'nm'][alllabels[lab]]=np.array(data_row)
-					data[plate][swave+'nm'][alllabels[lab]+'_max']=max(data_row)
-					data[plate][swave+'nm'][alllabels[lab]+'_min']=min(data_row)
+		#print data[plate]
+		data[plate]['File']=ifl
 
 	return data
+
+
+def getallwells():
+	r = [l for l in string.ascii_uppercase[0:16]]
+	c = [str(i) for i in range(1,25)]
+	allwells=[]
+	for rn in r:
+		for cn in c:
+			#print rn+cn
+			allwells.append(rn+cn)
+
+	return allwells
+
+
+
+
+def time_to_sec(tstr):
+	h,m,s=tstr.split(':')
+	seconds=int(s)+60*int(m)+3600*int(h)
+	return seconds
 
 
 
@@ -794,12 +1029,12 @@ def genlist(ifile):
 		ipath, iname, itype=filename(ifile)
 		if itype in ['xls','xlsx','asc','txt'] and os.path.isfile(ifile):
 			ilist.append(ifile)
-		elif itype in [''] and os.path.isfile(ifile):#'txt',
-			ifl=open(ifile,'r')
-			idata=ifl.read().split('\n')
-			idata=[fl.strip() for fl in idata if fl!='']
-			for fld in idata:
-				ilist.extend(genlist(fld))
+		# elif itype in [''] and os.path.isfile(ifile):#'txt',
+		# 	ifl=open(ifile,'r')
+		# 	idata=ifl.read().split('\n')
+		# 	idata=[fl.strip() for fl in idata if fl!='']
+		# 	for fld in idata:
+		# 		ilist.extend(genlist(fld))
 
 		elif iname=='' and itype in ['xls','xlsx','asc','txt']:
 			if itype in ['xls','xlsx']:
@@ -848,19 +1083,22 @@ def makesheets(data,descriptors):
 	times=[]
 	timemax=0
 	maxplate=''
+	#Adjustments that allow different length of experiment with a resolution of 5min
 	for plate in data.keys():
+		print plate, data[plate]['Time_max']
 		if data[plate]['Time_max']>timemax:
 			timemax=data[plate]['Time_max']
 			maxplate=plate
+
 	timespan=len(data[maxplate]['Time'])
 	timespandt=len(data[maxplate]['Time_dt'])
 
 	for plate in data.keys():
 		output=data[plate]['Figures']
-		output=output+['GrowthFit']
+		#output=output+['GrowthFit']
 		labels=data[plate]['Labels']
 		for fig in output:
-			print plate,fig
+			#print plate,fig
 			for well in labels:
 				datrow=data[plate][fig][well]
 				rowhead=[plate,well,fig]
@@ -911,14 +1149,14 @@ def makesheets(data,descriptors):
 def writesheets(sheets,odir):
 	#Writes organized data to file.
 	#odir=dircheck('Split')
-	print sheets.keys()
+	#print sheets.keys()
 	for fig in sheets.keys():
-		print fig
+		#print fig
 		oname='{}/{}.csv'.format(odir,fig)		
 		sheet=sheets[fig]
-		print len(sheet)
+		#print len(sheet)
 		f=open(oname,"wb")
-		ofile=csv.writer(f, delimiter='\t') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
+		ofile=csv.writer(f, delimiter=',') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
 		for row in sheet:
 			#row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
 			ofile.writerow(row)
@@ -1011,25 +1249,28 @@ def readxls(ifile):
 			sheet.append(data.row_values(r))
 	return sheet
 
-def readacs(ifile):
-	f=open(ifile,'r')
-	sheet=[]
-	for l in f:
-		#print l
-		#if len(l.split('\t'))>200:
-		row=[cell.strip() for cell in l.split('\t')]
-		row=[numerize(cell) for cell in row]
-		sheet.append(row)
-	f.close()
-	return sheet
+# def readacs(ifile):
+# 	f=open(ifile,'r')
+# 	sheet=[]
+# 	for l in f:
+# 		row=[cell.strip() for cell in l.split('\t')]
+# 		row=[numerize(cell) for cell in row]
+# 		sheet.append(row)
+# 	f.close()
+# 	return sheet
 
-def readtxt(ifile):
+# def readtxt(ifile):
+# 	f=open(ifile,'r')
+# 	rdr=csv.reader(f, delimiter=',')
+# 	sheet=[ln for ln in rdr]
+# 	f.close()
+# 	return sheet
+
+def readtext(ifile):
 	f=open(ifile,'r')
 	sheet=[]
 	for l in f:
-		#print l
-		#if len(l.split('\t'))>200:
-		row=[cell.strip() for cell in l.split(',')]
+		row=[cell.strip() for cell in l.replace('\t',',').split(',')] #re.split(r"[,\t]+",l.replace('\t',','))
 		row=[numerize(cell) for cell in row]
 		sheet.append(row)
 	f.close()
@@ -1037,7 +1278,7 @@ def readtxt(ifile):
 
 def readxls_s(ifile):
 	book=xlrd.open_workbook(ifile,formatting_info=False)
-	data=book.sheet_by_name(book.sheet_names()[0])
+	data=book.sheet_by_name(book.sheet_names()[0]) #Use first sheet
 	sheet=[]
 	for r in range(0,data.nrows):
 		#print set(data.row_values(r))

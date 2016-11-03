@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Biolog.py
+BBiolog.py
 
 Created by Povilas Norvaisas on 2015-02-26.
 Copyright (c) 2015. All rights reserved.
@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.ticker as ticker
 from matplotlib import rc
-from scipy import interpolate
+#from scipy import interpolate as ip
 
 
 #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
@@ -256,15 +256,32 @@ def plot_comparison(data,metabolites,dirn,figs,info,uniques,integrals):
 		print 'Compare by {}: {}'.format(comname,comvalues)
 		#sys.exit(1)
 
-		if len(comvalues)==2 and all([cvt in ['Control', 'Treatment'] for cvt in comvalues]):
+		#print comvalues
+		#print uniques
+
+		controls=0
+		treatments=0
+		#len(comvalues)==1 and
+		#Make it universal for all kinds of comparisons
+		if all([cvt in ['Control', 'Treatment'] for cvt in comvalues]):
+			#print comvalues
 			for cv in comvalues:
 				if cv=='Control':
+					controls=controls+1
 					cgroup=uniques[uk][cv]
 				elif cv=='Treatment':
+					treatments=treatments+1
 					egroup=uniques[uk][cv]
 		else:
 			print 'Unknown types found as descriptors: {}'.format([cvt for cvt in comvalues if cvt not in ['Control', 'Treatment']])
 			print 'Currently supported descriptors: {}'.format(['Control', 'Treatment'])
+		# print comvalues
+		# print uniques
+		print
+		if controls<1:
+			cgroup=[]
+		if treatments<1:
+			egroup=[]
 		#group=uniques[uk][cv]
 		#strain=info[plate]['Strain']
 		#labels=data[plate]['Labels']
@@ -493,6 +510,7 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info,integrals):
 					# fontsize=6,verticalalignment='top',transform=ax.transAxes)
 				else:
 					y=data[gdata][fg][l]
+					#print len(x),len(y)
 					plt.plot(x,y,mrk)
 					if fg=='750nm_log':
 						a,c,t0,tmax=data[gdata]['Summary']['GrowthFit_log'][l]
@@ -661,31 +679,24 @@ def Butter(x, y, par1, par2):
 
 
 def analyze(data,g750,d750):
-	filterf='wiener'
+
 	waves=['590nm','750nm']
 	msize=20
-	par1=4
-	par2=0.1
-	method='pre'
 	window=20
 	thres=np.power(2.0,-5)
 	thresd=np.power(2.0,-5)
-	ind16=data[data.keys()[0]]['Time'].tolist().index(16*3600)
-	ind24=data[data.keys()[0]]['Time'].tolist().index(24*3600)
-	time=data[data.keys()[0]]['Time']
-	time_h=time/3600
-	#print time
-	#print time_h
-	dt=time[1]-time[0]
-	time_dt=(time+dt/2)[:-1]
-	npts=len(time)
-	nyf=0.5/dt
 
 	for plate in sorted(data.keys()):
 		#Needs to be checked
-
 		print 'Analyzing data in {}'.format(plate)
-		data[plate]['Time_dt']=(time+dt/2)[:-1]
+		ind16=data[plate]['Time'].tolist().index(16*3600)
+		ind24=data[plate]['Time'].tolist().index(24*3600)
+		time=data[plate]['Time']
+		time_h=time/3600
+		dt=time[1]-time[0]
+		time_dt=(time+dt/2)[:-1]
+		data[plate]['Time_dt']=time_dt
+
 		for well in data[plate]['Labels']:
 			#print plate, well
 			if well!='A1':
@@ -795,7 +806,7 @@ def analyze(data,g750,d750):
 
 				if A>0 and lam<np.inf and u>0:
 					yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
-					freducedf = interpolate.UnivariateSpline(time_h, yreducedf, s=0)
+					freducedf = ip.UnivariateSpline(time_h, yreducedf, s=0)
 					if len(freducedf.roots())>0:
 						tmaxf=freducedf.roots()[0]
 					else:
@@ -805,7 +816,7 @@ def analyze(data,g750,d750):
 
 				yreduced = growc - maxg*(1-margin)
 				try:
-					freduced = interpolate.UnivariateSpline(timec, yreduced, s=0)
+					freduced = ip.UnivariateSpline(timec, yreduced, s=0)
 					if len(freduced.roots()>0):
 						tmax=freduced.roots()[0]
 					else:
@@ -819,7 +830,7 @@ def analyze(data,g750,d750):
 				tmax=np.inf
 
 			# yreducedf = growth(tiem,*popt) - (popt[0]-popt[0]*margin) #maxg#
-			# freducedf = interpolate.UnivariateSpline(time, yreducedf, s=0)
+			# freducedf = ip.UnivariateSpline(time, yreducedf, s=0)
 			# tmaxf=freducedf.roots()[0]
 			# #print tmaxf
 
@@ -875,22 +886,23 @@ def analyze(data,g750,d750):
 		                                               #'590nm_ref','590nm_reflog',
 		                                               #'590nm750nm_diff','590nm750nm_difflog',
 		                                               ]
-	for plate in sorted(data.keys()):
+	#for plate in sorted(data.keys()):
 		for fg in data[plate]['Figures']:
 			for well in data[plate]['Labels']:
 				#print plate,fg,well
 				data[plate]['Summary']['Max_{}'.format(fg)][well]=max(data[plate][fg][well])
+				tmax=data[plate]['Summary']['GrowthFit'][well][3]
+				tmaxf=data[plate]['Summary']['GrowthFit'][well][4]
 				if '_dt' in fg:
 					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24-1]
 					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16-1]
 				else:
 					data[plate]['Summary']['24h_{}'.format(fg)][well]=data[plate][fg][well][ind24]
 					data[plate]['Summary']['16h_{}'.format(fg)][well]=data[plate][fg][well][ind16]
-					data[plate]['Summary']['Int_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, 24)
-					data[plate]['Summary']['Int-tmax_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][3] if data[plate]['Summary']['GrowthFit'][well][3]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][3]!=np.inf else np.inf
-					data[plate]['Summary']['Int-tmaxf_{}'.format(fg)][well]=interpolate.UnivariateSpline(time_h, data[plate][fg][well], k=5, s=5).integral(0, data[plate]['Summary']['GrowthFit'][well][4] if data[plate]['Summary']['GrowthFit'][well][4]<24 else 24) if data[plate]['Summary']['GrowthFit'][well][4]!=np.inf else np.inf
-					data[plate]['Summary']['Int_{}_log'.format(fg)][well]=np.log2(data[plate]['Summary']['Int_{}'.format(fg)][well])
-
+					data[plate]['Summary']['Int_{}'.format(fg)][well]=interp_integ(time_h, data[plate][fg][well], 24)
+					data[plate]['Summary']['Int-tmax_{}'.format(fg)][well]=interp_integ(time_h, data[plate][fg][well], tmax if tmax<24 else 24) if tmax!=np.inf else np.inf
+					data[plate]['Summary']['Int-tmaxf_{}'.format(fg)][well]=interp_integ(time_h, data[plate][fg][well], tmaxf if tmaxf<24 else 24) if tmaxf!=np.inf else np.inf
+					data[plate]['Summary']['Int_{}_log'.format(fg)][well]=np.log2(data[plate]['Summary']['Int_{}'.format(fg)][well]) if data[plate]['Summary']['Int_{}'.format(fg)][well] >0 else None
 
 	return data
 
@@ -899,10 +911,10 @@ def setbar(x,bar):
 	x2=np.array(x2)
 	return x2
 
-def interp(x,y,x2):
-	tck = ip.splrep(x, y, s=0)
-	y2=ip.splev(x2, tck, der=0)
-	return y2
+def interp_integ(x,y,t2):
+	intgr=ip.UnivariateSpline(x, y, s=5,k=5).integral(0,t2)
+	#intgr=spln
+	return intgr
 
 def readmet(ifile):
 	print ifile
@@ -1000,9 +1012,21 @@ def growthfit(data):
 		x=data[plate]['Time']
 		x=x/3600
 		labels=data[plate]['Labels']
-		#ref=data[plate]['590nm_f']['A1']
+		waves=data[plate]['Spectra']
+
+		if len(waves)>1 and '750nm' in waves:
+			wave='750nm'
+		elif len(waves)>1 and '600nm' in waves:
+			wave='600nm'
+		elif len(waves)>1 and '595nm' in waves:
+			wave='595nm'
+		elif len(waves)>1 and '590nm' in waves:
+			wave='590nm'
+		else:
+			wave=waves[0]
+
 		for l in labels:
-			y=data[plate]['750nm_log'][l]
+			y=data[plate][wave+'_log'][l]
 			#y=setbar(y,np.power(2,-5))
 			#maxy=max(y)
 			#miny=min(y)
@@ -1041,68 +1065,286 @@ def growthfit(data):
 
 	return data
 
+
+
+
+def collect_Tecan(sheet):
+	sheetdata=NestedDict()
+
+	sheet=[r for r in sheet if len(r)>1]
+	nrows=len(sheet)
+	datarange=sheet[0].index('Well positions')
+	nm_labels=[lab for lab in sheet[0] if lab not in ['Layout','Well positions','','Replicate Info']]
+	print nm_labels
+	if len(nm_labels)>1:
+		starts=[sheet[0].index(lab) for lab in nm_labels]
+	else:
+		starts=[sheet[0].index(nm_labels[0])]
+		if nm_labels[0]=='Raw data':
+			nm_labels[0]='600'
+
+	waves=[numerize(wlen) for wlen in nm_labels]
+	#print 'Identified wavelengths: {}'.format(waves)
+
+	print datarange
+	#print sheet[0]
+
+	length=(datarange)/len(waves)
+
+	#Selection of time cells does not depend om the order of wavelengths
+
+	#Extract time
+
+	time_row=sheet[1][:length]
+	#print 'Length:{}'.format(length)
+	#print time_row
+	#print len(time_row)
+	if list(set([s for s in time_row if isinstance(s,float)])):
+		time_t=time_row
+	else:
+		time_t=[int(str(t).replace('s','')) for t in time_row]
+
+	#length=time_t.index(max(time_t))+1
+
+
+	temp=[float(t.split()[0]) for t in sheet[2][:length]]
+
+	timemax_h=int(round_to(float(time_t[-1])/3600,0.1))
+
+	time=np.linspace(0,timemax_h*3600,length)
+
+	timestep=round_to(float(time_t[-1])/(length-1),1)
+	#timestep=time[-1]-time[-2]
+
+	print time_t[-1],timemax_h,time[-1],timestep
+
+
+	alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
+	labels=[l for l in alllabels if l!='']#Sheet
+	#print labels
+
+
+	plsize=len(labels)
+	if plsize not in [12,48,96,384]:
+		buffer=True
+	else:
+		buffer=False
+
+	sheetdata['Labels']=labels
+	sheetdata['Spectra']=[str(int(w))+'nm' for w in waves]
+	sheetdata['Time']=time
+	sheetdata['Temp']=temp
+	sheetdata['Time_max']=timemax_h
+	sheetdata['Time_step']=timestep
+	sheetdata['Wells']=len(labels)
+	sheetdata['Used wells']=plsize
+	sheetdata['Buffered']=str(buffer)
+	sheetdata['Figures']=[str(w)+'nm' for w in waves]
+	#sheetdata['File']=inm
+	print "Wavelengths: {}".format(waves)
+	print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
+	for lab in range(0,len(alllabels)):
+		if alllabels[lab]!='':
+			for wave in waves:
+				scol=(length)*(waves.index(wave))
+				ecol=(length)*(waves.index(wave)+1)
+				data_row=[val for val in sheet[lab+3][scol:ecol]]
+				#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
+				swave=str(int(wave))
+				sheetdata[swave+'nm'][alllabels[lab]]=np.array(data_row)
+				sheetdata[swave+'nm'][alllabels[lab]+'_max']=max(data_row)
+				sheetdata[swave+'nm'][alllabels[lab]+'_min']=min(data_row)
+
+
+	return sheetdata
+
+def collect_Biotek(sheet):
+	sheetdata=NestedDict()
+
+	#sheet=readtxt(ilist[0])
+
+	allwells=getallwells()
+
+	rownames=[row[0] if len(row)!=0 else '' for row in sheet]
+
+	alllabels=[rn if rn in allwells else '' for rn in rownames]
+
+	labels=[l for l in alllabels if l!='']
+
+	time_row=sheet[rownames.index('Time')]
+	temp_row=sheet[rownames.index('T\xb0 OD:595')]
+
+	nm_labels=[ rn  if 'OD:' in rn and 'T\xb0' not in rn else '' for rn in rownames]
+	waves=[numerize(wlen.replace('OD:','')) for wlen in nm_labels if wlen!='']
+	time_t=[time_to_sec(tval) for tval in time_row if tval not in ['Time','']]
+	length=len(time_t)
+
+	timemax_min=int(round_to(float(time_t[-1])/60,5))
+	timemax_h,timemax_remmin=divmod(timemax_min,60)
+	time=np.linspace(0,timemax_min*60,length)
+	timestep=round_to(float(time_t[-1])/(length-1),1)
+
+	temp=[float(t) for t in temp_row[1:] if t not in ['']]
+
+	print time_t[-1],timemax_h,time[-1],timestep
+
+
+	plsize=len(labels)
+	if plsize not in [12,48,96,384]:
+		buffer=True
+	else:
+		buffer=False
+
+	sheetdata['Labels']=labels
+	sheetdata['Spectra']=[str(int(w))+'nm' for w in waves]
+	sheetdata['Time']=time
+	sheetdata['Temp']=temp
+	sheetdata['Time_max']=timemax_h
+	sheetdata['Time_step']=timestep
+	sheetdata['Wells']=len(labels)
+	sheetdata['Used wells']=plsize
+	sheetdata['Buffered']=str(buffer)
+	sheetdata['Figures']=[str(w)+'nm' for w in waves]
+	#sheetdata['File']=inm
+	print "Wavelengths: {}".format(waves)
+	print "Run time {}, step {}min in {} wells\n".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
+
+	for wnum, wave in enumerate(waves):
+		wavestart=nm_labels.index('OD:{}'.format(wave))
+		if len(waves)>1 and wnum < len(waves)-1:
+			waveend=nm_labels.index('OD:{}'.format(waves[wnum+1]))-1
+		else:
+			waveend=len(alllabels)
+		for rnum,well in enumerate(alllabels):
+			if well!='' and rnum>wavestart and rnum<waveend:
+					data_row=[float(val) for val in sheet[rnum][1:] if val not in ['']]
+					#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
+					swave=str(int(wave))
+					sheetdata[swave+'nm'][well]=np.array(data_row)
+
+					sheetdata[swave+'nm'][well+'_max']=max(data_row)
+					sheetdata[swave+'nm'][well+'_min']=min(data_row)
+
+
+	return sheetdata
+
 def collect(ilist):
 	data=NestedDict()
-	for ifl in sorted(ilist):		
+	for ifl in sorted(ilist):
+		print ifl
 		ipt, inm, itp = filename(ifl)
+		plate=ifl
+
 		if itp=='xlsx':
 			sheet=readxls(ifl)
+			data[plate]=collect_Tecan(sheet)
 		elif itp=='asc':
 			sheet=readacs(ifl)
+			data[plate]=collect_Tecan(sheet)
+		elif itp=='txt':
+			sheet=readtxt(ifl)
+			data[plate]=collect_Biotek(sheet)
 		else:
-			print 'Unknown file format'
-
-
-		nrows=len(sheet)
-		nm_labels=sheet[0]
-		#converting first row to set rearanges the labels
-		#list(set(sheet[0]))
-		#print nm_labels
-		#print nrows
-		
-		waves=[numerize(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
-		#print waves
-		lengths=[sheet[0].index(wave) for wave in waves]
-		#Selection of time cells does not depend on the order of wavelengths
-		length=max(lengths)
-		time_row=sheet[1][:length]
-		check=list(set([s for s in time_row if isinstance(s,float)]))
-		if check:
-			time_t=time_row
-		else:
-			time_t=[int(t.replace('s','')) for t in time_row]
-		temp=[float(t.split()[0]) for t in sheet[2][:length]]
-		timemax_h=round_to(float(time_t[length-1])/3600,1)
-		
-		timestep=round_to(float(time_t[length-1])/(length-1),1)
-		time=np.linspace(0,timemax_h*3600,length)
-		tsheet=zip(*sheet)
-		labels=[l for l in tsheet[length*2] if l not in ['','Well positions']	] #Sheet
-		data[ifl]['Labels']=labels
-		data[ifl]['Spectra']=waves
-		data[ifl]['Time']=time
-		data[ifl]['Temp']=temp
-		data[ifl]['Time_max']=timemax_h
-		data[ifl]['Time_step']=timestep
-		data[ifl]['Wells']=nrows-3
-		data[ifl]['Figures']=[str(w)+'nm' for w in waves]
-		data[ifl]['File']=inm
-
-		print "File: {}".format(ifl)
-		print "Wavelengths: {}, {}".format(*waves)
-		print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
-		for row in range(0,len(labels)):
-			for wave in waves:
-				data_row=[60000 if val=="Overflow" else val for val in sheet[row+3][length*(waves.index(wave)):length*(waves.index(wave)+1)]]
-				swave=str(int(wave))				
-				data[ifl][swave+'nm'][labels[row]]=np.array(data_row)
-				data[ifl][swave+'nm'][labels[row]+'_max']=max(data_row)
-				data[ifl][swave+'nm'][labels[row]+'_min']=min(data_row)
-
-
+			print 'Unknown file format: {}!'.format(itp)
+			sys.exit(1)
+		#print data[plate]
+		data[plate]['File']=ifl
 
 	return data
 
+
+def getallwells():
+	r = [l for l in string.ascii_uppercase[0:16]]
+	c = [str(i) for i in range(1,25)]
+	allwells=[]
+	for rn in r:
+		for cn in c:
+			#print rn+cn
+			allwells.append(rn+cn)
+
+	return allwells
+
+
+
+def readtxt(ifile):
+	f=open(ifile,'r')
+	rdr=csv.reader(f, delimiter=',')
+	sheet=[ln for ln in rdr]
+	f.close()
+	return sheet
+
+
+def time_to_sec(tstr):
+	h,m,s=tstr.split(':')
+	seconds=int(s)+60*int(m)+3600*int(h)
+	return seconds
+
+
+
+
+#
+# def collect(ilist):
+# 	data=NestedDict()
+# 	for ifl in sorted(ilist):
+# 		ipt, inm, itp = filename(ifl)
+# 		if itp in ['xlsx','asc']:
+# 			if itp=='xlsx':
+# 				sheet=readxls(ifl)
+# 			elif itp=='asc':
+# 				sheet=readacs(ifl)
+#
+#
+# 			nrows=len(sheet)
+# 			nm_labels=sheet[0]
+# 			#converting first row to set rearanges the labels
+# 			#list(set(sheet[0]))
+# 			#print nm_labels
+# 			#print nrows
+#
+# 			waves=[numerize(wlen) for wlen in nm_labels if wlen not in ['Layout','Well positions','','Replicate Info']]
+# 			#print waves
+# 			lengths=[sheet[0].index(wave) for wave in waves]
+# 			#Selection of time cells does not depend on the order of wavelengths
+# 			length=max(lengths)
+# 			time_row=sheet[1][:length]
+# 			check=list(set([s for s in time_row if isinstance(s,float)]))
+# 			if check:
+# 				time_t=time_row
+# 			else:
+# 				time_t=[int(t.replace('s','')) for t in time_row]
+# 			temp=[float(t.split()[0]) for t in sheet[2][:length]]
+# 			timemax_h=round_to(float(time_t[length-1])/3600,1)
+#
+# 			timestep=round_to(float(time_t[length-1])/(length-1),1)
+# 			time=np.linspace(0,timemax_h*3600,length)
+# 			tsheet=zip(*sheet)
+# 			labels=[l for l in tsheet[length*2] if l not in ['','Well positions']	] #Sheet
+# 			data[ifl]['Labels']=labels
+# 			data[ifl]['Spectra']=waves
+# 			data[ifl]['Time']=time
+# 			data[ifl]['Temp']=temp
+# 			data[ifl]['Time_max']=timemax_h
+# 			data[ifl]['Time_step']=timestep
+# 			data[ifl]['Wells']=nrows-3
+# 			data[ifl]['Figures']=[str(w)+'nm' for w in waves]
+# 			data[ifl]['File']=inm
+#
+# 			print "File: {}".format(ifl)
+# 			print "Wavelengths: {}, {}".format(*waves)
+# 			print "Run time {}h, step {}min in {} wells\n".format(timemax_h,timestep/60, len(labels))
+# 			for row in range(0,len(labels)):
+# 				for wave in waves:
+# 					data_row=[val for val in sheet[row+3][length*(waves.index(wave)):length*(waves.index(wave)+1)]]
+# 					swave=str(int(wave))
+# 					data[ifl][swave+'nm'][labels[row]]=np.array(data_row)
+# 					data[ifl][swave+'nm'][labels[row]+'_max']=max(data_row)
+# 					data[ifl][swave+'nm'][labels[row]+'_min']=min(data_row)
+#
+# 		else:
+# 			print 'Unknown file format'#elif itp=='txt':
+# 		#Data extraction for new plate reader
+# 	return data
+#
 
 
 def genlist(ifile):
@@ -1183,7 +1425,7 @@ def makesheets(data,metabolites,info):
 	allsumhead=['rho','c','d']+['A','lamda','u','tmax','tmaxf']+\
 	           ['a_log','c_log','t0_log','tmax_log']+\
 	           ['Max_750nm','Max_750nm_log','24h_750nm','24h_750nm_log']+\
-	           ['Int_750nm','Int_750nm_log','Int-tmax_750nm','Int-tmaxf_750nm']\
+	           ['Int_750nm','Int_750nm_log','Int-tmax_750nm','Int-tmaxf_750nm']
 		#,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']
 	#'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f','Int-tmax_590nm_f'
 	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log']+\
@@ -1208,10 +1450,13 @@ def makesheets(data,metabolites,info):
 		for fig in output:
 			#print '{}...{}'.format(fln,fig)
 			for well in labels:
-				rowhead=annot+\
-				        [well,plate+'-'+well,fig,metabolites[plate][well][metind],
-				         metabolites[plate][well]['EcoCycID'],metabolites[plate][well]['KEGG_ID'],metabolites[plate][well]['CAS_ID']]+\
-					[metabolites[plate][well][metk] for metk in metinfo]
+				try:
+					rowhead=annot+[well,plate+'-'+well,fig,metabolites[plate][well][metind],metabolites[plate][well]['EcoCycID'],metabolites[plate][well]['KEGG_ID'],metabolites[plate][well]['CAS_ID']]+[metabolites[plate][well][metk] for metk in metinfo]
+				except TypeError:
+					print fln, info[fln], plate, well
+					print metabolites[plate][well]['EcoCycID'],metabolites[plate][well]['KEGG_ID'], metabolites[plate][well]['CAS_ID']
+					print [metabolites[plate][well][metk] for metk in metinfo]
+					sys.exit(1)
 				if fig=='Summary':
 					datrow=sums['Respiration'][well]+sums['GrowthFit'][well]+sums['GrowthFit_log'][well]+[sums[sm][well] for sm in selsums]
 				else:

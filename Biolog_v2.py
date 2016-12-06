@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-BBiolog.py
+Biolog.py
 
 Created by Povilas Norvaisas on 2015-02-26.
 Copyright (c) 2015. All rights reserved.
@@ -206,16 +206,16 @@ def main(argv=None):
 			ilist,info=genlist(ifile)
 			uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
 			data=collect(ilist)
-			f = open('{}/Biolog_data_collected.pckl'.format(odir), 'w')
-			pickle.dump([data,metabolites,ilist,info,uniques], f)
-			f.close()
+			# f = open('{}/Biolog_data_collected.pckl'.format(odir), 'w')
+			# pickle.dump([data,metabolites,ilist,info,uniques], f)
+			# f.close()
 
 		#sys.exit(1)
 		data=analyze(data,g750,d750)
 		data=growthfit(data)
-		f = open('{}/Biolog_data_all.pckl'.format(odir), 'w')
-		pickle.dump([data,metabolites,ilist,info,uniques], f)
-		f.close()
+		# f = open('{}/Biolog_data_all.pckl'.format(odir), 'w')
+		# pickle.dump([data,metabolites,ilist,info,uniques], f)
+		# f.close()
 
 
 

@@ -532,11 +532,14 @@ def analyze(data):
 		data[plate]['Time_dt']=time_dt
 		#Needs to be checked
 		waves=data[plate]['Spectra']
+		#print waves
+		#print data[plate]['Labels']
 		for wave in waves:
 			wv=wave.replace('nm','')
 			print 'Analyzing data in {}: {}'.format(plate,wave)
-
+			#print time
 			for well in data[plate]['Labels']:
+				#print data[plate][wave][well]
 				start=np.mean(data[plate][wave][well][:window])
 
 				raw=data[plate][wave][well]
@@ -757,9 +760,9 @@ def growthfit(data):
 		elif len(waves)>1 and '590nm' in waves:
 			wave='590nm'
 		elif len(waves)>1 and '595nm' in waves:
-			wave='590nm'
+			wave='595nm'
 		elif len(waves)>1 and '600nm' in waves:
-			wave='590nm'
+			wave='600nm'
 		else:
 			wave=waves[0]
 		for l in labels:
@@ -768,6 +771,7 @@ def growthfit(data):
 			#maxy=max(y)
 			#miny=min(y)
 			#yl=np.log2(y)
+			#print l,y
 			miny=min(y)
 			maxy=max(y)
 			gscale=maxy-miny
@@ -819,7 +823,7 @@ def collect_Tecan(sheet):
 		if nm_labels[0]=='Raw data':
 			nm_labels[0]='600'
 
-	waves=[numerize(wlen) for wlen in nm_labels]
+	waves=[numerize(wlen.replace('nm','')) for wlen in nm_labels]
 	#print 'Identified wavelengths: {}'.format(waves)
 	#print datarange
 
@@ -901,36 +905,65 @@ def collect_Biotek(sheet):
 
 	rownames=[row[0] if len(row)!=0 else '' for row in sheet]
 
-	#print rownames
-
-	alllabels=[rn if rn in allwells else '' for rn in rownames]
-
-	labels=[l for l in alllabels if l!='']
-
-	time_row=sheet[rownames.index('Time')]
+	#print rowname
 
 
 	#Currently works with single wavelength
 
-	temp_rows=[ sheet[rownames.index(r)] for r in rownames if 'T' in r and 'OD:' in r ]
-	temp_row=temp_rows[0]
+	#print time_row
+	time_ids=[ rin for rin,r in enumerate(rownames) if 'Time' in str(r) ]
+	OD_ids=[ rin for rin,r in enumerate(rownames) if 'T' in str(r) and 'OD:' in str(r) ]
+
+	time_row=sheet[time_ids[0]]
+	temp_row=sheet[OD_ids[0]]
+
+	# print time_ids
+	# print OD_ids
+
+
+
 	#print temp_row
-	nm_labels=[ rn  if 'OD:' in rn and 'T' not in rn else '' for rn in rownames]
 
+	#nm_labels=[ rn if 'OD:' in str(rn) and 'T' not in str(rn) else '' for rn in rownames]
+	nm_labels=[ str(sheet[rin][0].split()[1]) for rin in OD_ids]
+	nm_labelsm={ rin:str(sheet[rin][0].split()[1]) for rin in OD_ids}
 
-	waves=[numerize(wlen.replace('OD:','')) for wlen in nm_labels if wlen!='']
+	waves_nmm={rin: numerize(str(sheet[rin][0].split()[1]).replace('OD:','').replace('GFP:','')) for rin in OD_ids}
+
+	# print nm_labels
+
+	waves=[numerize(wlen.replace('OD:','').replace('GFP:','')) for wlen in nm_labels if wlen!='']
+	waves_nm=[str(int(w))+'nm' for w in waves]
+
+	# print waves
+
 	time_t=[time_to_sec(tval) for tval in time_row if tval not in ['Time','']]
-	length=len(time_t)
 
-	timemax_min=int(round_to(float(time_t[-1])/60,5))
+
+	length=len(time_t)
+	#print time_t
+
+	#Find time step
+	timestep=round_to(float(time_t[-1]-time_t[0])/(length-1),1)
+	#print timestep
+
+	#Timestep in mins
+	timemax_min=int((length-1)*timestep/60)
+	#timemax_min=int(round_to(float(time_t[-1])/60,5))
+
 	timemax_h,timemax_remmin=divmod(timemax_min,60)
 
 	time=np.linspace(0,timemax_min*60,length)
-	timestep=round_to(float(timemax_min*60)/(length-1),1)
+	#timestep=round_to(float(timemax_min*60)/(length-1),1)
+
+	#print time
 
 	temp=[float(t) for t in temp_row[1:] if t not in ['']]
 
 	#print time_t[-1],timemax_h,time[-1],timestep
+
+	alllabels=[rn if rn in allwells else '' for rn in rownames]
+	labels=list(set([l for l in alllabels if l!='']))
 
 
 	plsize=len(labels)
@@ -939,8 +972,11 @@ def collect_Biotek(sheet):
 	else:
 		buffer=False
 
+
+
+
 	sheetdata['Labels']=labels
-	sheetdata['Spectra']=[str(int(w))+'nm' for w in waves]
+	sheetdata['Spectra']=waves_nm
 	sheetdata['Time']=time
 	sheetdata['Temp']=temp
 	sheetdata['Time_max']=timemax_min
@@ -948,27 +984,46 @@ def collect_Biotek(sheet):
 	sheetdata['Wells']=len(labels)
 	sheetdata['Used wells']=plsize
 	sheetdata['Buffered']=str(buffer)
-	sheetdata['Figures']=[str(w)+'nm' for w in waves]
+	sheetdata['Figures']=waves_nm
 	#sheetdata['File']=inm
 	print "Wavelengths: {}".format(waves)
 	print "Run time {}, step {}min in {} wells\n".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
 
-	for wnum, wave in enumerate(waves):
-		wavestart=nm_labels.index('OD:{}'.format(wave))
-		if len(waves)>1 and wnum < len(waves)-1:
-			waveend=nm_labels.index('OD:{}'.format(waves[wnum+1]))-1
-		else:
-			waveend=len(alllabels)
-		for rnum,well in enumerate(alllabels):
-			if well!='' and rnum>wavestart and rnum<waveend:
-					data_row=[float(val) for val in sheet[rnum][1:] if val not in ['']]
-					#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
-					swave=str(int(wave))
-					sheetdata[swave+'nm'][well]=np.array(data_row)
+	#sys.exit(0)
 
-					sheetdata[swave+'nm'][well+'_max']=max(data_row)
-					sheetdata[swave+'nm'][well+'_min']=min(data_row)
+	for rid,row in enumerate(sheet):
+		#print row
+		well=str(row[0])
+		#print well
+		if well!='' and well in allwells:
+			OD_sel=[ODid for ODid in reversed(OD_ids) if rid>ODid][0]
+			swave=str(waves_nmm[OD_sel])+'nm'
+			#print OD_sel,swave
+			data_row=[float(val) for val in row[1:] if val not in ['']]
+			#print swave,len(data_row),data_row[0],data_row[1],data_row[-1]
+			sheetdata[swave][well]=np.array(data_row)
 
+			sheetdata[swave][well+'_max']=max(data_row)
+			sheetdata[swave][well+'_min']=min(data_row)
+
+
+	#
+	# for wnum, wave in enumerate(waves):
+	# 	wavestart=nm_labels.index('OD:{}'.format(wave))
+	# 	if len(waves)>1 and wnum < len(waves)-1:
+	# 		waveend=nm_labels.index('OD:{}'.format(waves[wnum+1]))-1
+	# 	else:
+	# 		waveend=len(alllabels)
+	# 	for rnum,well in enumerate(alllabels):
+	# 		if well!='' and rnum>wavestart and rnum<waveend:
+	# 				data_row=[float(val) for val in sheet[rnum][1:] if val not in ['']]
+	# 				#print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
+	# 				swave=str(int(wave))
+	# 				sheetdata[swave+'nm'][well]=np.array(data_row)
+	#
+	# 				sheetdata[swave+'nm'][well+'_max']=max(data_row)
+	# 				sheetdata[swave+'nm'][well+'_min']=min(data_row)
+	#
 
 	return sheetdata
 

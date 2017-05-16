@@ -343,6 +343,13 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 		maxcol=12
 		cols=12
 		rows=8
+	if plsize==60:
+		minrow=1
+		maxrow=6
+		mincol=1
+		maxcol=10
+		cols=10
+		rows=6
 	elif plsize==12:
 		minrow=1
 		maxrow=3
@@ -428,6 +435,9 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 			#Numbering inside plot arrangement differs from real numbers by buffer size
 			row=string.uppercase.index(l[0])+1-2
 			col=int(l.replace(l[0],''))-2
+		elif plsize==60:
+			row=string.uppercase.index(l[0])+1-1
+			col=int(l.replace(l[0],''))-1
 		else:
 			row=string.uppercase.index(l[0])+1
 			col=int(l.replace(l[0],''))
@@ -1123,7 +1133,8 @@ def makesheets(data,descriptors):
 	dt=[]
 	gfit=[]
 	regular=[]
-	
+	summary=[]
+
 	header_temp=['Plate','Well','Data']
 
 	desckeys=[]
@@ -1133,8 +1144,7 @@ def makesheets(data,descriptors):
 			desckeys=sorted(descriptors[hasdesc[0]].keys())
 			header=header_temp+desckeys
 	header=header_temp+desckeys
-
-	ghead=['a','c','t0']
+	#ghead=['a','c','t0']
 	times=[]
 	timemax=0
 	maxplate=''
@@ -1144,41 +1154,68 @@ def makesheets(data,descriptors):
 		if data[plate]['Time_max']>timemax:
 			timemax=data[plate]['Time_max']
 			maxplate=plate
-
+	#Get max time to set scale
 	timespan=len(data[maxplate]['Time'])
 	timespandt=len(data[maxplate]['Time_dt'])
 
+	allsumhead = ['A', 'lamda', 'u', 'tmax','tmaxf'] + \
+	             ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+	             ['Max_600nm', 'Max_600nm_log'] + \
+	             ['Int_600nm_f', 'Int_600nm_log']
+
+	# ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+	selsums = ['Max_600nm_f', 'Max_600nm_log'] + \
+	          ['Int_600nm_f', 'Int_600nm_f_log']
+	# ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
+
+
 	for plate in data.keys():
-		output=data[plate]['Figures']
+		sums = data[plate]['Summary']
+		output = ['Summary'] + data[plate]['Figures']
+		#output=data[plate]['Figures']
 		#output=output+['GrowthFit']
 		labels=data[plate]['Labels']
 		for fig in output:
 			#print plate,fig
+
 			for well in labels:
 				datrow=data[plate][fig][well]
 				rowhead=[plate,well,fig]
+
+
 				if len(descriptors.keys())>0:
 					if len(descriptors[plate].keys())>0:
 						rowhead=rowhead+[descriptors[plate][dk][well] for dk in desckeys]
 				else:
 					rowhead=rowhead+['']*len(desckeys)
-				if not isinstance(datrow,list):
-					datrow=datrow.tolist()
 
-				if '_dt' in fig:
+				if fig == 'Summary':
+					datrow = sums['GrowthFit'][well]+sums['GrowthFit_log'][well] + [sums[sm][well] for sm in selsums]
+					#	             #['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+				elif '_dt' in fig:
+					if not isinstance(datrow,list):
+						datrow=datrow.tolist()
 					datrow=datrow+['']*(timespandt-len(datrow))
+
 				elif fig=='GrowthFit':
+					if not isinstance(datrow,list):
+						datrow=datrow.tolist()
 					datrow=datrow
 				else:
+					if not isinstance(datrow,list):
+						datrow=datrow.tolist()
 					datrow=datrow+['']*(timespan-len(datrow))
-				
+
 				#print len(datrow), timespan,timespan-len(datrow)
 				newrow=rowhead+datrow
+
+
 				if '_dt' in fig:
 					dt.append(newrow)
-
 				elif fig=='GrowthFit':
 					gfit.append(newrow)
+				elif fig == 'Summary':
+					summary.append(newrow)
 				else:
 					regular.append(newrow)
 	#sys.exit(1)
@@ -1186,20 +1223,114 @@ def makesheets(data,descriptors):
 	time_lin=data[maxplate]['Time']
 	time_lin=time_lin.tolist()
 	time_dt=time_dt.tolist()
+
+	summary.insert(0,header+allsumhead)
 	dt.insert(0,header+time_dt)
 	regular.insert(0,header+time_lin)
 	gfit.insert(0,header)
+
 	sheets['Data_dt']=dt
+	sheets['Summary'] = summary
 	sheets['Data']=regular
 	sheets['Growth_fit']=gfit
-	
+
 	#print len(dt[0]),len(dt[1])
 	#print dt[0],dt[1]
 
 	return sheets
 
+#
+# def makesheets(data, metabolites, info):
+# 	sheets = NestedDict()
+# 	dt = []
+# 	allsum = []
+# 	regular = []
+# 	drugplates = ['PM11C', 'PM12B', 'PM13B', 'PM14A', 'PM15B', 'PM16A', 'PM17A', 'PM18C',
+# 	              'PM19', 'PM20B', 'PM21D', 'PM22D', 'PM23A', 'PM24C', 'PM25D']
+#
+# 	defannkeys = ['File', 'Plate', 'Strain', 'Type', 'Metformin_mM', 'Media', 'Inoculum', 'Replicate']
+# 	annotdefkeys = [k for k in defannkeys if k in info[info.keys()[0]].keys()]
+# 	annotextrakeys = [k for k in info[info.keys()[0]].keys() if k not in annotdefkeys]
+# 	annotkeys = annotdefkeys + annotextrakeys
+# 	# print annotdefkeys
+#
+# 	metdesc = metabolites[metabolites.keys()[0]]['A1'].keys()
+# 	defmetkeys = ['Plate', 'Well', 'EcoCycID', 'KEGG_ID', 'CAS_ID', 'Well index', 'Index', 'Metabolite', 'Name']
+# 	# metdefkeys=[m for m in defmetkeys if m in metdesc]
+# 	metinfo = [m for m in metdesc if m not in defmetkeys]
+#
+# 	header = annotdefkeys + annotextrakeys + ['Well', 'Index', 'Data', 'Name', 'EcoCycID', 'KEGG_ID',
+# 	                                          'CAS_ID'] + metinfo
+# 	# 'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm','Int-tmax_590nm','Int-tmaxf_590nm'
+# 	allsumhead = ['rho', 'c', 'd'] + ['A', 'lamda', 'u', 'tmax', 'tmaxf'] + \
+# 	             ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+# 	             ['Max_750nm', 'Max_750nm_log', '24h_750nm', '24h_750nm_log'] + \
+# 	             ['Int_750nm', 'Int_750nm_log', 'Int-tmax_750nm', 'Int-tmaxf_750nm']
+# 	# ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']
+# 	# 'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f','Int-tmax_590nm_f'
+# 	selsums = ['Max_750nm_f', 'Max_750nm_log', '24h_750nm_f', '24h_750nm_log'] + \
+# 	          ['Int_750nm_f', 'Int_750nm_f_log', 'Int-tmax_750nm_f', 'Int-tmaxf_750nm_f']
+# 	# ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
+#
+# 	for fln in data.keys():
+# 		sums = data[fln]['Summary']
+# 		output = ['Summary'] + data[fln]['Figures']
+# 		time_dt = data[fln]['Time_dt']
+# 		time_lin = data[fln]['Time']
+# 		labels = data[fln]['Labels']
+# 		# Reorder file information keys
+#
+# 		annot = [info[fln][k] for k in annotkeys]
+# 		# print annot
+# 		plate = info[fln]['Plate']
+# 		if plate in drugplates:
+# 			metind = 'Name'
+# 		else:
+# 			metind = 'Metabolite'
+# 		for fig in output:
+# 			# print '{}...{}'.format(fln,fig)
+# 			for well in labels:
+# 				try:
+# 					rowhead = annot + [well, plate + '-' + well, fig, metabolites[plate][well][metind],
+# 					                   metabolites[plate][well]['EcoCycID'], metabolites[plate][well]['KEGG_ID'],
+# 					                   metabolites[plate][well]['CAS_ID']] + [metabolites[plate][well][metk] for metk in
+# 					                                                          metinfo]
+# 				except TypeError:
+# 					print fln, info[fln], plate, well
+# 					print metabolites[plate][well]['EcoCycID'], metabolites[plate][well]['KEGG_ID'], \
+# 					metabolites[plate][well]['CAS_ID']
+# 					print [metabolites[plate][well][metk] for metk in metinfo]
+# 					sys.exit(1)
+# 				if fig == 'Summary':
+# 					datrow = sums['Respiration'][well] + sums['GrowthFit'][well] + sums['GrowthFit_log'][well] + [
+# 						sums[sm][well] for sm in selsums]
+# 				else:
+# 					datrow = data[fln][fig][well]
+# 				if not isinstance(datrow, list):
+# 					datrow = datrow.tolist()
+# 				newrow = rowhead + datrow
+#
+# 				if '_dt' in fig:
+# 					dt.append(newrow)
+# 				elif fig == 'Summary':
+# 					allsum.append(newrow)
+# 				else:
+# 					regular.append(newrow)
+#
+# 	time_lin = time_lin.tolist()
+# 	time_dt = time_dt.tolist()
+# 	dt.insert(0, header + time_dt)
+# 	regular.insert(0, header + time_lin)
+# 	allsum.insert(0, header + allsumhead)
+# 	sheets['Data_dt'] = dt
+# 	sheets['Data'] = regular
+# 	sheets['Summary'] = allsum
+#
+# 	# print len(dt[0]),len(dt[1])
+# 	# print dt[0],dt[1]
+#
+# 	return sheets
 
-	
 
 def writesheets(sheets,odir):
 	#Writes organized data to file.

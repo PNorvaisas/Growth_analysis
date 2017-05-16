@@ -205,7 +205,7 @@ def main(argv=None):
 		else:
 			ilist,info=genlist(ifile)
 			uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
-			data=collect(ilist)
+			data=collect(ilist,info)
 			# f = open('{}/Biolog_data_collected.pckl'.format(odir), 'w')
 			# pickle.dump([data,metabolites,ilist,info,uniques], f)
 			# f.close()
@@ -223,8 +223,10 @@ def main(argv=None):
 	writesheets(sheets,odir,sep=',')
 
 
-	plot_comparison(data,metabolites,odir,['590nm','750nm','590nm_f','750nm_f','Growth_Respiration',
-	                                       '750nm_dt','750nm_log'],info,uniques,integrals)
+	plot_comparison(data,metabolites,odir,['750nm_f','750nm_dt','750nm_log'],info,uniques,integrals)
+	                                       
+	#'590nm','750nm','590nm_f','750nm_f','Growth_Respiration',
+	#                                      '750nm_dt','750nm_log'
 	#,'Growth','Growth_log','Growth_dt'
 	#'590nm_dt','590nm_f','590nm_log',
 
@@ -638,9 +640,9 @@ def greek_check(text,slen):
 
 
 
-def growth(x,a,c):
-	y=x*a+c
-	return y
+# def growth(x,a,c):
+# 	y=x*a+c
+# 	return y
 
 def Wiener(y, n):
 	wi = sig.wiener(y, mysize=n)
@@ -697,7 +699,10 @@ def analyze(data,g750,d750):
 		time_dt=(time+dt/2)[:-1]
 		data[plate]['Time_dt']=time_dt
 
+		#print data[plate].keys()
+
 		for well in data[plate]['Labels']:
+			#print well
 			#print plate, well
 			if well!='A1':
 				ref590=data[plate]['590nm_f']['A1']
@@ -708,7 +713,9 @@ def analyze(data,g750,d750):
 				refl750=data[plate]['750nm_log']['A1']
 				reflgrowth=data[plate]['Growth_log']['A1']
 				refldye=data[plate]['Dye_log']['A1']
+				#print refl590
 
+			#print data[plate]['590nm'][well]
 			gs=np.mean(data[plate]['590nm'][well][:window])
 			ds=np.mean(data[plate]['750nm'][well][:window])
 
@@ -795,6 +802,7 @@ def analyze(data,g750,d750):
 				#print min(growc),max(growc)
 				#popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)
 				#A,lam,u=popt
+				#Fit log growth model
 				try:
 					popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
 					A,lam,u=popt
@@ -803,7 +811,7 @@ def analyze(data,g750,d750):
 					print e
 					print 'Curve_fit encountered an error in well {}!'.format(well)
 					A,lam,u=[0,np.inf,0]
-
+				#Extrapolate
 				if A>0 and lam<np.inf and u>0:
 					yreducedf = growth(time_h,*popt) - max(growth(time_h,*popt))*(1-margin) #maxg#
 					freducedf = ip.UnivariateSpline(time_h, yreducedf, s=0)
@@ -994,6 +1002,7 @@ def cut(x, y, a,b,equalize=False):
 
 	return x2,y2
 
+#Log growth model
 def growth(x,A,lam,u):
 	return A/(1+np.exp((4*u/A)*(lam-x)+2))
 
@@ -1069,6 +1078,7 @@ def growthfit(data):
 
 
 def collect_Tecan(sheet):
+
 	sheetdata=NestedDict()
 
 	sheet=[r for r in sheet if len(r)>1]
@@ -1086,7 +1096,7 @@ def collect_Tecan(sheet):
 	waves=[numerize(wlen) for wlen in nm_labels]
 	#print 'Identified wavelengths: {}'.format(waves)
 
-	print datarange
+	#print datarange
 	#print sheet[0]
 
 	length=(datarange)/len(waves)
@@ -1159,8 +1169,9 @@ def collect_Tecan(sheet):
 	return sheetdata
 
 def collect_Biotek(sheet):
-	sheetdata=NestedDict()
 
+	#print sheet
+	sheetdata=NestedDict()
 	#sheet=readtxt(ilist[0])
 
 	allwells=getallwells()
@@ -1169,10 +1180,23 @@ def collect_Biotek(sheet):
 
 	alllabels=[rn if rn in allwells else '' for rn in rownames]
 
-	labels=[l for l in alllabels if l!='']
+	labels=[]
+	for l in alllabels:
+		if l!='' and not l in labels:
+			labels.append(l)
 
+	#print labels
+	#print rownames
 	time_row=sheet[rownames.index('Time')]
-	temp_row=sheet[rownames.index('T\xb0 OD:595')]
+
+
+	if 'T\xb0 OD:595' in rownames:
+		temp_row=sheet[rownames.index('T\xb0 OD:595')]
+	elif 'T\xb0 OD:590' in rownames:
+		temp_row=sheet[rownames.index('T\xb0 OD:590')]
+	else:
+		print "Can't find OD identifiers!"
+		sys.exit(1)
 
 	nm_labels=[ rn  if 'OD:' in rn and 'T\xb0' not in rn else '' for rn in rownames]
 	waves=[numerize(wlen.replace('OD:','')) for wlen in nm_labels if wlen!='']
@@ -1228,27 +1252,42 @@ def collect_Biotek(sheet):
 
 	return sheetdata
 
-def collect(ilist):
+def collect(ilist,info):
 	data=NestedDict()
 	for ifl in sorted(ilist):
 		print ifl
 		ipt, inm, itp = filename(ifl)
 		plate=ifl
 
-		if itp=='xlsx':
-			sheet=readxls(ifl)
-			data[plate]=collect_Tecan(sheet)
-		elif itp=='asc':
-			sheet=readacs(ifl)
-			data[plate]=collect_Tecan(sheet)
-		elif itp=='txt':
-			sheet=readtxt(ifl)
-			data[plate]=collect_Biotek(sheet)
+		if 'Reader' in info[ifl].keys():
+			if info[ifl]['Reader']=='Tecan':
+				if itp == 'xlsx':
+					sheet = readxls(ifl)
+					data[plate] = collect_Tecan(sheet)
+				elif itp in ['asc','txt']:
+					sheet = readtxt(ifl)
+					data[plate] = collect_Tecan(sheet)
+			elif info[ifl]['Reader']=='Biotek':
+				sheet=readtxt(ifl)
+				data[plate]=collect_Biotek(sheet)
+			else:
+				print 'Unknown reader: {}!'.format(info[ifl]['Reader'])
+				sys.exit(1)
 		else:
-			print 'Unknown file format: {}!'.format(itp)
-			sys.exit(1)
-		#print data[plate]
-		data[plate]['File']=ifl
+			if itp in 'xlsx':
+				sheet=readxls(ifl)
+				data[plate]=collect_Tecan(sheet)
+			elif itp=='asc':
+				sheet=readtxt(ifl)
+				data[plate]=collect_Tecan(sheet)
+			elif itp=='txt':
+				sheet=readtxt(ifl)
+				data[plate]=collect_Biotek(sheet)
+			else:
+				print 'Unknown file format: {}!'.format(itp)
+				sys.exit(1)
+			#print data[plate]
+			data[plate]['File']=ifl
 
 	return data
 
@@ -1265,13 +1304,6 @@ def getallwells():
 	return allwells
 
 
-
-def readtxt(ifile):
-	f=open(ifile,'r')
-	rdr=csv.reader(f, delimiter=',')
-	sheet=[ln for ln in rdr]
-	f.close()
-	return sheet
 
 
 def time_to_sec(tstr):
@@ -1430,7 +1462,7 @@ def makesheets(data,metabolites,info):
 	#'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f','Int-tmax_590nm_f'
 	selsums=['Max_750nm_f','Max_750nm_log','24h_750nm_f','24h_750nm_log']+\
 	        ['Int_750nm_f','Int_750nm_f_log','Int-tmax_750nm_f','Int-tmaxf_750nm_f']
-	         #,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
+	#,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
 
 	for fln in data.keys():
 		sums=data[fln]['Summary']
@@ -1604,24 +1636,43 @@ def readxls_s(ifile):
 def readcsv(ifile):
 	f=open(ifile,'r')
 	sheet=[]
-
 	rdr=csv.reader(f, delimiter=',')
 	data=[ln for ln in rdr]
 	f.close()
 	return data
 
 
-def readacs(ifile):
-	f=open(ifile,'r')
-	sheet=[]
-	for l in f:
-		if len(l.split('\t'))>200:
-			row=[cell.strip() for cell in l.split('\t')]
-			row=[numerize(cell) for cell in row]
-			sheet.append(row)
-	f.close()
+def readtxt(ifile):
+	with open(ifile,'r') as f:
+		contents=f.read()
+		defdlmt=','
+		maxdlmt=0
+		for dlmt in [',','\t']:
+			dlmtcount=contents.count(dlmt)
+			if dlmtcount>maxdlmt:
+				defdlmt=dlmt
+				maxdlmt=dlmtcount
+
+		#print 'Delimiter: {} with {} instances'.format(defdlmt,maxdlmt)
+		rdr = csv.reader(contents.splitlines(), delimiter=defdlmt)
+		sheet=[[numerize(cell) for cell in ln] for ln in rdr]
+	#print dialect.delimiter
+	#rdr = csv.reader(f, delimiter=',')
+	#f.close()
+	#print len(sheet)
 	return sheet
-	
+#
+# def readacs(ifile):
+# 	f=open(ifile,'r')
+# 	sheet=[]
+# 	for l in f:
+# 		if len(l.split('\t'))>200:
+# 			row=[cell.strip() for cell in l.split('\t')]
+# 			row=[numerize(cell) for cell in row]
+# 			sheet.append(row)
+# 	f.close()
+# 	return sheet
+#
 
 
 #----------------------------------

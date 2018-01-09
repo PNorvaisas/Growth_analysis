@@ -71,7 +71,7 @@ except ImportError, e:
 
 
 help_message = '''
-Biolog data preparation
+Bacterial growth data preparation
 
 Flags:
 	-h  Display this help message

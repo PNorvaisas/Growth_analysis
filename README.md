@@ -1,11 +1,9 @@
 # Growth analysis
----
 Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
 - Calculates bacterial growth parameters as integral (AUC) and growth rate
 - Plots curves for growth, growth in log scale and growth rate (differential)
 - Exports *tidy-ish* data as time series and summary
 ## Configure
----
 ### MacOS
 - Install [Xcode](https://developer.apple.com/xcode/) from App Store and open it to accept license (might ask to update your OS to most recent version).
 - Install [Homebrew](https://brew.sh) by running in Terminal:
@@ -13,8 +11,9 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
 - Install python using brew in Terminal:
    `brew install python`
 - Configure your python by runing:
-   `brew unlink python && brew link python`
-   `brew doctor`
+   ```bash
+   brew unlink python && brew link python
+   brew doctor```
    > In some cases might require mannually setting default Python to Homebrew version:
    > `cp /usr/local/bin/python2 /usr/local/bin/python`
    > `echo "export PATH=/usr/local/bin:/usr/bin:$PATH" >> ~/.bash_profile`
@@ -28,7 +27,5 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
 - Add <location> to your PATH:
    `echo "export PATH=<location>:$PATH" >> .bash_profile`
 - Restart
-## Usage
----
 
     

@@ -10,19 +10,19 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    ```bash
    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
    ```
-- Install python using brew in Terminal:
+- Install Python using brew in Terminal:
    ```bash
    brew install python
    ```
-- Configure your python by runing:
+- Configure your Python by runing:
    ```bash
    brew unlink python && brew link python;
    brew doctor
    ```
    > In some cases might require mannually setting default Python to Homebrew version:
    > ```bash
-   > cp /usr/local/bin/python2 /usr/local/bin/python;
-   > echo "export PATH=/usr/local/bin:/usr/bin:$PATH" >> ~/.bash_profile
+   > echo "export PATH=/usr/local/bin:/usr/bin:$PATH" >> ~/.bash_profile;
+   > cp /usr/local/bin/python2 /usr/local/bin/python
    >```
 - Install necessary Python packages:
    `pip install numpy, scipy, matplotlib`

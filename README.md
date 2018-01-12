@@ -10,11 +10,11 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    ```bash
    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
    ```
-- Install Python using brew in Terminal:
+- Install Python using brew:
    ```bash
    brew install python
    ```
-- Configure your Python by runing:
+- Configure your Python:
    ```bash
    brew unlink python && brew link python;
    brew doctor

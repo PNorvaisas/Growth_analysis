@@ -28,7 +28,7 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    ```bash
    pip install numpy, scipy, matplotlib
    ```
-- Clone [Growth_analysis](git@github.com:PNorvaisas/Growth_analysis.git) GitHub repository into selected `<location>`:
+- Clone *Growth_analysis* GitHub repository into selected `<location>`:
    ```bash
    cd <location>;
    git clone git@github.com:PNorvaisas/Growth_analysis.git

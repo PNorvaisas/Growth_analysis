@@ -20,11 +20,13 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    brew doctor
    ```
    > In some cases might require mannually setting default Python to Homebrew version:
-   > `cp /usr/local/bin/python2 /usr/local/bin/python`
-   > `echo "export PATH=/usr/local/bin:/usr/bin:$PATH" >> ~/.bash_profile`
+   > ```bash
+   > cp /usr/local/bin/python2 /usr/local/bin/python;
+   > echo "export PATH=/usr/local/bin:/usr/bin:$PATH" >> ~/.bash_profile
+   >```
 - Install necessary Python packages:
    `pip install numpy, scipy, matplotlib`
-- Clone *Growth_analysis* GitHub repository into selected <location>:
+- Clone *Growth_analysis* GitHub repository into selected `<location>`:
    ```bash
    cd <location>;
    git clone git@github.com:PNorvaisas/Growth_analysis.git
@@ -33,7 +35,7 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    ```bash
    chmod +x *.py
    ```
-- Add <location> to your PATH:
+- Add `<location>` to your PATH:
    ```bash
    echo "export PATH=<location>:$PATH" >> .bash_profile
    ```

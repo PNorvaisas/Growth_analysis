@@ -1,7 +1,7 @@
 # Growth analysis
 Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
-- Calculates bacterial growth parameters as integral (AUC) and growth rate
-- Plots curves for growth, growth in log scale and growth rate (differential)
+- Calculates bacterial growth parameters such as integral (AUC) and growth rate
+- Plots curves for growth, growth in log scale and growth rate (dOD/dt)
 - Exports *tidy-ish* data as time series and summary
 ## Configure
 ### MacOS
@@ -26,7 +26,7 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    >```
 - Install necessary Python packages:
    `pip install numpy, scipy, matplotlib`
-- Clone *Growth_analysis* GitHub repository into selected `<location>`:
+- Clone [Growth_analysis](git@github.com:PNorvaisas/Growth_analysis.git) GitHub repository into selected `<location>`:
    ```bash
    cd <location>;
    git clone git@github.com:PNorvaisas/Growth_analysis.git

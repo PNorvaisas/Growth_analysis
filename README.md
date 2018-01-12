@@ -41,6 +41,6 @@ Scripts for bacterial growth and Biolog experiment analysis in multiwell plates.
    ```bash
    echo "export PATH=<location>:$PATH" >> .bash_profile
    ```
-- Restart
+- Log Out & Log In
 
     

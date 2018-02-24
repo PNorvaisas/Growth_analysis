@@ -17,7 +17,7 @@ except ImportError, e:
 def install(package):
 	pip.main(['install', package])
 
-for mod in ['pip','scipy','string','math','re','csv','sys','os','commands','datetime','operator','getopt','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types']:
+for mod in ['pip','scipy','numpy','matplotlib','string','math','re','csv','sys','os','commands','datetime','operator','getopt','pickle','shutil','glob','types','math','copy','pyExcelerator','xlrd','xlwt','xlutils','types']:
 	try:
 		exec "import %(mod)s" % vars()
 	except ImportError, e:
@@ -27,7 +27,7 @@ for mod in ['pip','scipy','string','math','re','csv','sys','os','commands','date
 import unicodedata
 
 #Removes the annoying rocket icon in Mac!
-import matplotlib
+#import matplotlib
 matplotlib.use("Agg")
 #
 import matplotlib.pyplot as plt
@@ -43,6 +43,12 @@ from matplotlib import rc
 #rc('text', usetex=True)
 #from pylab import *
 
+try:
+	import itertools as IT
+except ImportError, e:
+	print "Module itertools not found"
+
+
 import scipy.signal as sig
 from scipy.fftpack import rfft, irfft, fftfreq
 from scipy import interpolate as ip
@@ -55,13 +61,6 @@ from operator import itemgetter
 from itertools import groupby
 import textwrap as tw
 #from multiprocessing import Pool
-
-
-
-try:
-	import itertools as IT
-except ImportError, e:
-	print "Module itertools not found"
 
 
 compare = lambda x, y: Counter(x) == Counter(y)
@@ -435,7 +434,12 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info,integrals):
 		decimals=1
 
 	if '750nm' in fg and '_log' not in fg and '_dt' not in fg and '_diff' not in fg:
-		totalmax=0.5 if bplate=='PM5' else 1
+		if bplate in ['PM1','PM2A','PM3B','PM4A']:
+			totalmax = 1
+		elif bplate=='PM5':
+			totalmax = 1
+		else:
+			totalmax = 2
 		totalmin=0
 		ticks=3
 		ylabel='OD'

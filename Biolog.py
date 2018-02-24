@@ -434,7 +434,12 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info,integrals):
 		decimals=1
 
 	if '750nm' in fg and '_log' not in fg and '_dt' not in fg and '_diff' not in fg:
-		totalmax=0.5 if bplate=='PM5' else 1
+		if bplate in ['PM1','PM2A','PM3B','PM4A']:
+			totalmax = 1
+		elif bplate=='PM5':
+			totalmax = 1
+		else:
+			totalmax = 2
 		totalmin=0
 		ticks=3
 		ylabel='OD'

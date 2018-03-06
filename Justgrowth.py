@@ -163,19 +163,10 @@ def main(argv=None):
 
 
 
-
-	# if load:
-	# 	f = open('Biolog_data.pckl','rb')
-	# 	data,allfit,metabolites,odir = pickle.load(f)
-	# 	f.close()
-    #
-	#
-	# else:
-
 	if 'Design' in ifile:
 		print 'Reading experimental design information!'
 		#
-		ilist,dlist,odirn=readinfo(ifile)
+		info,ilist,dlist,odirn=readinfo(ifile)
 		subs=[[]]*len(ilist)
 		descriptors=readdesc(ilist,dlist,subs)
 	else:
@@ -203,11 +194,6 @@ def main(argv=None):
 		odirn=dircheck(odir)
 
 
-	#print 'Descriptors'
-	#print descriptors
-	#print ilist
-	#print dlist
-
 
 	#checkfiles(ilist)
 	data=collect(ilist)
@@ -215,9 +201,7 @@ def main(argv=None):
 	data=analyze(data)
 	data=growthfit(data)
 
-
-
-	sheets=makesheets(data,descriptors)
+	sheets=makesheets(data,descriptors,info)
 	writesheets(sheets,odir)
 	# f = open('Biolog_data.pckl', 'w')
 	# pickle.dump([data,allfit,descriptors,odir], f)
@@ -241,48 +225,59 @@ def main(argv=None):
 #-------------Functions------------
 
 def readinfo(ifile):
-	print ifile
-	ilist=[]
-	dlist=[]
-	odirs=[]
-	ipt, inm, itp = filename(ifile)
-	if itp in ['xlsx','xls']:
-		data=readxls_s(ifile)
-	elif itp=='csv':
-		data=readcsv(ifile)
-	headers=data[0]
-	#Automatically find variables
-	headin={ hd : headers.index(hd) for hd in headers}
-	nec=['File','Pattern']
-	if all(n in headers for n in nec):
-		print 'Necessary headers found!'
-	else:
-		print 'Missing essential headers in description file!'
-		print headers
-		sys.exit(0)
-	#filein=headers.index('File')
-	# platein=headers.index('Plate')
-	# strainin=headers.index('Strain')
-	# typein=headers.index('Type')
-	#print metin, ecoin,plate,well
-	for ln in data[1:]:
-		fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
-		dsc=str(ln[headin['Pattern']]).encode('ascii','ignore').strip()
-		ilist.append(fl)
-		dlist.append(dsc)
-		if 'Odir' in headin.keys():
-			odr=str(ln[headin['Odir']]).encode('ascii','ignore').strip()
-			odirs.append(odr)
-	# print odirs
-	# sys.exit(1)
-	if len(list(set(odirs)))!=0:
-		odir=list(set(odirs))[0]
-	else:
-		odir=''
+    print ifile
+    info=NestedDict()
+    ilist=[]
+    dlist=[]
+    odirs=[]
+    ipt, inm, itp = filename(ifile)
+    if itp in ['xlsx','xls']:
+        data=readxls_s(ifile)
+    elif itp=='csv':
+        data=readcsv(ifile)
+    headers=data[0]
+    #Automatically find variables
+    headin={ hd : headers.index(hd) for hd in headers}
+    nec=['File','Pattern']
 
-	#print genes
-	print odir
-	return ilist, dlist, odir
+    addhead=[key for key in headin.keys() if key not in nec]
+
+    if all(n in headers for n in nec):
+        print 'Necessary headers found!'
+    else:
+        print 'Missing essential headers in description file!'
+        print headers
+        sys.exit(0)
+     
+    #filein=headers.index('File')
+    # platein=headers.index('Plate')
+    # strainin=headers.index('Strain')
+    # typein=headers.index('Type')
+    #print metin, ecoin,plate,well
+    for ln in data[1:]:
+        fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
+        dsc=str(ln[headin['Pattern']]).encode('ascii','ignore').strip()
+        ipath, iname, itype=filename(fl)
+        
+        ilist.append(fl)
+        dlist.append(dsc)
+        if 'Odir' in headin.keys():
+            odr=str(ln[headin['Odir']]).encode('ascii','ignore').strip()
+            odirs.append(odr)
+        for hd in addhead:
+            info[iname][hd]=str(numerize(ln[headin[hd]])).strip().encode('ascii','ignore')
+
+    # print odirs
+    # sys.exit(1)
+    if len(list(set(odirs)))!=0:
+        odir=list(set(odirs))[0]
+    else:
+        odir=''
+
+    #print genes
+    print odir
+    return info, ilist, dlist, odir
+
 
 
 def plot_comparison(data,dirn,figs):
@@ -649,63 +644,6 @@ def analyze(data):
 
 
 
-#
-#
-# def analyze(data):
-# 	filterf='wiener'
-# 	waves=['590nm','750nm']
-# 	msize=20
-# 	par1=4
-# 	par2=0.1
-# 	method='pre'
-# 	window=20
-# 	thres=np.power(2.0,-5)
-# 	thresd=np.power(2.0,-5)
-#
-# 	for plate in sorted(data.keys()):
-# 		time=data[plate]['Time']
-#
-# 		dt=time[1]-time[0]
-# 		time_dt=(time+dt/2)[:-1]
-# 		print plate
-# 		data[plate]['Time_dt']=time_dt
-# 		waves=data[plate]['Spectra']
-# 		for wave in waves:
-# 			if wave in ['590nm','595nm','600nm']:
-# 				wabl='Growth'
-# 			else:
-# 				wabl=wave+'C'
-#
-# 			for well in data[plate]['Labels']:
-# 				#print data[plate][wave][well][:window]
-# 				gs=np.mean(data[plate][wave][well][:window])
-#
-#
-# 				rawod=data[plate][wave][well]
-#
-#
-# 				growth=setbar(rawod-gs,0.0)
-# 				#growth=setbar(Wiener(growth-thres,msize),0.0)+thres
-# 				growth_dt=np.diff(setbar(Wiener(growth-thres,msize),0.0)+thres)/(dt/3600)
-# 				growth_dt=setbar(Wiener(growth_dt,msize),0.0)
-#
-#
-# 				#growth_dt_norm=Wiener(growth_dt,msize)/interp(time,growth,time_dt)
-#
-# 				if max(growth_dt)>0.01:
-# 					growth_dt_norm=growth_dt/max(growth_dt)
-# 				else:
-# 					growth_dt_norm=np.zeros((len(growth_dt),), dtype=np.int)
-#
-#
-# 				data[plate][wabl][well]=growth
-# 				data[plate][wabl+'_log'][well]=np.log2(setbar(growth,thres))
-# 				data[plate][wabl+'_dt'][well]=growth_dt
-# 				data[plate][wabl+'_dt_norm'][well]=growth_dt_norm
-#
-# 			data[plate]['Figures']=data[plate]['Figures']+[wabl,wabl+'_dt',wabl+'_log',wabl+'_dt_norm']
-#
-# 	return data
 
 def setbar(x,bar):
 	x2=[xi if xi>bar else bar for xi in x]
@@ -1128,208 +1066,145 @@ def tableout(inp):
 
 	return table
 
-def makesheets(data,descriptors):
-	sheets=NestedDict()
-	dt=[]
-	gfit=[]
-	regular=[]
-	summary=[]
+def makesheets(data,descriptors,info):
+    sheets=NestedDict()
+    dt=[]
+    gfit=[]
+    regular=[]
+    summary=[]
 
-	header_temp=['Plate','Well','Data']
+    header_temp=['Plate','Well','Data']
+    
+    header=header_temp
+    
+    if len(info.keys())>0:
+        hasinfo=[pl for pl in info.keys() if len(info[pl].keys())>0]
+        if len(hasinfo)>0:
+            infokeys=sorted(info[hasinfo[0]].keys())
+            header+=infokeys
+        #else:
+        #   infokeys=[]#header=header_temp+desckeys
+    
 
-	desckeys=[]
-	if len(descriptors.keys())>0:
-		hasdesc=[pl for pl in descriptors.keys() if len(descriptors[pl].keys())>0]
-		if len(hasdesc)>0:
-			desckeys=sorted(descriptors[hasdesc[0]].keys())
-			header=header_temp+desckeys
-	header=header_temp+desckeys
-	#ghead=['a','c','t0']
-	times=[]
-	timemax=0
-	maxplate=''
-	#Adjustments that allow different length of experiment with a resolution of 5min
-	for plate in data.keys():
-		print plate, data[plate]['Time_max']
-		if data[plate]['Time_max']>timemax:
-			timemax=data[plate]['Time_max']
-			maxplate=plate
-	#Get max time to set scale
-	timespan=len(data[maxplate]['Time'])
-	timespandt=len(data[maxplate]['Time_dt'])
+    
+    if len(descriptors.keys())>0:
+        hasdesc=[pl for pl in descriptors.keys() if len(descriptors[pl].keys())>0]
+        if len(hasdesc)>0:
+            desckeys=sorted(descriptors[hasdesc[0]].keys())
+            header+=desckeys
+        #else:
+            #desckeys=[]
+            
+    
+            
+    #header=header_temp+infokeys+desckeys
+    
+    
+    
+    
+    #ghead=['a','c','t0']
+    times=[]
+    timemax=0
+    maxplate=''
+    #Adjustments that allow different length of experiment with a resolution of 5min
+    for plate in data.keys():
+        print plate, data[plate]['Time_max']
+        if data[plate]['Time_max']>timemax:
+            timemax=data[plate]['Time_max']
+            maxplate=plate
+    #Get max time to set scale
+    timespan=len(data[maxplate]['Time'])
+    timespandt=len(data[maxplate]['Time_dt'])
 
-	allsumhead = ['A', 'lamda', 'u', 'tmax','tmaxf'] + \
-	             ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
-	             ['Max_600nm', 'Max_600nm_log'] + \
-	             ['Int_600nm_f', 'Int_600nm_log']
+    allsumhead = ['A', 'lamda', 'u', 'tmax','tmaxf'] + \
+                 ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+                 ['Max_600nm', 'Max_600nm_log'] + \
+                 ['Int_600nm_f', 'Int_600nm_log']
 
-	# ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
-	selsums = ['Max_600nm_f', 'Max_600nm_log'] + \
-	          ['Int_600nm_f', 'Int_600nm_f_log']
-	# ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
-
-
-	for plate in data.keys():
-		sums = data[plate]['Summary']
-		output = ['Summary'] + data[plate]['Figures']
-		#output=data[plate]['Figures']
-		#output=output+['GrowthFit']
-		labels=data[plate]['Labels']
-		for fig in output:
-			#print plate,fig
-
-			for well in labels:
-				datrow=data[plate][fig][well]
-				rowhead=[plate,well,fig]
-
-
-				if len(descriptors.keys())>0:
-					if len(descriptors[plate].keys())>0:
-						rowhead=rowhead+[descriptors[plate][dk][well] for dk in desckeys]
-				else:
-					rowhead=rowhead+['']*len(desckeys)
-
-				if fig == 'Summary':
-					datrow = sums['GrowthFit'][well]+sums['GrowthFit_log'][well] + [sums[sm][well] for sm in selsums]
-					#	             #['a_log', 'c_log', 't0_log', 'tmax_log'] + \
-				elif '_dt' in fig:
-					if not isinstance(datrow,list):
-						datrow=datrow.tolist()
-					datrow=datrow+['']*(timespandt-len(datrow))
-
-				elif fig=='GrowthFit':
-					if not isinstance(datrow,list):
-						datrow=datrow.tolist()
-					datrow=datrow
-				else:
-					if not isinstance(datrow,list):
-						datrow=datrow.tolist()
-					datrow=datrow+['']*(timespan-len(datrow))
-
-				#print len(datrow), timespan,timespan-len(datrow)
-				newrow=rowhead+datrow
+    # ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+    selsums = ['Max_600nm_f', 'Max_600nm_log'] + \
+              ['Int_600nm_f', 'Int_600nm_f_log']
+    # ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
 
 
-				if '_dt' in fig:
-					dt.append(newrow)
-				elif fig=='GrowthFit':
-					gfit.append(newrow)
-				elif fig == 'Summary':
-					summary.append(newrow)
-				else:
-					regular.append(newrow)
-	#sys.exit(1)
-	time_dt=data[maxplate]['Time_dt']
-	time_lin=data[maxplate]['Time']
-	time_lin=time_lin.tolist()
-	time_dt=time_dt.tolist()
+    for plate in data.keys():
+        sums = data[plate]['Summary']
+        output = ['Summary'] + data[plate]['Figures']
+        #output=data[plate]['Figures']
+        #output=output+['GrowthFit']
+        labels=data[plate]['Labels']
+        for fig in output:
+            #print plate,fig
 
-	summary.insert(0,header+allsumhead)
-	dt.insert(0,header+time_dt)
-	regular.insert(0,header+time_lin)
-	gfit.insert(0,header)
+            for well in labels:
+                datrow=data[plate][fig][well]
+                rowhead=[plate,well,fig]
+                
+                if len(info.keys())>0:
+                    if len(info[plate].keys())>0:
+                        rowhead=rowhead+[info[plate][ik] for ik in infokeys]
+                    else:
+                        rowhead=rowhead+['']*len(infokeys)
 
-	sheets['Data_dt']=dt
-	sheets['Summary'] = summary
-	sheets['Data']=regular
-	sheets['Growth_fit']=gfit
 
-	#print len(dt[0]),len(dt[1])
-	#print dt[0],dt[1]
+                if len(descriptors.keys())>0:
+                    if len(descriptors[plate].keys())>0:
+                        rowhead=rowhead+[descriptors[plate][dk][well] for dk in desckeys]
+                    else:
+                        rowhead=rowhead+['']*len(desckeys)
 
-	return sheets
+                    
+                    
 
-#
-# def makesheets(data, metabolites, info):
-# 	sheets = NestedDict()
-# 	dt = []
-# 	allsum = []
-# 	regular = []
-# 	drugplates = ['PM11C', 'PM12B', 'PM13B', 'PM14A', 'PM15B', 'PM16A', 'PM17A', 'PM18C',
-# 	              'PM19', 'PM20B', 'PM21D', 'PM22D', 'PM23A', 'PM24C', 'PM25D']
-#
-# 	defannkeys = ['File', 'Plate', 'Strain', 'Type', 'Metformin_mM', 'Media', 'Inoculum', 'Replicate']
-# 	annotdefkeys = [k for k in defannkeys if k in info[info.keys()[0]].keys()]
-# 	annotextrakeys = [k for k in info[info.keys()[0]].keys() if k not in annotdefkeys]
-# 	annotkeys = annotdefkeys + annotextrakeys
-# 	# print annotdefkeys
-#
-# 	metdesc = metabolites[metabolites.keys()[0]]['A1'].keys()
-# 	defmetkeys = ['Plate', 'Well', 'EcoCycID', 'KEGG_ID', 'CAS_ID', 'Well index', 'Index', 'Metabolite', 'Name']
-# 	# metdefkeys=[m for m in defmetkeys if m in metdesc]
-# 	metinfo = [m for m in metdesc if m not in defmetkeys]
-#
-# 	header = annotdefkeys + annotextrakeys + ['Well', 'Index', 'Data', 'Name', 'EcoCycID', 'KEGG_ID',
-# 	                                          'CAS_ID'] + metinfo
-# 	# 'Max_590nm','Max_590nm_log','24h_590nm','24h_590nm_log','Int_590nm','Int-tmax_590nm','Int-tmaxf_590nm'
-# 	allsumhead = ['rho', 'c', 'd'] + ['A', 'lamda', 'u', 'tmax', 'tmaxf'] + \
-# 	             ['a_log', 'c_log', 't0_log', 'tmax_log'] + \
-# 	             ['Max_750nm', 'Max_750nm_log', '24h_750nm', '24h_750nm_log'] + \
-# 	             ['Int_750nm', 'Int_750nm_log', 'Int-tmax_750nm', 'Int-tmaxf_750nm']
-# 	# ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']
-# 	# 'Max_590nm_f','Max_590nm_log','24h_590nm_f','24h_590nm_log','Int_590nm_f','Int-tmax_590nm_f'
-# 	selsums = ['Max_750nm_f', 'Max_750nm_log', '24h_750nm_f', '24h_750nm_log'] + \
-# 	          ['Int_750nm_f', 'Int_750nm_f_log', 'Int-tmax_750nm_f', 'Int-tmaxf_750nm_f']
-# 	# ,'Max_Growth','Max_Growth_log','24h_Growth','24h_Growth_log','Int_Growth','Int-tmax_Growth','Int-tmaxf_Growth']#'a','c','t0'
-#
-# 	for fln in data.keys():
-# 		sums = data[fln]['Summary']
-# 		output = ['Summary'] + data[fln]['Figures']
-# 		time_dt = data[fln]['Time_dt']
-# 		time_lin = data[fln]['Time']
-# 		labels = data[fln]['Labels']
-# 		# Reorder file information keys
-#
-# 		annot = [info[fln][k] for k in annotkeys]
-# 		# print annot
-# 		plate = info[fln]['Plate']
-# 		if plate in drugplates:
-# 			metind = 'Name'
-# 		else:
-# 			metind = 'Metabolite'
-# 		for fig in output:
-# 			# print '{}...{}'.format(fln,fig)
-# 			for well in labels:
-# 				try:
-# 					rowhead = annot + [well, plate + '-' + well, fig, metabolites[plate][well][metind],
-# 					                   metabolites[plate][well]['EcoCycID'], metabolites[plate][well]['KEGG_ID'],
-# 					                   metabolites[plate][well]['CAS_ID']] + [metabolites[plate][well][metk] for metk in
-# 					                                                          metinfo]
-# 				except TypeError:
-# 					print fln, info[fln], plate, well
-# 					print metabolites[plate][well]['EcoCycID'], metabolites[plate][well]['KEGG_ID'], \
-# 					metabolites[plate][well]['CAS_ID']
-# 					print [metabolites[plate][well][metk] for metk in metinfo]
-# 					sys.exit(1)
-# 				if fig == 'Summary':
-# 					datrow = sums['Respiration'][well] + sums['GrowthFit'][well] + sums['GrowthFit_log'][well] + [
-# 						sums[sm][well] for sm in selsums]
-# 				else:
-# 					datrow = data[fln][fig][well]
-# 				if not isinstance(datrow, list):
-# 					datrow = datrow.tolist()
-# 				newrow = rowhead + datrow
-#
-# 				if '_dt' in fig:
-# 					dt.append(newrow)
-# 				elif fig == 'Summary':
-# 					allsum.append(newrow)
-# 				else:
-# 					regular.append(newrow)
-#
-# 	time_lin = time_lin.tolist()
-# 	time_dt = time_dt.tolist()
-# 	dt.insert(0, header + time_dt)
-# 	regular.insert(0, header + time_lin)
-# 	allsum.insert(0, header + allsumhead)
-# 	sheets['Data_dt'] = dt
-# 	sheets['Data'] = regular
-# 	sheets['Summary'] = allsum
-#
-# 	# print len(dt[0]),len(dt[1])
-# 	# print dt[0],dt[1]
-#
-# 	return sheets
+                if fig == 'Summary':
+                    datrow = sums['GrowthFit'][well]+sums['GrowthFit_log'][well] + [sums[sm][well] for sm in selsums]
+                    #	             #['a_log', 'c_log', 't0_log', 'tmax_log'] + \
+                elif '_dt' in fig:
+                    if not isinstance(datrow,list):
+                        datrow=datrow.tolist()
+                    datrow=datrow+['']*(timespandt-len(datrow))
+
+                elif fig=='GrowthFit':
+                    if not isinstance(datrow,list):
+                        datrow=datrow.tolist()
+                    datrow=datrow
+                else:
+                    if not isinstance(datrow,list):
+                        datrow=datrow.tolist()
+                    datrow=datrow+['']*(timespan-len(datrow))
+
+                #print len(datrow), timespan,timespan-len(datrow)
+                newrow=rowhead+datrow
+
+
+                if '_dt' in fig:
+                    dt.append(newrow)
+                elif fig=='GrowthFit':
+                    gfit.append(newrow)
+                elif fig == 'Summary':
+                    summary.append(newrow)
+                else:
+                    regular.append(newrow)
+    #sys.exit(1)
+    time_dt=data[maxplate]['Time_dt']
+    time_lin=data[maxplate]['Time']
+    time_lin=time_lin.tolist()
+    time_dt=time_dt.tolist()
+
+    summary.insert(0,header+allsumhead)
+    dt.insert(0,header+time_dt)
+    regular.insert(0,header+time_lin)
+    gfit.insert(0,header)
+
+    sheets['Data_dt']=dt
+    sheets['Summary'] = summary
+    sheets['Data']=regular
+    sheets['Growth_fit']=gfit
+
+    #print len(dt[0]),len(dt[1])
+    #print dt[0],dt[1]
+
+    return sheets
 
 
 def writesheets(sheets,odir):
@@ -1348,7 +1223,6 @@ def writesheets(sheets,odir):
 			ofile.writerow(row)
 		f.close()
 
-	
 
 def runcmd(cmd):
 	failure, output = commands.getstatusoutput(cmd)
@@ -1435,22 +1309,6 @@ def readxls(ifile):
 			sheet.append(data.row_values(r))
 	return sheet
 
-# def readacs(ifile):
-# 	f=open(ifile,'r')
-# 	sheet=[]
-# 	for l in f:
-# 		row=[cell.strip() for cell in l.split('\t')]
-# 		row=[numerize(cell) for cell in row]
-# 		sheet.append(row)
-# 	f.close()
-# 	return sheet
-
-# def readtxt(ifile):
-# 	f=open(ifile,'r')
-# 	rdr=csv.reader(f, delimiter=',')
-# 	sheet=[ln for ln in rdr]
-# 	f.close()
-# 	return sheet
 
 def readtext(ifile):
 	f=open(ifile,'r')

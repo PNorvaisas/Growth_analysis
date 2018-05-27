@@ -150,8 +150,6 @@ def main(argv=None):
         for argument in args:        
             if argument in ("full", "--full"):
                 full = True
-            
-
 
     except Usage, err:
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
@@ -314,38 +312,10 @@ def readxls_s(ifile):
 def readcsv(ifile):
     f=open(ifile,'r')
     sheet=[]
-
     rdr=csv.reader(f, delimiter=',')
     data=[ln for ln in rdr]
     f.close()
     return data
-
-
-# def readdesc(ilist,dlist,subs):
-#     descriptors=NestedDict()
-#     for din in range(0,len(dlist)):
-#         ipath, iname, itype=filename(ilist[din])
-#         dfile=dlist[din]
-#         sub=subs[din]
-#         if not sub:
-#             substitutes={}
-#         else:
-#             substitutes={par.split(':')[0]:par.split(':')[1] for par in sub }
-#         book=xlrd.open_workbook(dfile,formatting_info=False)
-#         for nm in book.sheet_names():
-#             data=book.sheet_by_name(nm)
-#             headers=data.row_values(0)[1:]
-#             for r in range(1,data.nrows):
-#                 rh=data.row_values(r)[0]
-#                 row=data.row_values(r)[1:]
-#                 for vin in range(0,len(row)):
-#                     val=row[vin]
-#                     ch=headers[vin]
-#                     if nm in substitutes.keys():
-#                         descriptors[iname][nm][rh+str(int(ch))]=substitutes[nm]
-#                     else:
-#                         descriptors[iname][nm][rh+str(int(ch))]=val
-#     return descriptors
 
 def readdesc(udlist):
     descriptors={}
@@ -406,10 +376,10 @@ def readinfo(ifile):
         sys.exit(0)
      
     info=pd.DataFrame(data[1:],columns=headers)
-    info=info.set_index('File')
-    
     ilist=info['File']
     dlist=info['Pattern']
+    
+    info=info.set_index('File')
 
     return info, ilist, dlist
 
@@ -600,9 +570,6 @@ def collect_Tecan(sheet):
     #Extract time
 
     time_row=sheet[1][:length]
-    #print 'Length:{}'.format(length)
-    #print time_row
-    #print len(time_row)
     if list(set([s for s in time_row if isinstance(s,float)])):
         time_t=time_row
     else:
@@ -662,58 +629,42 @@ def collect_Tecan(sheet):
                 
         sheetdata[swave+'nm']=pd.DataFrame(sheetvalues,columns=time,index=labels)
 
-
     return sheetdata
 
-def collect_Biotek(sheet):
+def collect_Biotek2(sheet):
     sheetdata=NestedDict()
-
-    #sheet=readtxt(ilist[0])
-
     allwells=getallwells()
 
     rownames=[row[0] if len(row)!=0 else '' for row in sheet]
 
     time_ids=[ rin for rin,r in enumerate(rownames) if 'Time' in str(r) ]
+    
     OD_ids=[ rin for rin,r in enumerate(rownames) if 'T' in str(r) and 'OD:' in str(r) ]
 
     time_row=sheet[time_ids[0]]
     temp_row=sheet[OD_ids[0]]
 
-
-    #nm_labels=[ rn if 'OD:' in str(rn) and 'T' not in str(rn) else '' for rn in rownames]
     nm_labels=[ str(sheet[rin][0].split()[1]) for rin in OD_ids]
     nm_labelsm={ rin:str(sheet[rin][0].split()[1]) for rin in OD_ids}
 
     waves_nmm={ rin: numerize(re.sub('OD:|GFP:','',str(sheet[rin][0].split()[1])) ) for rin in OD_ids}
 
-    #waves=[numerize(wlen.replace('OD:','').replace('GFP:','')) for wlen in nm_labels if wlen!='']
     waves=[ numerize(re.sub('OD:|GFP:','',wlen)) for wlen in nm_labels if wlen!='']
+    
     
     waves_nm=[str(int(w))+'nm' for w in waves]
 
-    #print "Waves: ",waves
-    #Remove empty values
     time_t=[time_to_sec(tval) for tval in time_row if tval not in ['Time','','0:00:00']]
 
     length=len(time_t)
-    #print "Time_t: ",time_t
 
-    #Find time step
     timestep=round_to(float(time_t[-1]-time_t[0])/(length-1),1)
-    #print timestep
 
-    #Timestep in mins
     timemax_min=int((length-1)*timestep/60)
-    #timemax_min=int(round_to(float(time_t[-1])/60,5))
-
+    
     timemax_h,timemax_remmin=divmod(timemax_min,60)
 
     time=np.linspace(0,timemax_min*60,length,dtype=np.dtype(int))
-    
-    #timestep=round_to(float(timemax_min*60)/(length-1),1)
-
-    #print time
 
     temp=[float(t) for t in temp_row[1:] if t not in ['']]
 
@@ -721,7 +672,6 @@ def collect_Biotek(sheet):
 
     alllabels=[rn if rn in allwells else '' for rn in rownames]
     labels=list(set([l for l in alllabels if l!='']))
-
 
     plsize=len(labels)
     if plsize not in [12,48,96,384]:
@@ -739,42 +689,35 @@ def collect_Biotek(sheet):
     sheetdata['Used wells']=plsize
     sheetdata['Buffered']=str(buffer)
     sheetdata['Figures']=waves_nm
-    #sheetdata['File']=inm
     print "Wavelengths: {}".format(waves)
-    print "Run time {}, step {}min in {} wells\n".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
-
-    #sys.exit(0)
-
-    #How to correctly iterate through table
-    sheetvalues=[]
-    swaveprev=None
-
+    print "Run time {}, step {}min in {} wells".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
     
+    sheetvalues=[]
+    wells=[]
     
     for rid,row in enumerate(sheet):
-        well=str(row[0])
-        #print well
-        if well!='' and well in allwells:
-            OD_sel=[ODid for ODid in reversed(OD_ids) if rid>ODid][0]
+        if rid>min(OD_ids):
+            well=str(row[0])
+            OD_sel=max([ODid for ODid in OD_ids if rid>ODid])
             
-            swave=str(waves_nmm[OD_sel])+'nm'
-            
-            print OD_sel, swave
-            
-            data_row=[val for val in row if val not in ['']]
-            
-            sheetvalues.append(data_row)
-            
-        
-    sheetdata[swave]=pd.DataFrame(sheetvalues,columns=['Well']+time)#,index=labels
-     
-    #print sheetdata        
-            #print swave,len(data_row),data_row[0],data_row[1],data_row[-1]
-    #sheetdata[swave][well]=np.array(data_row)
+            if well in allwells:
+                data_row=[val for val in row[1:] if val not in ['']]
+                sheetvalues.append(data_row)
+                wells.append(well)
 
-#             sheetdata[swave][well+'_max']=max(data_row)
-#             sheetdata[swave][well+'_min']=min(data_row)
+            if rid==len(sheet)-1 or rid in [ODid for ODid in OD_ids[1:]]:
+                print 'Collecting table with {} rows at row {}'.format(len(sheetvalues),rid)
+                
+                swave=str(waves_nmm[OD_sel])+'nm'
+                sheetDF=pd.DataFrame(sheetvalues,columns=time,index=wells)
 
+                sheetvalues=[]
+                wells=[]
+                
+                sheetdata[swave]=sheetDF
+    
+    print "\n"
+    
     return sheetdata
 
 

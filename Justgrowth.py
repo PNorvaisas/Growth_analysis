@@ -12,8 +12,6 @@ Copyright (c) 2015. All rights reserved.
 install=False
 
 try:
-    #import pip
-    #Update to pip 10
     try:
         from pip import main as pipmain
     except:
@@ -94,7 +92,6 @@ Arguments:
     -i <files>   Input file
     -p <file>    Plate arrangement
     -o <dir>     Directory to write output to
-    -d <list>     List of descriptors for each file
 Options:
     Full         Return additional figures and data columns
 '''
@@ -113,7 +110,6 @@ Options:
 <--------------------------------------------->
       Files:    %(ifile)s
     Pattern:    %(pfile)s
-Descriptors:    %(subst)s
         Out:    %(odir)s
        Full:    %(full)s
 <--------------------------------------------->
@@ -147,8 +143,6 @@ def main(argv=None):
                 ifile=value
             if option in ("-p", "--pattern"):
                 pfile=value
-            if option in ("-d", "--descriptors"):
-                subst=value
             if option in ("-o", "--out"):
                 odir=value
     
@@ -175,8 +169,10 @@ def main(argv=None):
 
     if 'Design' in ifile:
         print 'Reading experimental design information!'
+        #Change info to Pandas
         info,ilist,dlist=readinfo(ifile)
         subs=[[]]*len(ilist)
+        #Read to Pandas
         descriptors=readdesc(ilist,dlist,subs)
     else:
         info={}
@@ -192,6 +188,7 @@ def main(argv=None):
             else:
                 subs=[[]]*len(ilist)
             #print subs
+            #Generate descriptions
             descriptors=readdesc(ilist,dlist,subs)
         else:
             descriptors={}
@@ -212,7 +209,6 @@ def main(argv=None):
 
     plot_comparison(data,odir,'all')
 
-    
     
 
 #-------------Functions------------
@@ -334,32 +330,62 @@ def readcsv(ifile):
     return data
 
 
-def readdesc(ilist,dlist,subs):
-    descriptors=NestedDict()
-    for din in range(0,len(dlist)):
-        ipath, iname, itype=filename(ilist[din])
-        dfile=dlist[din]
-        sub=subs[din]
-        if not sub:
-            substitutes={}
-        else:
-            substitutes={par.split(':')[0]:par.split(':')[1] for par in sub }
-        book=xlrd.open_workbook(dfile,formatting_info=False)
-        for nm in book.sheet_names():
-            data=book.sheet_by_name(nm)
-            headers=data.row_values(0)[1:]
-            for r in range(1,data.nrows):
-                rh=data.row_values(r)[0]
-                row=data.row_values(r)[1:]
-                for vin in range(0,len(row)):
-                    val=row[vin]
-                    ch=headers[vin]
-                    if nm in substitutes.keys():
-                        descriptors[iname][nm][rh+str(int(ch))]=substitutes[nm]
-                    else:
-                        descriptors[iname][nm][rh+str(int(ch))]=val
-    return descriptors
+# def readdesc(ilist,dlist,subs):
+#     descriptors=NestedDict()
+#     for din in range(0,len(dlist)):
+#         ipath, iname, itype=filename(ilist[din])
+#         dfile=dlist[din]
+#         sub=subs[din]
+#         if not sub:
+#             substitutes={}
+#         else:
+#             substitutes={par.split(':')[0]:par.split(':')[1] for par in sub }
+#         book=xlrd.open_workbook(dfile,formatting_info=False)
+#         for nm in book.sheet_names():
+#             data=book.sheet_by_name(nm)
+#             headers=data.row_values(0)[1:]
+#             for r in range(1,data.nrows):
+#                 rh=data.row_values(r)[0]
+#                 row=data.row_values(r)[1:]
+#                 for vin in range(0,len(row)):
+#                     val=row[vin]
+#                     ch=headers[vin]
+#                     if nm in substitutes.keys():
+#                         descriptors[iname][nm][rh+str(int(ch))]=substitutes[nm]
+#                     else:
+#                         descriptors[iname][nm][rh+str(int(ch))]=val
+#     return descriptors
 
+def readdesc(udlist):
+    descriptors={}
+    for din,dfile in enumerate(udlist):
+        book=xlrd.open_workbook(dfile,formatting_info=False)
+        variables=book.sheet_names()
+        
+        varmap={}
+        for var in variables:
+            sheet=book.sheet_by_name(var)
+            columns=sheet.row_values(0)[1:]
+            rows=sheet.col_values(0)[1:]
+
+            #Skip header
+            vardata=[]
+            for r in range(1,sheet.nrows):
+                row=sheet.row_values(r)
+                vardata.append(row)
+            
+            #Prepare variable data
+            varDF=pd.DataFrame(vardata,columns=['Row']+columns)
+            varDFm=pd.melt(varDF,id_vars=['Row'],value_vars=columns,var_name='Col',value_name=var)
+            varDFm['Well']=varDFm['Row']+varDFm['Col'].astype(int).astype(str)
+            varDFm=varDFm.set_index('Well')
+            varmap[var]=varDFm[var]
+        
+        descDF=pd.concat(varmap.values(),axis=1)
+            
+        descriptors[dfile]=descDF
+                    
+    return descriptors
 
 
 def readinfo(ifile):

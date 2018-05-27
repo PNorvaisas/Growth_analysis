@@ -912,11 +912,9 @@ def makesheets(data,descriptors,info):
             desckeys=sorted(descriptors[hasdesc[0]].keys())
             header+=desckeys
             
-            
-    allsumhead = ['590nm_f_Max', '590nm_log_Max','590nm_f_AUC', '590nm_f_logAUC'] # +\
+    #allsumhead = ['590nm_f_Max', '590nm_log_Max','590nm_f_AUC', '590nm_f_logAUC'] # +\
                 #['A', 'lamda', 'u', 'tmax','tmaxf'] + \
                  #['a_log', 'c_log', 't0_log', 'tmax_log'] + \
-
 
     allsummary=[]
     alldatats=[]
@@ -932,12 +930,9 @@ def makesheets(data,descriptors,info):
         
         output = data[file]['Figures']
         for fig in output:
-            
-            datats=data[file][fig].copy(deep=True)
-                    
+            datats=data[file][fig].copy(deep=True)     
             datats['File']=file
             datats['Data']=fig
-            
             alldatats.append(datats)   
             
             
@@ -947,22 +942,24 @@ def makesheets(data,descriptors,info):
     allsummaryDF['Well']=allsummaryDF.index
     alldatatsDF['Well']=alldatatsDF.index
     
-    #alldatatsDF.columns=alldatatsDF.columns.map(str)
-    #tscols=alldatatsDF.columns
+    allinfo=pd.merge(info,descriptors,on='Pattern')
     
-    header=['File','Data','Well']
+    mainhead=['File','Pattern','Data','Well']
+    
+    allsummaryH=[ col for col in allsummaryDF.columns.values if col not in mainhead]
+    alldatatsH=[col for col in alldatatsDF.columns.values if col not in mainhead]
+    allinfoH=[col for col in allinfo.columns.values if col not in mainhead]
     
     
-    #ReorderTS
-    #neworder=header+alldatatsDF.columns.difference(header).values
-    #alldatatsDF=alldatatsDF[neworder]
+    allsummaryDF=pd.merge(allsummaryDF,allinfo,on=['File','Well'])
+    alldatatsDF=pd.merge(alldatatsDF,allinfo,on=['File','Well'])
     
-    allsummaryDF=pd.merge(allsummaryDF, info, on='File', how='outer')
-    allsummaryDF=pd.merge(allsummaryDF, descriptors, on='Pattern', how='outer')
-    
-    #allsummaryDF=allsummaryDF[header+allsumhead]
+    #Reorder DF
+    allsummaryDF=allsummaryDF[mainhead+allinfoH+allsummaryH]
+    alldatatsDF=alldatatsDF[mainhead+allinfoH+alldatatsH]
+    allinfo=allinfo[['File','Pattern','Well']+allinfoH]
 
-    sheets={'Summary':allsummaryDF,'Timeseries':alldatatsDF}
+    sheets={'Summary':allsummaryDF,'Timeseries':alldatatsDF,'Allinfo':allinfo}
 
     return sheets
 

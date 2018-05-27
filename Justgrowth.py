@@ -861,22 +861,31 @@ def analyse(data):
             #Change windows size
             nobagall=rawdata.apply(lambda x: setbar(x-np.mean(x[:window]),0.0),axis=1 )
             wfilt=nobagall.apply(lambda x: Wiener(x,msize),axis=1)
-            logfilt=np.log2( wfilt.apply(lambda x: setbar(x,thres),axis=1) )
+            
+            logfilt=np.log2( wfilt )#.apply(lambda x: Wiener(x,msize),axis=1)
+            
+            
+            logfiltdt=logfilt.apply( lambda x: ip.UnivariateSpline(time_h, x,s=0).derivative(1)(time_h),axis=1)
+            
+            
             dtts=wfilt.apply( lambda x: ip.UnivariateSpline(time_h, x,s=0).derivative(1)(time_h),axis=1)
-            dtfilt=dtts.apply( lambda x: Wiener(x,msize//2),axis=1)
+            
+            #dtfilt=dtts.apply( lambda x: Wiener(x,msize//2),axis=1)
             
             data[plate][wave+'_b']=nobagall
             data[plate][wave+'_f']=wfilt
             data[plate][wave+'_log']=logfilt
             data[plate][wave+'_dt']=dtts
+            data[plate][wave+'_logdt']=logfiltdt
 
-            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']
+            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt',wave+'_logdt']
             
         summary=pd.DataFrame([],index=wells)
             
         for fg in data[plate]['Figures']:
             #print fg
             fgdata=data[plate][fg]
+            
             ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC'.format(fg):ip.UnivariateSpline(time_h,x,s=0).integral(0, maxt)}),axis=1) 
             
             logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC'.format(fg):'{}_logAUC'.format(fg)})
@@ -897,8 +906,6 @@ def analyse(data):
 
         data[plate]['Summary']=summary
     return data
-
-
 
 
 
@@ -979,7 +986,6 @@ def writesheets(sheets,odir):
         sheet=sheets[sheetname]
         sheet.to_csv(oname,index=False)
         
-
 def plot_comparison(data,dirn,figs):
 
     for plate in sorted(data.keys()):
@@ -1094,19 +1100,17 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 
     rnd=0.1
     
- 
-    
-    totalmax=round(max(max(data)),rnd)
+    totalmax=round(max(datac.max()),2)
     
     if totalmax<0:        
         totalmaxc=0
 
     
-    
     #totalmin=min(min(data))
  
     
-    totalmin=0
+    totalmin=round(min(datac.min()),2)
+    
     ticks=3
     
     xlabel='Time, h'
@@ -1119,9 +1123,12 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         decimals=2
 
 
-    if '_log' in fg:
+    if '_log' in fg and not 'dt' in fg:
         totalmax=0
         totalmin=-6
+        decimals=1
+        
+    if '_logdt' in fg:
         decimals=1
 
     if '_dt' in fg:
@@ -1198,6 +1205,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 #                 plt.plot(x,yfitc,'r-',alpha=0.5)
 
     return plt
+
 
 
 

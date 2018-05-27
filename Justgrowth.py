@@ -399,7 +399,7 @@ def myround(a, decimals=1):
 
 def Wiener(y, n):
     wi = sig.wiener(y, mysize=n)
-    
+
     if sum(np.isnan(wi))>0:
         return y
         
@@ -824,13 +824,15 @@ def absgrowth(xvars,y,margin=0.01):
 
 
 def analyse(data):
-    msize=20
+
     window_h=2
     thres=np.power(2.0,-5)
     
     for plate in sorted(data.keys()):
         time=data[plate]['Time']
         time_h=time/3600.0
+        
+        msize=len(time)//10
         
         maxt=max(time_h)
         dt=time[1]-time[0]
@@ -854,19 +856,19 @@ def analyse(data):
             print 'Analysing data in {}: {}'.format(plate,wave)
             #print time
             
-            
             rawdata=data[plate][wave]#[well]
 
             #Change windows size
             nobagall=rawdata.apply(lambda x: setbar(x-np.mean(x[:window]),0.0),axis=1 )
             wfilt=nobagall.apply(lambda x: Wiener(x,msize),axis=1)
             logfilt=np.log2( wfilt.apply(lambda x: setbar(x,thres),axis=1) )
-            dtfilt=wfilt.apply( lambda x: Wiener(ip.UnivariateSpline(time, x,s=0).derivative(1)(time),msize-5),axis=1)
+            dtts=wfilt.apply( lambda x: ip.UnivariateSpline(time_h, x,s=0).derivative(1)(time_h),axis=1)
+            dtfilt=dtts.apply( lambda x: Wiener(x,msize//2),axis=1)
             
             data[plate][wave+'_b']=nobagall
             data[plate][wave+'_f']=wfilt
             data[plate][wave+'_log']=logfilt
-            data[plate][wave+'_dt']=dtfilt
+            data[plate][wave+'_dt']=dtts
 
             data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']
             
@@ -981,6 +983,8 @@ def writesheets(sheets,odir):
 def plot_comparison(data,dirn,figs):
 
     for plate in sorted(data.keys()):
+        ipt, inm, itp = filename(plate)
+        
         labels=data[plate]['Labels']
         nwells=data[plate]['Wells']
         plsize=data[plate]['Used wells']
@@ -1030,8 +1034,8 @@ def plot_comparison(data,dirn,figs):
             
 
             #Need to fix metabolites
-            plot=plot_2D('{} {}'.format(plate,fg),ref[fgl],time,labels,gfitc,plsize)
-            plot.savefig('{}/{}.pdf'.format(dirn,plate+'_'+fg))
+            plot=plot_2D('{} {}'.format(inm,fg),ref[fgl],time,labels,gfitc,plsize)
+            plot.savefig('{}/{}.pdf'.format(dirn,inm+'_'+fg))
             plot.close()
 #
     return data
@@ -1074,7 +1078,9 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         maxcol=22
         cols=20
         rows=12
-    xmax=max(time)
+        
+        
+    
     #print title
     plate,fg=title.split()
     #fig=plt.figure(figsize=(11.69,8.27), dpi=100)
@@ -1083,38 +1089,43 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
     fig.suptitle(title)
     plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
     
-    rnd=0.1
-    maxc=max([max(datac.loc[l,:]) for l in labels])
+    
+    xmax=max(time)
 
-    if maxc>0:        
-        totalmaxc=round_to(maxc,rnd)
-    else:
+    rnd=0.1
+    
+ 
+    
+    totalmax=round(max(max(data)),rnd)
+    
+    if totalmax<0:        
         totalmaxc=0
 
-    totalminc=round_to(min([min(datac.loc[l,:]) for l in labels]),rnd)
-
-    totalmax=totalmaxc
+    
+    
+    #totalmin=min(min(data))
+ 
+    
     totalmin=0
     ticks=3
+    
     xlabel='Time, h'
-    ylabel=''
+    ylabel=fg
     decimals=1
+    
+    
     if 'nm' in fg:
-        totalmax=1
-        ylabel='OD@'+fg
+        #totalmax=1
         decimals=2
 
 
     if '_log' in fg:
         totalmax=0
         totalmin=-6
-        ylabel='log2 Growth'
         decimals=1
 
     if '_dt' in fg:
-        totalmax=0.2
         totalmin=0
-        ylabel='Growth/dt'
         decimals=2
 
 

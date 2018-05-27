@@ -9,13 +9,17 @@ Copyright (c) 2015. All rights reserved.
 
 """
 try:
-	import pip
+	#import pip
+    try:
+        from pip import main as pipmain
+    except:
+        from pip._internal import main as pipmain
 except ImportError, e:
 	print "Module pip not found!"
 	print "Please install pip manually to proceed!"
 	sys.exit(1)
 def install(package):
-	pip.main(['install', package])
+	pipmain(['install', package])
 
 for mod in ['pip','string','math','re','csv','sys','os',
             'commands','datetime','operator','getopt','subprocess','pickle','shutil','glob',

@@ -188,7 +188,7 @@ def main(argv=None):
     odir=dircheck(odir)
 
     data=collect(ilist)
-    data=analyze(data)
+    data=analyse(data)
     
     #data=growthfit(data)
 
@@ -773,8 +773,7 @@ def loggrowth(x,y,y0=np.power(2.0,-4),thres=-5):
 
 
 def absgrowth(xvars,y,margin=0.01):
-
-                      
+           
     maxg=max(y)
     
     scaleg=maxg-min(y)
@@ -824,21 +823,26 @@ def absgrowth(xvars,y,margin=0.01):
     return A,lam,u,tmax,tmaxf
 
 
-def analyze(data):
+def analyse(data):
     msize=20
-    window=20
     window_h=2
     thres=np.power(2.0,-5)
     
     for plate in sorted(data.keys()):
         time=data[plate]['Time']
         time_h=time/3600.0
+        
         maxt=max(time_h)
         dt=time[1]-time[0]
-        time_dt=(time+dt/2)[:-1]
-        data[plate]['Time_dt']=time_dt
         wells=data[plate]['Labels']
         
+        #Estimate window for background subtraction
+        if maxt>2:
+            window=window_h*3600//dt
+        else:
+            window=2
+            
+        #print window
         
         #Needs to be checked
         waves=data[plate]['Spectra']
@@ -854,7 +858,7 @@ def analyze(data):
             rawdata=data[plate][wave]#[well]
 
             #Change windows size
-            nobagall=rawdata.apply(lambda x: setbar(x-np.mean(x[:20]),0.0),axis=1 )
+            nobagall=rawdata.apply(lambda x: setbar(x-np.mean(x[:window]),0.0),axis=1 )
             wfilt=nobagall.apply(lambda x: Wiener(x,msize),axis=1)
             logfilt=np.log2( wfilt.apply(lambda x: setbar(x,thres),axis=1) )
             dtfilt=wfilt.apply( lambda x: Wiener(ip.UnivariateSpline(time, x,s=0).derivative(1)(time),msize-5),axis=1)
@@ -891,6 +895,8 @@ def analyze(data):
 
         data[plate]['Summary']=summary
     return data
+
+
 
 
 
@@ -1141,7 +1147,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         #print sh_y
         v=v+1
     
-        x=time/3600
+        x=time/3600.0
         
         yc=datac.loc[l,:]
 

@@ -885,7 +885,7 @@ def collect_Biotek(sheet):
 
 	# print waves
 
-	time_t=[time_to_sec(tval) for tval in time_row if tval not in ['Time','']]
+	time_t=[time_to_sec(tval) for tval in time_row if tval not in ['Time','','0:00:00']]
 
 
 	length=len(time_t)

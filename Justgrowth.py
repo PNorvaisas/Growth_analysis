@@ -318,12 +318,13 @@ def readcsv(ifile):
     return data
 
 def readdesc(udlist):
-    descriptors={}
+    
+    ddata=[]
     for din,dfile in enumerate(udlist):
         book=xlrd.open_workbook(dfile,formatting_info=False)
         variables=book.sheet_names()
         
-        varmap={}
+        varlist=[]
         for var in variables:
             sheet=book.sheet_by_name(var)
             columns=sheet.row_values(0)[1:]
@@ -340,11 +341,14 @@ def readdesc(udlist):
             varDFm=pd.melt(varDF,id_vars=['Row'],value_vars=columns,var_name='Col',value_name=var)
             varDFm['Well']=varDFm['Row']+varDFm['Col'].astype(int).astype(str)
             varDFm=varDFm.set_index('Well')
-            varmap[var]=varDFm[var]
+            varlist.append(varDFm[var])
         
-        descDF=pd.concat(varmap.values(),axis=1)
-            
-        descriptors[dfile]=descDF
+        descDF=pd.concat(varlist,axis=1)
+        descDF['Pattern']=dfile
+        ddata.append(descDF)
+
+    descriptors=pd.concat(ddata)
+    descriptors['Well']=descriptors.index
                     
     return descriptors
 
@@ -379,7 +383,7 @@ def readinfo(ifile):
     ilist=info['File']
     dlist=info['Pattern']
     
-    info=info.set_index('File')
+    #info=info.set_index('File')
 
     return info, ilist, dlist
 
@@ -529,18 +533,18 @@ def collect(ilist):
         #Can be defined by separate variable in Design file
         if itp=='xlsx':
             sheet=readxls_s(ifl)
-            data[plate]=collect_Tecan(sheet)
+            data[ifl]=collect_Tecan(sheet)
         elif itp=='asc':
             sheet=readtext(ifl)
-            data[plate]=collect_Tecan(sheet)
+            data[ifl]=collect_Tecan(sheet)
         elif itp=='txt':
             sheet=readtext(ifl)
-            data[plate]=collect_Biotek(sheet)
+            data[ifl]=collect_Biotek(sheet)
         else:
             print 'Unknown file format: {}!'.format(itp)
             sys.exit(1)
         #print data[plate]
-        data[plate]['File']=ifl
+        data[ifl]['File']=ifl
 
     return data
 
@@ -548,12 +552,16 @@ def collect_Tecan(sheet):
     sheetdata=NestedDict()
     datarange=sheet[0].index('Well positions')
 
-    sheet=[r for r in sheet if len(r)>1]
+    stdrow=max([len(r) for r in sheet])
+    
+    sheet=[r for r in sheet if len(r)==stdrow]
 
     nrows=len(sheet)
+    
     datarange=sheet[0].index('Well positions')
     nm_labels=[lab for lab in sheet[0] if lab not in ['Layout','Well positions','','Replicate Info']]
-    #print nm_labels
+
+    
     if len(nm_labels)>1:
         starts=[sheet[0].index(lab) for lab in nm_labels]
     else:
@@ -561,7 +569,7 @@ def collect_Tecan(sheet):
         if nm_labels[0]=='Raw data':
             nm_labels[0]='600'
 
-    waves=[numerize(wlen.replace('nm','')) for wlen in nm_labels]
+    waves=[numerize(str(wlen).replace('nm','')) for wlen in nm_labels]
     #print 'Identified wavelengths: {}'.format(waves)
     #print datarange
 
@@ -585,15 +593,22 @@ def collect_Tecan(sheet):
     time=np.linspace(0,timemax_min*60,length,dtype=np.dtype(int))
 
     timestep=round_to(float(time_t[-1])/(length-1),1)
-    #timestep=time[-1]-time[-2]
 
-    #print time_t[-1],timemax_h,time[-1],timestep
-
-
-    alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']][2:]
-    labels=[l for l in alllabels if l!='']#Sheet
+    alllabels=[r[datarange] for r in sheet if r[datarange] not in ['Well positions']]
+    
+    #Find first named well
+    dstart=map(bool, alllabels).index(True)
+    
+    cleanlabels=alllabels[dstart:]
+    cleandata=sheet[dstart+1:]
+    
+    #print "Non zero start {}".format(dstart)
+    #print alllabels[dstart]
+    #print sheet[dstart+1]
+    #print alllabels
+    
+    labels=[l for l in cleanlabels if l!='']#Sheet
     #print labels
-
 
     plsize=len(labels)
     if plsize not in [12,48,96,384]:
@@ -614,24 +629,23 @@ def collect_Tecan(sheet):
     #sheetdata['File']=inm
     print "Wavelengths: {}".format(waves)
     print "Run time {}, step {}min in {} wells\n".format(str(datetime.timedelta(minutes=timemax_min)),timestep/60, len(labels))
+    
     for wave in waves:
         swave=str(int(wave))
         scol=(length)*(waves.index(wave))
         ecol=(length)*(waves.index(wave)+1)
+        #print scol,ecol
         sheetvalues=[]
-        for lab,well in enumerate(alllabels):
-            if alllabels[lab]!='':
-                #data_row=[val for val in sheet[lab+3][scol:ecol]]
-                data_row=sheet[lab+3][scol:ecol]
-                #print lab,wave,len(data_row),scol,ecol,data_row[0],data_row[1],data_row[-1]
-                #sheetdata[swave+'nm'][alllabels[lab]]=np.array(data_row)
+        for lab,well in enumerate(cleanlabels):
+            if well!='':
+                data_row=cleandata[lab][scol:ecol]
                 sheetvalues.append(data_row)
                 
         sheetdata[swave+'nm']=pd.DataFrame(sheetvalues,columns=time,index=labels)
 
     return sheetdata
 
-def collect_Biotek2(sheet):
+def collect_Biotek(sheet):
     sheetdata=NestedDict()
     allwells=getallwells()
 
@@ -706,7 +720,7 @@ def collect_Biotek2(sheet):
                 wells.append(well)
 
             if rid==len(sheet)-1 or rid in [ODid for ODid in OD_ids[1:]]:
-                print 'Collecting table with {} rows at row {}'.format(len(sheetvalues),rid)
+                #print 'Collecting table with {} rows at row {}'.format(len(sheetvalues),rid)
                 
                 swave=str(waves_nmm[OD_sel])+'nm'
                 sheetDF=pd.DataFrame(sheetvalues,columns=time,index=wells)
@@ -719,7 +733,6 @@ def collect_Biotek2(sheet):
     print "\n"
     
     return sheetdata
-
 
 
 
@@ -832,7 +845,6 @@ def analyze(data):
         #print waves
         #print wells
         
-        
         for wave in waves:
             wv=wave.replace('nm','')
             print 'Analysing data in {}: {}'.format(plate,wave)
@@ -840,9 +852,7 @@ def analyze(data):
             
             
             rawdata=data[plate][wave]#[well]
-            
-            #start=np.mean(data[plate][wave][well][:window])
-            
+
             #Change windows size
             nobagall=rawdata.apply(lambda x: setbar(x-np.mean(x[:20]),0.0),axis=1 )
             wfilt=nobagall.apply(lambda x: Wiener(x,msize),axis=1)
@@ -870,8 +880,6 @@ def analyze(data):
             
             summary=pd.concat([summary,ints,logints,maxs,mins], axis=1)
             
-        data[plate]['Summary']=summary
-            
             
             #Growth fit still does not work
 #             if '_f' in fg:
@@ -880,15 +888,15 @@ def analyze(data):
 #             if '_log' in fg:
 #                 #print fgdata
 #                 loggfit=gdata.apply(lambda x: pd.Series( loggrowth(time_h,x), index=['a_log', 'c_log', 't0_log', 'tmax_log']),axis=1)
-                                      
 
+        data[plate]['Summary']=summary
     return data
 
 
 
 def makesheets(data,descriptors,info):
 
-    header_temp=['Plate','Well','Data']
+    header_temp=['File','Well','Data']
     
     header=header_temp
     
@@ -913,21 +921,21 @@ def makesheets(data,descriptors,info):
     allsummary=[]
     alldatats=[]
 
-    for plate in data.keys():
-        wells=data[plate]['Labels']
+    for file in data.keys():
+        wells=data[file]['Labels']
         
-        summary = data[plate]['Summary'].copy(deep=True)
-        summary['Plate']=plate
+        summary = data[file]['Summary'].copy(deep=True)
+        summary['File']=file
         summary['Data']='Summary'
         
         allsummary.append(summary)
         
-        output = data[plate]['Figures']
+        output = data[file]['Figures']
         for fig in output:
             
-            datats=data[plate][fig].copy(deep=True)
+            datats=data[file][fig].copy(deep=True)
                     
-            datats['Plate']=plate
+            datats['File']=file
             datats['Data']=fig
             
             alldatats.append(datats)   
@@ -939,46 +947,33 @@ def makesheets(data,descriptors,info):
     allsummaryDF['Well']=allsummaryDF.index
     alldatatsDF['Well']=alldatatsDF.index
     
-    
     #alldatatsDF.columns=alldatatsDF.columns.map(str)
     #tscols=alldatatsDF.columns
     
-    header=['Plate','Data','Well']
+    header=['File','Data','Well']
     
     
     #ReorderTS
     #neworder=header+alldatatsDF.columns.difference(header).values
     #alldatatsDF=alldatatsDF[neworder]
     
-    allsummaryDF=allsummaryDF[header+allsumhead]
+    allsummaryDF=pd.merge(allsummaryDF, info, on='File', how='outer')
+    allsummaryDF=pd.merge(allsummaryDF, descriptors, on='Pattern', how='outer')
+    
+    #allsummaryDF=allsummaryDF[header+allsumhead]
 
     sheets={'Summary':allsummaryDF,'Timeseries':alldatatsDF}
-
 
     return sheets
 
 
-
 def writesheets(sheets,odir):
-    #Writes organized data to file.
-    #odir=dircheck('Split')
-    #print sheets.keys()
     for sheetname in sheets.keys():
         #print fig
         oname='{}/{}.csv'.format(odir,sheetname)        
         sheet=sheets[sheetname]
         sheet.to_csv(oname,index=False)
         
-        #print len(sheet)
-#         f=open(oname,"wb")
-#         ofile=csv.writer(f, delimiter=',') # dialect='excel',delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL
-#         for row in sheet:
-#             #row = [item.encode("utf-8") if isinstance(item, unicode) else str(item) for item in row]
-#             ofile.writerow(row)
-#         f.close()
-
-
-
 
 def plot_comparison(data,dirn,figs):
 

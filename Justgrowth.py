@@ -169,11 +169,10 @@ def main(argv=None):
 
     if 'Design' in ifile:
         print 'Reading experimental design information!'
-        #Change info to Pandas
         info,ilist,dlist=readinfo(ifile)
+        udlist=list(set(dlist))
         subs=[[]]*len(ilist)
-        #Read to Pandas
-        descriptors=readdesc(ilist,dlist,subs)
+        descriptors=readdesc(udlist)
     else:
         info={}
         print 'Reading data files!'
@@ -182,21 +181,13 @@ def main(argv=None):
         #print ilist
         if pfile!='':
             dlist=genlist(pfile)
-            # print dlist
-            if subst!='':
-                subs=[st.split('|') for st in subst.split(',')]
-            else:
-                subs=[[]]*len(ilist)
-            #print subs
-            #Generate descriptions
-            descriptors=readdesc(ilist,dlist,subs)
+            udlist=list(set(dlist))
+            descriptors=readdesc(udlist)
         else:
             descriptors={}
 
-
+    #Support absolute links?
     odir=dircheck(odir)
-        
-    #Actual work starts here
 
     data=collect(ilist)
     data=analyze(data)
@@ -400,6 +391,7 @@ def readinfo(ifile):
     elif itp=='csv':
         data=readcsv(ifile)
     headers=data[0]
+    
     #Automatically find variables
     headin={ hd : headers.index(hd) for hd in headers}
     nec=['File','Pattern']
@@ -409,38 +401,16 @@ def readinfo(ifile):
     if all(n in headers for n in nec):
         print 'Necessary headers found!'
     else:
-        print 'Missing essential headers in description file!'
+        print 'Missing essential headers (File, Pattern) in description file!'
         print headers
         sys.exit(0)
      
-    #filein=headers.index('File')
-    # platein=headers.index('Plate')
-    # strainin=headers.index('Strain')
-    # typein=headers.index('Type')
-    #print metin, ecoin,plate,well
-    for ln in data[1:]:
-        fl=str(ln[headin['File']]).encode('ascii','ignore').strip()
-        dsc=str(ln[headin['Pattern']]).encode('ascii','ignore').strip()
-        ipath, iname, itype=filename(fl)
-        
-        ilist.append(fl)
-        dlist.append(dsc)
-#         if 'Odir' in headin.keys():
-#             odr=str(ln[headin['Odir']]).encode('ascii','ignore').strip()
-#             odirs.append(odr)
-        for hd in addhead:
-            info[iname][hd]=str(numerize(ln[headin[hd]])).strip().encode('ascii','ignore')
-
-    # print odirs
-    # sys.exit(1)
-#     if len(list(set(odirs)))!=0:
-#         odir=list(set(odirs))[0]
-#     else:
-#         odir=''
-
-#     #print genes
-#     print odir
+    info=pd.DataFrame(data[1:],columns=headers)
+    info=info.set_index('File')
     
+    ilist=info['File']
+    dlist=info['Pattern']
+
     return info, ilist, dlist
 
 

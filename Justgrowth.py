@@ -66,22 +66,6 @@ from scipy import signal as sig
 from scipy.optimize import curve_fit
 
 
-#import matplotlib.ticker as ticker
-#from matplotlib import rc
-#from pylab import *
-#from scipy import interpolate
-#from scipy.fftpack import rfft, irfft, fftfreq
-#from collections import OrderedDict
-#from collections import defaultdict
-#from collections import Counter
-#from operator import itemgetter
-#from itertools import groupby
-#import textwrap as tw
-#from multiprocessing import Pool
-#compare = lambda x, y: Counter(x) == Counter(y)
-
-
-
 help_message = '''
 Bacterial growth data preparation
 
@@ -164,7 +148,6 @@ def main(argv=None):
     print optionsset %vars()
     #----------------------------
 
-
     if 'Design' in ifile:
         print 'Reading experimental design information!'
         info,ilist,dlist=readinfo(ifile)
@@ -188,9 +171,10 @@ def main(argv=None):
     odir=dircheck(odir)
 
     data=collect(ilist)
-    data=analyse(data)
     
-    #data=growthfit(data)
+    #Additional step to check if there are missing values?
+    
+    data=analyse(data)
 
     sheets=makesheets(data,descriptors,info)
     
@@ -865,7 +849,7 @@ def analyse(data):
             logfilt=np.log2( wfilt )#.apply(lambda x: Wiener(x,msize),axis=1)
             
             
-            logfiltdt=logfilt.apply( lambda x: ip.UnivariateSpline(time_h, x,s=0).derivative(1)(time_h),axis=1)
+            logfiltdt=logfilt.apply( lambda x: ip.UnivariateSpline(time_h, x.replace(-np.inf, -5) ,s=0).derivative(1)(time_h),axis=1)
             
             
             dtts=wfilt.apply( lambda x: ip.UnivariateSpline(time_h, x,s=0).derivative(1)(time_h),axis=1)
@@ -907,7 +891,7 @@ def analyse(data):
                 loggfit=fgdata.apply(lambda x: pd.Series( loggrowth(time_h,x), index=['{}_LG_a'.format(fg), '{}_LG_c'.format(fg), '{}_LG_t0'.format(fg), '{}_LG_tmax'.format(fg)]),axis=1)
                 summaries.append(loggfit)
                 
-            summary=pd.concat(summaries, axis=1)#absgfit,loggfit,
+            summary=pd.concat(summaries, axis=1)
 
         data[plate]['Summary']=summary
     return data
@@ -994,15 +978,21 @@ def writesheets(sheets,odir):
 def plot_comparison(data,dirn,figs):
 
     for plate in sorted(data.keys()):
+        
         ipt, inm, itp = filename(plate)
         
         labels=data[plate]['Labels']
         nwells=data[plate]['Wells']
         plsize=data[plate]['Used wells']
         buffered=data[plate]['Buffered']
-        ref=data[plate]
+        fgdata=data[plate]
+        time=data[plate]['Time']
+        time_h=time/3600.0
+        
+        fgsummary=fgdata['Summary']
+        
         figures_temp=data[plate]['Figures']
-
+        
         if figs=='all':
             figures=figures_temp
             
@@ -1016,40 +1006,26 @@ def plot_comparison(data,dirn,figs):
             if figs in figures_temp:
                 figures=[figs]
             else:
-                print 'Figures {} not found'.format(figs)
+                figures=[fg for fg in figure_temp if figs in fg]
+                if not figures:
+                    print 'Figures {} not found'.format(figs)
 
         #print figures
         print 'File: {}'.format(plate)
         for fg in figures:
-                
-                #Does not work for now
-#             if '_log' in fg:
-#                 #
-#                 fgl=fg
-#                 gfitc=ref['GrowthFit']
-            
-#             else:
-#                 fgl=fg
-#                 gfitc=''
-                
-            fgl=fg
-            gfitc=''
+            if '_log' in fg and not '_logdt' in fg and '{}_LG_a'.format(fg) in fgsummary.columns.values:
+                gfitc=fgsummary[['{}_LG_a'.format(fg),'{}_LG_c'.format(fg)]]
+            else:
+                gfitc=pd.DataFrame()
 
             print "\tPlotting {}...".format(fg)
             
-#             if '_dt' in fg or fg=='Resp&Growth':
-#                 time=data[plate]['Time_dt']
-#             else:
-            time=data[plate]['Time']
-                
             
 
             #Need to fix metabolites
-            plot=plot_2D('{} {}'.format(inm,fg),ref[fgl],time,labels,gfitc,plsize)
+            plot=plot_2D('{} {}'.format(inm,fg),fgdata[fg],time_h,labels,gfitc,plsize)
             plot.savefig('{}/{}.pdf'.format(dirn,inm+'_'+fg))
             plot.close()
-#
-    return data
 
 
 
@@ -1090,11 +1066,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         cols=20
         rows=12
         
-        
-    
-    #print title
     plate,fg=title.split()
-    #fig=plt.figure(figsize=(11.69,8.27), dpi=100)
     
     fig,axes=plt.subplots(nrows=rows, ncols=cols, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
     fig.suptitle(title)
@@ -1102,41 +1074,28 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
     
     
     xmax=max(time)
-
-    rnd=0.1
     
-    totalmax=round(max(datac.max()),2)
-    
-    if totalmax<0:        
-        totalmaxc=0
-
-    
-    #totalmin=min(min(data))
- 
-    
-    totalmin=round(min(datac.min()),2)
-    
-    ticks=3
     
     xlabel='Time, h'
     ylabel=fg
     decimals=1
     
+    totalmax=round(max(datac.max()),1)
+    totalmin=round(min(datac.min()),1)
     
-    if 'nm' in fg:
-        #totalmax=1
-        decimals=2
-
-
-    if '_log' in fg and not 'dt' in fg:
+    if totalmax<0:        
+        totalmaxc=0
+    #totalmin=min(min(data))
+    
+    if re.findall('_log$',fg):
         totalmax=0
         totalmin=-6
         decimals=1
         
-    if '_logdt' in fg:
+    if re.findall('_logdt',fg):
         decimals=1
 
-    if '_dt' in fg:
+    if re.findall('_dt$',fg):
         totalmin=0
         decimals=2
 
@@ -1145,8 +1104,6 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         ticks=3
     else:
         ticks=5
-
-
 
     ymin=totalmin
     fig.text(0.5, 0.04, xlabel, ha='center')
@@ -1163,22 +1120,18 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         else:
             row=string.uppercase.index(l[0])+1
             col=int(l.replace(l[0],''))
-        #print (row,col)
 
         if divmod(float(v)/12,1)[1]==0:
             sh_y=l
-        #print sh_y
+
         v=v+1
     
-        x=time/3600.0
+        #x=time/3600.0
         
         yc=datac.loc[l,:]
 
-#         if fg=='Growth_log':
-#             ca,cc,ct=gfitc[l]
-
-        #elif fg=='Resp&Growth':
-        #    rc=gfitc[l]
+        if re.findall('_log$',fg):
+            ca,cc=gfitc.loc[l,:]
 
         plt.sca(axes[row-1,col-1])
         ax=axes[row-1,col-1]
@@ -1192,7 +1145,9 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
 
         if col>1 and row<rows-1:
             plt.setp(ax.get_yticklabels(), visible=False)
-
+        
+        #print xmax, ticks
+        #print np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:])
         plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')    
         plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
         plt.ylim([totalmin,totalmax])
@@ -1202,20 +1157,14 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         plt.text(0.05, 0.9, l, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 
         #print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
-        plt.plot(x,yc,'r-')
+        plt.plot(time,yc,'r-')
         
-#         if fg=='Growth_log':
-#             if ca>0:
-#                 yfitc=x*ca+cc
-#                 plt.plot(x,yfitc,'r-',alpha=0.5)
+        if re.findall('_log$',fg):
+            if ca>0:
+                yfitc=x*ca+cc
+                plt.plot(time,yfitc,'r-',alpha=0.5)
 
     return plt
-
-
-
-
-
-
 
 #----------------------------------
 

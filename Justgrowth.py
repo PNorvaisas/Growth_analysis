@@ -1161,7 +1161,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         
         if re.findall('_log$',fg):
             if ca>0:
-                yfitc=x*ca+cc
+                yfitc=time*ca+cc
                 plt.plot(time,yfitc,'r-',alpha=0.5)
 
     return plt

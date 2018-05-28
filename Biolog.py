@@ -137,20 +137,7 @@ def main(argv=None):
                 dfile=value
             if option in ("-o", "--out"):
                 odir=value
-    
-    
-        for argument in args:        
-            if argument in ("load", "--load"):
-                load = True
-            if argument in ("loadc", "--loadc"):
-                loadc = True
-            if argument in ("integrals", "--integrals"):
-                integrals='integrals'
-            if argument in ("fullintegrals", "--fullintegrals"):
-                integrals='fullintegrals'
             
-
-
     except Usage, err:
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
         print >> sys.stderr, "\t for help use --help"

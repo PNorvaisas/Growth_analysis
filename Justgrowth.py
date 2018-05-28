@@ -786,7 +786,7 @@ def absgrowth(xvars,y,margin=0.01):
         #popt, pcov = curve_fit(growth, timec, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)
         #A,lam,u=popt
         try:
-            popt, pcov = curve_fit(xvars, y, growc,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
+            popt, pcov = curve_fit(growth,xvars, y,bounds=(0,np.inf),p0=[0.5, 5, 0.1],max_nfev=5000)#,p0=[0.1,10,1]maxfev=5000
             A,lam,u=popt
             #print popt,tmaxf
         except (RuntimeError, ValueError, RuntimeWarning, UnboundLocalError) as e:
@@ -820,7 +820,7 @@ def absgrowth(xvars,y,margin=0.01):
         tmax=np.inf
 
     #data[plate]['Summary']['GrowthFit'][well]=[]
-    return A,lam,u,tmax,tmaxf
+    return A,lam,u,tmax
 
 
 def analyse(data):
@@ -876,9 +876,9 @@ def analyse(data):
             data[plate][wave+'_f']=wfilt
             data[plate][wave+'_log']=logfilt
             data[plate][wave+'_dt']=dtts
-            data[plate][wave+'_logdt']=logfiltdt
+            #data[plate][wave+'_logdt']=logfiltdt
 
-            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt',wave+'_logdt']
+            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']#,wave+'_logdt'
             
         summary=pd.DataFrame([],index=wells)
             
@@ -886,23 +886,28 @@ def analyse(data):
             #print fg
             fgdata=data[plate][fg]
             
-            ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC'.format(fg):ip.UnivariateSpline(time_h,x,s=0).integral(0, maxt)}),axis=1) 
             
-            logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC'.format(fg):'{}_logAUC'.format(fg)})
             
             maxs=pd.DataFrame({ '{}_Max'.format(fg) :fgdata.apply(max,axis=1) })
             mins=pd.DataFrame({ '{}_Min'.format(fg) :fgdata.apply(min,axis=1) })
             
-            summary=pd.concat([summary,ints,logints,maxs,mins], axis=1)
-            
-            
             #Growth fit still does not work
-#             if '_f' in fg:
-#                 #print fgdata
-#                 absgfit=fgdata.apply(lambda x: pd.Series( absgrowth(time_h,x), index=['A', 'lamda', 'u', 'tmax','tmaxf']),axis=1)
-#             if '_log' in fg:
-#                 #print fgdata
-#                 loggfit=gdata.apply(lambda x: pd.Series( loggrowth(time_h,x), index=['a_log', 'c_log', 't0_log', 'tmax_log']),axis=1)
+            
+            summaries=[summary,maxs,mins]
+            
+            if '_f' in fg:
+                #print fgdata
+                ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC'.format(fg):ip.UnivariateSpline(time_h,x,s=0).integral(0, maxt)}),axis=1) 
+                logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC'.format(fg):'{}_logAUC'.format(fg)})
+                absgfit=fgdata.apply(lambda x: pd.Series( absgrowth(time_h,x), index=['{}_AG_A'.format(fg), '{}_AG_lamda'.format(fg), '{}_AG_u'.format(fg), '{}_AG_tmax'.format(fg)]),axis=1)
+                
+                summaries.extend([ints,logints,absgfit])
+            if '_log' in fg and not '_logdt' in fg:
+                #print fgdata
+                loggfit=fgdata.apply(lambda x: pd.Series( loggrowth(time_h,x), index=['{}_LG_a'.format(fg), '{}_LG_c'.format(fg), '{}_LG_t0'.format(fg), '{}_LG_tmax'.format(fg)]),axis=1)
+                summaries.append(loggfit)
+                
+            summary=pd.concat(summaries, axis=1)#absgfit,loggfit,
 
         data[plate]['Summary']=summary
     return data

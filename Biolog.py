@@ -1157,11 +1157,12 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 
     #Time chose base on first plate?
     
-    time=data[cgroup[0]]['Time']
+    
     labels=data[cgroup[0]]['Labels']
     
+    
+    time=data[cgroup[0]]['Time']
     time_h=time/3600.0
-
     #fig=plt.figure(figsize=(11.69,8.27), dpi=100)
 
     title='{} {}'.format(ttl,fg)
@@ -1245,6 +1246,7 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 
         plt.sca(axes[row-1,col-1])
         ax=axes[row-1,col-1]
+        
         if col==12:
             ax.yaxis.set_label_position("right")
             plt.ylabel(l[0],rotation='horizontal')
@@ -1271,6 +1273,9 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
                 #Needs further refinement
                 fgsummary=data[gdata]['Summary']
                 
+                time=data[gdata]['Time']
+                time_h=time/3600.0
+                
                 if 'Metformin_mM' in info.columns.values: # and info[gdata]['Metformin_mM']!='50'
                     metval=str(int(info[info['File']==gdata]['Metformin_mM'].values[0]))
                     mrkc=metfc[metval]
@@ -1284,9 +1289,10 @@ def plot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
                 else:
                     mrk=mrkc+'-'
                     
-                y=data[gdata][fg].loc[l,:]
-                #print len(x),len(y)
-                plt.plot(time_h,y,mrk)
+                if fg in data[gdata].keys():
+                    y=data[gdata][fg].loc[l,:]
+                    #print len(x),len(y)
+                    plt.plot(time_h,y,mrk)
                 
                 if re.findall('_log$',fg) and '{}_LG_a'.format(fg) in fgsummary.columns.values:
                     a,c=fgsummary.loc[l,:][['{}_LG_a'.format(fg),'{}_LG_c'.format(fg)]].values

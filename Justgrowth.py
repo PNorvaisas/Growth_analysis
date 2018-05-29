@@ -806,7 +806,6 @@ def absgrowth(xvars,y,margin=0.01):
     #data[plate]['Summary']['GrowthFit'][well]=[]
     return A,lam,u,tmax
 
-
 def analyse(data):
 
     window_h=2
@@ -843,26 +842,26 @@ def analyse(data):
             rawdata=data[plate][wave]#[well]
 
             #Change windows size
-            nobagall=rawdata.apply(lambda x: setbar(x-np.mean(x[:window]),0.0),axis=1 )
-            wfilt=nobagall.apply(lambda x: Wiener(x,msize),axis=1)
+            nobagall=rawdata.apply(lambda row: setbar(row-np.mean(row[:window]) ,0.0) )
+            wfilt=nobagall.apply(lambda row: Wiener(row,msize) )#,axis=1
             
-            logfilt=np.log2( wfilt )#.apply(lambda x: Wiener(x,msize),axis=1)
-            
-            
-            logfiltdt=logfilt.apply( lambda x: ip.UnivariateSpline(time_h, x.replace(-np.inf, -5) ,s=0).derivative(1)(time_h),axis=1)
+            logfilt=np.log2( wfilt )#.apply(lambda row: Wiener(row,msize),axis=1)
             
             
-            dtts=wfilt.apply( lambda x: ip.UnivariateSpline(time_h, x,s=0).derivative(1)(time_h),axis=1)
+            #logfiltdt=logfilt.apply( lambda row: ip.UnivariateSpline(time_h, row.replace(-np.inf, -5) ,s=0).derivative(1)(time_h),axis=0)#,axis=1
             
-            #dtfilt=dtts.apply( lambda x: Wiener(x,msize//2),axis=1)
+            
+            #dtts=wfilt.apply( lambda row: ip.UnivariateSpline(time_h, row).derivative(1)(time_h) )#,axis=1
+            
+            #dtfilt=dtts.apply( lambda row: Wiener(row,msize//2),axis=1)
             
             data[plate][wave+'_b']=nobagall
             data[plate][wave+'_f']=wfilt
             data[plate][wave+'_log']=logfilt
-            data[plate][wave+'_dt']=dtts
+            #data[plate][wave+'_dt']=dtts
             #data[plate][wave+'_logdt']=logfiltdt
 
-            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']#,wave+'_logdt'
+            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log']#,wave+'_logdt'#,wave+'_dt'
             
         summary=pd.DataFrame([],index=wells)
             
@@ -870,10 +869,8 @@ def analyse(data):
             #print fg
             fgdata=data[plate][fg]
             
-            
-            
-            maxs=pd.DataFrame({ '{}_Max'.format(fg) :fgdata.apply(max,axis=1) })
-            mins=pd.DataFrame({ '{}_Min'.format(fg) :fgdata.apply(min,axis=1) })
+            maxs=pd.DataFrame({ '{}_Max'.format(fg) :fgdata.apply(max) })
+            mins=pd.DataFrame({ '{}_Min'.format(fg) :fgdata.apply(min) })
             
             #Growth fit still does not work
             
@@ -895,7 +892,6 @@ def analyse(data):
 
         data[plate]['Summary']=summary
     return data
-
 
 
 def makesheets(data,descriptors,info):
@@ -1013,7 +1009,8 @@ def plot_comparison(data,dirn,figs):
         #print figures
         print 'File: {}'.format(plate)
         for fg in figures:
-            if '_log' in fg and not '_logdt' in fg and '{}_LG_a'.format(fg) in fgsummary.columns.values:
+            if re.findall('_log$',fg) and '{}_LG_a'.format(fg) in fgsummary.columns.values:
+                
                 gfitc=fgsummary[['{}_LG_a'.format(fg),'{}_LG_c'.format(fg)]]
             else:
                 gfitc=pd.DataFrame()
@@ -1030,6 +1027,7 @@ def plot_comparison(data,dirn,figs):
 
 
 def plot_2D(title,datac,time,labels,gfitc,plsize):
+    
     
     if plsize==96:
         minrow=1
@@ -1080,8 +1078,13 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
     ylabel=fg
     decimals=1
     
-    totalmax=round(max(datac.max()),1)
-    totalmin=round(min(datac.min()),1)
+    #print '1'
+    
+    totalmax=round( max( datac.max() ),1)
+    totalmin=round( min( datac.min() ),1)
+    
+    
+    #print '2'
     
     if totalmax<0:        
         totalmaxc=0
@@ -1092,6 +1095,8 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         totalmin=-6
         decimals=1
         
+    #print '3'
+        
     if re.findall('_logdt',fg):
         decimals=1
 
@@ -1099,17 +1104,21 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         totalmin=0
         decimals=2
 
-
+    #print '4'
+    
     if plsize>12:
         ticks=3
     else:
         ticks=5
+        
+    
 
     ymin=totalmin
     fig.text(0.5, 0.04, xlabel, ha='center')
     fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
 
     for v,l in IT.izip(range(plsize),labels):
+        #print l
         if plsize==240:
             #Numbering inside plot arrangement differs from real numbers by buffer size
             row=string.uppercase.index(l[0])+1-2

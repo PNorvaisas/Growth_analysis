@@ -842,26 +842,24 @@ def analyse(data):
             rawdata=data[plate][wave]#[well]
 
             #Change windows size
-            nobagall=rawdata.apply(lambda row: setbar(row-np.mean(row[:window]) ,0.0) )
-            wfilt=nobagall.apply(lambda row: Wiener(row,msize) )#,axis=1
+            nobagall=rawdata.apply(func=lambda row: pd.Series( setbar(row-np.mean(row[:window]) ,0.0),index=time),axis=1 )
+            wfilt=nobagall.apply( func=lambda row: pd.Series( Wiener(row,msize), index=time) ,axis=1)
             
             logfilt=np.log2( wfilt )#.apply(lambda row: Wiener(row,msize),axis=1)
             
+            dtts=wfilt.apply(func=lambda row: pd.Series(ip.UnivariateSpline(time_h, row, s=0).derivative(1)(time_h),index=time),axis=1 )
             
-            #logfiltdt=logfilt.apply( lambda row: ip.UnivariateSpline(time_h, row.replace(-np.inf, -5) ,s=0).derivative(1)(time_h),axis=0)#,axis=1
-            
-            
-            #dtts=wfilt.apply( lambda row: ip.UnivariateSpline(time_h, row).derivative(1)(time_h) )#,axis=1
+            logfiltdt=logfilt.apply( func=lambda row: pd.Series(ip.UnivariateSpline(time_h, row.replace(-np.inf, -5) ,s=0).derivative(1)(time_h) ,index=time),axis=1)
             
             #dtfilt=dtts.apply( lambda row: Wiener(row,msize//2),axis=1)
             
             data[plate][wave+'_b']=nobagall
             data[plate][wave+'_f']=wfilt
             data[plate][wave+'_log']=logfilt
-            #data[plate][wave+'_dt']=dtts
+            data[plate][wave+'_dt']=dtts
             #data[plate][wave+'_logdt']=logfiltdt
 
-            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log']#,wave+'_logdt'#,wave+'_dt'
+            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']#,wave+'_logdt'#,wave+'_dt'
             
         summary=pd.DataFrame([],index=wells)
             
@@ -869,8 +867,8 @@ def analyse(data):
             #print fg
             fgdata=data[plate][fg]
             
-            maxs=pd.DataFrame({ '{}_Max'.format(fg) :fgdata.apply(max) })
-            mins=pd.DataFrame({ '{}_Min'.format(fg) :fgdata.apply(min) })
+            maxs=pd.DataFrame({ '{}_Max'.format(fg) : fgdata.apply(max,axis=1) })
+            mins=pd.DataFrame({ '{}_Min'.format(fg) : fgdata.apply(min,axis=1) })
             
             #Growth fit still does not work
             

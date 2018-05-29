@@ -506,31 +506,84 @@ def tableout(inp):
     return table
 
 
-def collect(ilist):
-    data=NestedDict()
-    for ifl in sorted(ilist):
-        print ifl
-        ipt, inm, itp = filename(ifl)
-        plate=inm
+
+# def collect(ilist):
+#     data=NestedDict()
+#     for ifl in sorted(ilist):
+#         print ifl
+#         ipt, inm, itp = filename(ifl)
+#         plate=inm
         
-        #Currently formatting is determined by filetype
-        #Can be defined by separate variable in Design file
-        if itp=='xlsx':
-            sheet=readxls_s(ifl)
-            data[ifl]=collect_Tecan(sheet)
-        elif itp=='asc':
-            sheet=readtext(ifl)
-            data[ifl]=collect_Tecan(sheet)
-        elif itp=='txt':
-            sheet=readtext(ifl)
-            data[ifl]=collect_Biotek(sheet)
+#         #Currently formatting is determined by filetype
+#         #Can be defined by separate variable in Design file
+#         if itp=='xlsx':
+#             sheet=readxls_s(ifl)
+#             data[ifl]=collect_Tecan(sheet)
+#         elif itp=='asc':
+#             sheet=readtext(ifl)
+#             data[ifl]=collect_Tecan(sheet)
+#         elif itp=='txt':
+#             sheet=readtext(ifl)
+#             data[ifl]=collect_Biotek(sheet)
+#         else:
+#             print 'Unknown file format: {}!'.format(itp)
+#             sys.exit(1)
+#         #print data[plate]
+#         data[ifl]['File']=ifl
+
+#     return data
+
+
+def collect(info):
+    
+    data=NestedDict()
+    
+    ilist=info['File']
+    
+    for index,row in info.iterrows():
+        
+        ifl=row['File']
+        ipt, inm, itp = filename(ifl)
+        print ifl
+        if 'Reader' in info.columns.values:
+            reader=row['Reader']
+            
+            if reader=='Tecan':
+                
+                if itp == 'xlsx':
+                    sheet = readxls(ifl)
+                    data[ifl] = collect_Tecan(sheet)
+                elif itp in ['asc','txt']:
+                    sheet = readtxt(ifl)
+                    data[ifl] = collect_Tecan(sheet)
+                else:
+                    raise Exception('Unknown file format: {}!'.format(itp))
+                    
+            elif reader=='Biotek':
+                sheet=readtxt(ifl)
+                data[ifl]=collect_Biotek(sheet)
+
+            else:
+                raise Exception('Unknown reader: {}!'.format(reader))
+                
         else:
-            print 'Unknown file format: {}!'.format(itp)
-            sys.exit(1)
-        #print data[plate]
+            if itp in 'xlsx':
+                sheet=readxls(ifl)
+                data[ifl]=collect_Tecan(sheet)
+            elif itp=='asc':
+                sheet=readtxt(ifl)
+                data[ifl]=collect_Tecan(sheet)
+            elif itp=='txt':
+                sheet=readtxt(ifl)
+                data[ifl]=collect_Biotek(sheet)
+            else:
+                raise Exception('Unknown file format: {}!'.format(itp))
+
         data[ifl]['File']=ifl
 
     return data
+
+
 
 def collect_Tecan(sheet):
     sheetdata=NestedDict()
@@ -694,7 +747,7 @@ def collect_Biotek(sheet):
     wells=[]
     
     for rid,row in enumerate(sheet):
-        if rid>min(OD_ids):
+        if rid>min(OD_ids) and len(row)>0:
             well=str(row[0])
             OD_sel=max([ODid for ODid in OD_ids if rid>ODid])
             
@@ -703,16 +756,16 @@ def collect_Biotek(sheet):
                 sheetvalues.append(data_row)
                 wells.append(well)
 
-            if rid==len(sheet)-1 or rid in [ODid for ODid in OD_ids[1:]]:
-                #print 'Collecting table with {} rows at row {}'.format(len(sheetvalues),rid)
-                
-                swave=str(waves_nmm[OD_sel])+'nm'
-                sheetDF=pd.DataFrame(sheetvalues,columns=time,index=wells)
+        if rid==len(sheet)-1 or rid in [ODid for ODid in OD_ids[1:]]:
+            #print 'Collecting table with {} rows at row {}'.format(len(sheetvalues),rid)
 
-                sheetvalues=[]
-                wells=[]
-                
-                sheetdata[swave]=sheetDF
+            swave=str(waves_nmm[OD_sel])+'nm'
+            sheetDF=pd.DataFrame(sheetvalues,columns=time,index=wells)
+
+            sheetvalues=[]
+            wells=[]
+
+            sheetdata[swave]=sheetDF
     
     print "\n"
     

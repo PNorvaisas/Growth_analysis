@@ -377,6 +377,8 @@ def readtxt(ifile):
     #f.close()
     #print len(sheet)
     return sheet
+
+
 def uniquecomb(info,sortby,compareby):
     summ=[]
     uns=NestedDict()

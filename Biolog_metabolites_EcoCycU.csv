@@ -1,0 +1,481 @@
+Plate,Well,Index,Metabolite,MetaboliteU,EcoCycID,KEGG_ID,CAS_ID,Group,Class
+PM1,A1,PM1-A1,Negative Control,Negative Control_C,NA,NA,NA,C-Source,negative control
+PM1,A2,PM1-A2,L-Arabinose,L-Arabinose,|L-ARABINOSE|,C00259,CAS 87-72-9,C-Source,carbohydrate
+PM1,A3,PM1-A3,N-Acetyl-D-Glucosamine,N-Acetyl-D-Glucosamine,|N-acetyl-D-glucosamine|,C00140,CAS 7512-17-6,C-Source,carbohydrate
+PM1,A4,PM1-A4,D-Saccharic Acid,D-Saccharic Acid,|D-GLUCARATE|,C00818,CAS 576-42-1,C-Source,carboxylic acid
+PM1,A5,PM1-A5,Succinic Acid,Succinic Acid,|SUC|,C00042,CAS 6106-21-4,C-Source,carboxylic acid
+PM1,A6,PM1-A6,D-Galactose,D-Galactose,|D-Galactose|,C00124,CAS 59-23-4,C-Source,carbohydrate
+PM1,A7,PM1-A7,L-Aspartic Acid,L-Aspartic Acid,|L-ASPARTATE|,C00049,CAS 3792-50-5,C-Source,amino acid
+PM1,A8,PM1-A8,L-Proline,L-Proline,|PRO|,C00148,CAS 147-85-3,C-Source,amino acid
+PM1,A9,PM1-A9,D-Alanine,D-Alanine,|D-ALANINE|,C00133,CAS 338-69-2,C-Source,amino acid
+PM1,A10,PM1-A10,D-Trehalose,D-Trehalose,|TREHALOSE|,C01083,CAS 6138-23-4,C-Source,carbohydrate
+PM1,A11,PM1-A11,D-Mannose,D-Mannose,|CPD-13559|,C00159,CAS 3458-28-4,C-Source,carbohydrate
+PM1,A12,PM1-A12,Dulcitol,Dulcitol,|GALACTITOL|,C01697,CAS 608-66-2,C-Source,carbohydrate
+PM1,B1,PM1-B1,D-Serine,D-Serine,|D-SERINE|,C00740,CAS 312-84-5,C-Source,amino acid
+PM1,B2,PM1-B2,D-Sorbitol,D-Sorbitol,|SORBITOL|,C00794,CAS 50-70-4,C-Source,carbohydrate
+PM1,B3,PM1-B3,Glycerol,Glycerol,|GLYCEROL|,C00116,CAS 56-81-5,C-Source,carbohydrate
+PM1,B4,PM1-B4,L-Fucose,L-Fucose,|L-fucoses|,C01019,CAS 2438-80-4,C-Source,carbohydrate
+PM1,B5,PM1-B5,D-Glucuronic Acid,D-Glucuronic Acid,|GLUCURONATE|,C00191,CAS 14984-34-0,C-Source,carboxylic acid
+PM1,B6,PM1-B6,D-Gluconic Acid,D-Gluconic Acid,|GLUCONATE|,C00257,CAS 527-07-1,C-Source,carboxylic acid
+PM1,B7,PM1-B7,"D,L-alpha-Glycerol-Phosphate","D,L-alpha-Glycerol-Phosphate",|GLYCEROL-3P|,C00093,CAS 3325-00-6,C-Source,carbohydrate
+PM1,B8,PM1-B8,D-Xylose,D-Xylose,|D-Xylose|,C00181,CAS 58-86-6,C-Source,carbohydrate
+PM1,B9,PM1-B9,L-Lactic Acid,L-Lactic Acid,|L-LACTATE|,C01432,CAS 312-85-6,C-Source,carboxylic acid
+PM1,B10,PM1-B10,Formic Acid,Formic Acid,|FORMATE|,C00058,CAS 141-53-7,C-Source,carboxylic acid
+PM1,B11,PM1-B11,D-Mannitol,D-Mannitol,|MANNITOL|,C00392,CAS 69-65-8,C-Source,carbohydrate
+PM1,B12,PM1-B12,L-Glutamic Acid,L-Glutamic Acid,|GLT|,C00025,CAS 6106-04-3,C-Source,amino acid
+PM1,C1,PM1-C1,D-Glucose-6-Phosphate,D-Glucose-6-Phosphate,|Glucose-6-phosphate|,C00092,CAS 3671-99-6,C-Source,carbohydrate
+PM1,C2,PM1-C2,D-Galactonic Acid-gamma-Lactone,D-Galactonic Acid-gamma-Lactone,|D-GALACTONO-1-4-LACTONE|,C03383,CAS 2782-07-2,C-Source,carboxylic acid
+PM1,C3,PM1-C3,"D,L-Malic Acid","D,L-Malic Acid",|RS-Malate|,C00497,CAS 6915-15-7,C-Source,carboxylic acid
+PM1,C4,PM1-C4,D-Ribose,D-Ribose,|RIBOSE|,C00121,CAS 50-69-1,C-Source,carbohydrate
+PM1,C5,PM1-C5,Tween 20,Tween 20,|CPD-3566|,C11624,CAS 9005-64-5,C-Source,fatty acid
+PM1,C6,PM1-C6,L-Rhamnose,L-Rhamnose,|L-rhamnose|,C00507,CAS 3615-41-6,C-Source,carbohydrate
+PM1,C7,PM1-C7,D-Fructose,D-Fructose,|BETA-D-FRUCTOSE|,C00095,CAS 57-48-7,C-Source,carbohydrate
+PM1,C8,PM1-C8,Acetic Acid,Acetic Acid,|ACET|,C00033,CAS 127-09-3,C-Source,carboxylic acid
+PM1,C9,PM1-C9,alpha-D-Glucose,alpha-D-Glucose,|ALPHA-GLUCOSE|,C00031,CAS 50-99-7,C-Source,carbohydrate
+PM1,C10,PM1-C10,Maltose,Maltose,|MALTOSE|,C00208,CAS 6363-53-7,C-Source,carbohydrate
+PM1,C11,PM1-C11,D-Melibiose,D-Melibiose,|MELIBIOSE|,C05402,CAS 585-99-9,C-Source,carbohydrate
+PM1,C12,PM1-C12,Thymidine,Thymidine,|THYMIDINE|,C00214,CAS 50-89-5,C-Source,carbohydrate
+PM1,D1,PM1-D1,L-Asparagine,L-Asparagine,|ASN|,C00152,CAS 70-47-3,C-Source,amino acid
+PM1,D2,PM1-D2,D-Aspartic Acid,D-Aspartic Acid,|CPD-302|,C00402,CAS 1783-96-6,C-Source,amino acid
+PM1,D3,PM1-D3,D-Glucosaminic Acid,D-Glucosaminic Acid,|GLUCOSAMINATE|,C03752,CAS 3646-68-2,C-Source,carboxylic acid
+PM1,D4,PM1-D4,"1,2-Propanediol","1,2-Propanediol",|PROPANE-1-2-DIOL|,C00583,CAS 57-55-6,C-Source,alcohol
+PM1,D5,PM1-D5,Tween 40,Tween 40,|CPD-3567|,NA,CAS 9005-66-7,C-Source,fatty acid
+PM1,D6,PM1-D6,alpha-Keto-Glutaric Acid,alpha-Keto-Glutaric Acid,|2-KETOGLUTARATE|,C00026,CAS 22202-68-2,C-Source,carboxylic acid
+PM1,D7,PM1-D7,alpha-Keto-Butyric Acid,alpha-Keto-Butyric Acid,|2-OXOBUTANOATE|,C00109,CAS 2013-26-5,C-Source,carboxylic acid
+PM1,D8,PM1-D8,alpha-Methyl-D-Galactoside,alpha-Methyl-D-Galactoside,|CPD-3565|,C03619,CAS 3396-99-4,C-Source,carbohydrate
+PM1,D9,PM1-D9,alpha-D-Lactose,alpha-D-Lactose,|Alpha-lactose|,C00243,CAS 5989-81-1,C-Source,carbohydrate
+PM1,D10,PM1-D10,Lactulose,Lactulose,|CPD-3561|,C07064,CAS 4618-18-2,C-Source,carbohydrate
+PM1,D11,PM1-D11,Sucrose,Sucrose,|SUCROSE|,C00089,CAS 57-50-1,C-Source,carbohydrate
+PM1,D12,PM1-D12,Uridine,Uridine,|URIDINE|,C00299,CAS 58-96-8,C-Source,carbohydrate
+PM1,E1,PM1-E1,L-Glutamine,L-Glutamine,|GLN|,C00064,CAS 56-85-9,C-Source,amino acid
+PM1,E2,PM1-E2,m-Tartaric Acid,m-Tartaric Acid,|MESO-TARTRATE|,C00552,CAS 147-73-9,C-Source,carboxylic acid
+PM1,E3,PM1-E3,D-Glucose-1-Phosphate,D-Glucose-1-Phosphate,|GLC-1-P|,C00103,CAS 56401-20-8,C-Source,carbohydrate
+PM1,E4,PM1-E4,D-Fructose-6-Phosphate,D-Fructose-6-Phosphate,|FRUCTOSE-6P|,C00085,CAS 26177-86-6,C-Source,carbohydrate
+PM1,E5,PM1-E5,Tween 80,Tween 80,|CPD-3563|,C11625,CAS 9005-65-6,C-Source,fatty acid
+PM1,E6,PM1-E6,alpha-Hydroxy Glutaric Acid-gamma-Lactone,alpha-Hydroxy Glutaric Acid-gamma-Lactone,|CPD-13414|,NA,CAS 21461-84-7,C-Source,carboxylic acid
+PM1,E7,PM1-E7,alpha-Hydroxy Butyric Acid,alpha-Hydroxy Butyric Acid,|CPD-3564|,C05984,CAS 19054-57-0,C-Source,carboxylic acid
+PM1,E8,PM1-E8,beta-Methyl-D-Glucoside,beta-Methyl-D-Glucoside,|CPD-3570|,NA,CAS 709-50-2,C-Source,carbohydrate
+PM1,E9,PM1-E9,Adonitol,Adonitol,|RIBITOL|,C00474,CAS 488-81-3,C-Source,carbohydrate
+PM1,E10,PM1-E10,Maltotriose,Maltotriose,|MALTOTRIOSE|,C01835,CAS 1109-28-0,C-Source,carbohydrate
+PM1,E11,PM1-E11,2-Deoxy Adenosine,2-Deoxy Adenosine,|DEOXYADENOSINE|,C00559,CAS 16373-93-6,C-Source,carbohydrate
+PM1,E12,PM1-E12,Adenosine,Adenosine,|ADENOSINE|,C00212,CAS 58-61-7,C-Source,carbohydrate
+PM1,F1,PM1-F1,Glycyl-L-Aspartic Acid,Glycyl-L-Aspartic Acid,|CPD-13406|,C02871,CAS 4685-12-5,C-Source,amino acid
+PM1,F2,PM1-F2,Citric Acid,Citric Acid,|CIT|,C00158,CAS 6132-04-3,C-Source,carboxylic acid
+PM1,F3,PM1-F3,m-Inositol,m-Inositol,|MYO-INOSITOL|,C00137,CAS 87-89-8,C-Source,carbohydrate
+PM1,F4,PM1-F4,D-Threonine,D-Threonine,|D-THREONINE|,C00820,CAS 632-20-2,C-Source,amino acid
+PM1,F5,PM1-F5,Fumaric Acid,Fumaric Acid,|FUM|,C00122,CAS 17013-01-3,C-Source,carboxylic acid
+PM1,F6,PM1-F6,Bromo Succinic Acid,Bromo Succinic Acid,|CPD-13405|,NA,CAS 923-06-8,C-Source,carboxylic acid
+PM1,F7,PM1-F7,Propionic Acid,Propionic Acid,|PROPIONATE|,C00163,CAS 137-40-6,C-Source,carboxylic acid
+PM1,F8,PM1-F8,Mucic Acid,Mucic Acid,|D-GALACTARATE|,C01807,CAS 526-99-8,C-Source,carboxylic acid
+PM1,F9,PM1-F9,Glycolic Acid,Glycolic Acid,|GLYCOLLATE|,C00160,CAS 79-14-1,C-Source,carboxylic acid
+PM1,F10,PM1-F10,Glyoxylic Acid,Glyoxylic Acid,|GLYOX|,C00048,CAS 563-96-2,C-Source,carboxylic acid
+PM1,F11,PM1-F11,D-Cellobiose,D-Cellobiose,|CELLOBIOSE|,C00185,CAS 528-50-7,C-Source,carbohydrate
+PM1,F12,PM1-F12,Inosine,Inosine,|INOSINE|,C00294,CAS 58-63-9,C-Source,carbohydrate
+PM1,G1,PM1-G1,Glycyl-L-Glutamic Acid,Glycyl-L-Glutamic Acid,|CPD-3569|,NA,CAS 7412-78-4,C-Source,amino acid
+PM1,G2,PM1-G2,Tricarballylic Acid,Tricarballylic Acid,|CPD-3571|,NA,CAS 99-14-9,C-Source,carboxylic acid
+PM1,G3,PM1-G3,L-Serine,L-Serine,|SER|,C00065,CAS 56-45-1,C-Source,amino acid
+PM1,G4,PM1-G4,L-Threonine,L-Threonine,|THR|,C00188,CAS 72-19-5,C-Source,amino acid
+PM1,G5,PM1-G5,L-Alanine,L-Alanine,|L-ALPHA-ALANINE|,C00041,CAS 56-41-7,C-Source,amino acid
+PM1,G6,PM1-G6,L-Alanyl-Glycine,L-Alanyl-Glycine,|ALA-GLY|,NA,CAS 687-69-4,C-Source,amino acid
+PM1,G7,PM1-G7,Acetoacetic Acid,Acetoacetic Acid,|3-KETOBUTYRATE|,C00164,CAS 3483-11-2,C-Source,carboxylic acid
+PM1,G8,PM1-G8,N-Acetyl-beta-D-Mannosamine,N-Acetyl-beta-D-Mannosamine,|N-ACETYL-D-MANNOSAMINE|,C00645,CAS 7772-94-3,C-Source,carbohydrate
+PM1,G9,PM1-G9,Mono Methyl Succinate,Mono Methyl Succinate,|CPD-3572|,NA,CAS 3878-55-5,C-Source,carboxylic acid
+PM1,G10,PM1-G10,Methyl Pyruvate,Methyl Pyruvate,|CPD-3573|,NA,CAS 600-22-6,C-Source,ester
+PM1,G11,PM1-G11,D-Malic Acid,D-Malic Acid,|CPD-660|,C00497,CAS 636-61-3,C-Source,carboxylic acid
+PM1,G12,PM1-G12,L-Malic Acid,L-Malic Acid,|MAL|,C00149,CAS 138-09-0,C-Source,carboxylic acid
+PM1,H1,PM1-H1,Glycyl-L-Proline,Glycyl-L-Proline,|CPD-10814|,NA,CAS 704-15-4,C-Source,amino acid
+PM1,H2,PM1-H2,p-Hydroxy Phenyl Acetic Acid,p-Hydroxy Phenyl Acetic Acid,|4-HYDROXYPHENYLACETATE|,C00642,CAS 156-38-7,C-Source,carboxylic acid
+PM1,H3,PM1-H3,m-Hydroxy Phenyl Acetic Acid,m-Hydroxy Phenyl Acetic Acid,|3-HYDROXYPHENYLACETATE|,C05593,CAS 621-37-4,C-Source,carboxylic acid
+PM1,H4,PM1-H4,Tyramine,Tyramine,|TYRAMINE|,C00483,CAS 60-19-5,C-Source,amine
+PM1,H5,PM1-H5,D-Psicose,D-Psicose,|PSICOSE|,C06468,CAS 551-68-8,C-Source,carbohydrate
+PM1,H6,PM1-H6,L-Lyxose,L-Lyxose,|L-LYXOSE|,C01508,CAS 1949-78-6,C-Source,carbohydrate
+PM1,H7,PM1-H7,Glucuronamide,Glucuronamide,|CPD0-1656|,D01791,CAS 3789-97-7,C-Source,amide
+PM1,H8,PM1-H8,Pyruvic Acid,Pyruvic Acid,|PYRUVATE|,C00022,CAS 113-24-6,C-Source,carboxylic acid
+PM1,H9,PM1-H9,L-Galactonic Acid-gamma-Lactone,L-Galactonic Acid-gamma-Lactone,|CPD-330|,C01115,CAS 1668-08-2,C-Source,carboxylic acid
+PM1,H10,PM1-H10,D-Galacturonic Acid,D-Galacturonic Acid,|D-GALACTURONATE|,C00333,CAS 91510-62-2,C-Source,carboxylic acid
+PM1,H11,PM1-H11,Phenylethyl-amine,Phenylethyl-amine,|PHENYLETHYLAMINE|,C05332,CAS 156-28-5,C-Source,amine
+PM1,H12,PM1-H12,2-Aminoethanol,2-Aminoethanol,|ETHANOL-AMINE|,C00189,CAS 141-43-5,C-Source,alcohol
+PM2A,A1,PM2A-A1,Negative Control,Negative Control_C2,NA,NA,NA,C-Source,negative control
+PM2A,A2,PM2A-A2,Chondroitin Sulfate C,Chondroitin Sulfate C,|Chondroitin-Sulfate-C|,C00635,CAS 12678-07-8,C-Source,polymer
+PM2A,A3,PM2A-A3,alpha-Cyclodextrin,alpha-Cyclodextrin,|CPD-3782|,NA,CAS 10016-20-3,C-Source,polymer
+PM2A,A4,PM2A-A4,beta-Cyclodextrin,beta-Cyclodextrin,|CPD-3781|,NA,CAS 7585-39-9,C-Source,polymer
+PM2A,A5,PM2A-A5,gamma-Cyclodextrin,gamma-Cyclodextrin,|CPD-3783|,NA,CAS 17465-86-0,C-Source,polymer
+PM2A,A6,PM2A-A6,Dextrin,Dextrin,|Dextrins|,C00721,CAS 9004-53-9,C-Source,polymer
+PM2A,A7,PM2A-A7,Gelatin,Gelatin,|CPD-13419|,C01498,CAS 9000-70-8,C-Source,polymer
+PM2A,A8,PM2A-A8,Glycogen,Glycogen,NA,C00182,CAS 9005-79-2,C-Source,polymer
+PM2A,A9,PM2A-A9,Inulin,Inulin,|Inulin|,C00368,CAS 9005-80-5,C-Source,polymer
+PM2A,A10,PM2A-A10,Laminarin,Laminarin,|CPD-3602|,C00771,CAS 9008-22-4,C-Source,polymer
+PM2A,A11,PM2A-A11,Mannan,Mannan,|Mannan|,C00464,CAS 9036-88-8,C-Source,polymer
+PM2A,A12,PM2A-A12,Pectin,Pectin,|Pectin|,C00714,CAS 9000-69-5,C-Source,polymer
+PM2A,B1,PM2A-B1,N-Acetyl-DGalactosamine,N-Acetyl-DGalactosamine,|N-acetyl-D-galactosamine|,C01074,CAS 14215-68-0,C-Source,carbohydrate
+PM2A,B2,PM2A-B2,N-Acetyl-Neuraminic Acid,N-Acetyl-Neuraminic Acid,|CPD0-1123|,C00270,CAS 131-48-6,C-Source,carboxylic acid
+PM2A,B3,PM2A-B3,beta-D-Allose,beta-D-Allose,|ALLOSE|,C01487,CAS 2595-97-3,C-Source,carbohydrate
+PM2A,B4,PM2A-B4,Amygdalin,Amygdalin,|CPD-1125|,C08325,CAS 29883-15-6,C-Source,carbohydrate
+PM2A,B5,PM2A-B5,D-Arabinose,D-Arabinose,|D-ARABINOSE|,C00216,CAS 10323-20-3,C-Source,carbohydrate
+PM2A,B6,PM2A-B6,D-Arabitol,D-Arabitol,|CPD-355|,C01904,CAS 488-82-4,C-Source,carbohydrate
+PM2A,B7,PM2A-B7,L-Arabitol,L-Arabitol,|L-ARABITOL|,C00532,CAS 7643-75-6,C-Source,carbohydrate
+PM2A,B8,PM2A-B8,Arbutin,Arbutin,|HYDROQUINONE-O-BETA-D-GLUCOPYRANOSIDE|,C06186,CAS 497-76-7,C-Source,carbohydrate
+PM2A,B9,PM2A-B9,2-Deoxy-D-Ribose,2-Deoxy-D-Ribose,|2-DEOXYRIBOSE|,C01801,CAS 533-67-5,C-Source,carbohydrate
+PM2A,B10,PM2A-B10,i-Erythritol,i-Erythritol,|ERYTHRITOL|,C00503,CAS 149-32-6,C-Source,carbohydrate
+PM2A,B11,PM2A-B11,D-Fucose,D-Fucose,|D-Fucoses|,C01018,CAS 3615-37-0,C-Source,carbohydrate
+PM2A,B12,PM2A-B12,3-0-beta-D-Galactopyranosyl-D-Arabinose,3-0-beta-D-Galactopyranosyl-D-Arabinose,|CPD-3785|,NA,CAS 6057-48-3,C-Source,carbohydrate
+PM2A,C1,PM2A-C1,Gentiobiose,Gentiobiose,|CPD-3605|,C08240,CAS 554-91-6,C-Source,carbohydrate
+PM2A,C2,PM2A-C2,L-Glucose,L-Glucose,|CPD-3607|,NA,CAS 921-60-8,C-Source,carbohydrate
+PM2A,C3,PM2A-C3,Lactitol,Lactitol,|CPD0-2460|,NA,CAS 81025-04-9,C-Source,carbohydrate
+PM2A,C4,PM2A-C4,D-Melezitose,D-Melezitose,|CPD-13409|,C08243,CAS 10030-67-8,C-Source,carbohydrate
+PM2A,C5,PM2A-C5,Maltitol,Maltitol,|CPD-3609|,G00275,CAS 585-88-6,C-Source,carbohydrate
+PM2A,C6,PM2A-C6,alpha-Methyl-D-Glucoside,alpha-Methyl-D-Glucoside,|CPD-3582|,NA,CAS 97-30-3,C-Source,carbohydrate
+PM2A,C7,PM2A-C7,beta-Methyl-D-Galactoside,beta-Methyl-D-Galactoside,|METHYL-BETA-D-GALACTOSIDE|,C03619,CAS 1824-94-8,C-Source,carbohydrate
+PM2A,C8,PM2A-C8,3-Methyl Glucose,3-Methyl Glucose,|CPD0-1937|,NA,CAS 13224-94-7,C-Source,carbohydrate
+PM2A,C9,PM2A-C9,beta-Methyl-D-Glucuronic Acid,beta-Methyl-D-Glucuronic Acid,|CPD-3611|,C08350,CAS 134253-42-2,C-Source,carboxylic acid
+PM2A,C10,PM2A-C10,alpha-Methyl-D-Mannoside,alpha-Methyl-D-Mannoside,|CPD-3612|,NA,CAS 617-04-9,C-Source,carbohydrate
+PM2A,C11,PM2A-C11,beta-Methyl-D-Xyloside,beta-Methyl-D-Xyloside,|CPD-3613|,NA,CAS 612-05-5,C-Source,carbohydrate
+PM2A,C12,PM2A-C12,Palatinose,Palatinose,|CPD-230|,C01742,CAS 13718-94-0,C-Source,carbohydrate
+PM2A,D1,PM2A-D1,D-Raffinose,D-Raffinose,|CPD-1099|,C00492,CAS 17629-30-0,C-Source,carbohydrate
+PM2A,D2,PM2A-D2,Salicin,Salicin,|CPD-1142|,C01451,CAS 138-52-3,C-Source,carbohydrate
+PM2A,D3,PM2A-D3,Sedoheptulosan,Sedoheptulosan,|CPD-3614|,NA,CAS 469-90-9,C-Source,carbohydrate
+PM2A,D4,PM2A-D4,L-Sorbose,L-Sorbose,|CPD-9569|,C00247,CAS 87-79-6,C-Source,carbohydrate
+PM2A,D5,PM2A-D5,Stachyose,Stachyose,|CPD-170|,C01613,CAS 54261-98-2,C-Source,carbohydrate
+PM2A,D6,PM2A-D6,D-Tagatose,D-Tagatose,|TAGATOSE|,C00795,CAS 87-81-0,C-Source,carbohydrate
+PM2A,D7,PM2A-D7,Turanose,Turanose,|CPD-13399|,G03588,CAS 547-25-1,C-Source,carbohydrate
+PM2A,D8,PM2A-D8,Xylitol,Xylitol,|XYLITOL|,C00379,CAS 87-99-0,C-Source,carbohydrate
+PM2A,D9,PM2A-D9,N-Acetyl-D-Glucosaminitol,N-Acetyl-D-Glucosaminitol,|CPD-3615|,NA,CAS 4271-28-7,C-Source,carbohydrate
+PM2A,D10,PM2A-D10,gamma-Amino Butyric Acid,gamma-Amino Butyric Acid,|4-AMINO-BUTYRATE|,C00334,CAS 56-12-2,C-Source,carboxylic acid
+PM2A,D11,PM2A-D11,delta-Amino Valeric Acid,delta-Amino Valeric Acid,|5-AMINOPENTANOATE|,C00431,CAS 5451-09-2,C-Source,carboxylic acid
+PM2A,D12,PM2A-D12,Butyric Acid,Butyric Acid,|BUTYRIC_ACID|,C00246,CAS 156-54-7,C-Source,carboxylic acid
+PM2A,E1,PM2A-E1,Capric Acid,Capric Acid,|CPD-3617|,C01571,CAS 1002-62-6,C-Source,carboxylic acid
+PM2A,E2,PM2A-E2,Caproic Acid,Caproic Acid,|HEXANOATE|,C01585,CAS 10051-44-2,C-Source,carboxylic acid
+PM2A,E3,PM2A-E3,Citraconic Acid,Citraconic Acid,|2-METHYLMALEATE|,C02226,CAS 207-858-7,C-Source,carboxylic acid
+PM2A,E4,PM2A-E4,Citramalic Acid,Citramalic Acid,|CPD-14325|,C00815,CAS 6236-10-8,C-Source,carboxylic acid
+PM2A,E5,PM2A-E5,D-Glucosamine,D-Glucosamine,|GLUCOSAMINE|,C00329,CAS 66-84-2,C-Source,carbohydrate
+PM2A,E6,PM2A-E6,2-Hydroxy Benzoic Acid,2-Hydroxy Benzoic Acid,|CPD-110|,C00805,CAS 54-21-7,C-Source,carboxylic acid
+PM2A,E7,PM2A-E7,4-Hydroxy Benzoic Acid,4-Hydroxy Benzoic Acid,|4-hydroxybenzoate|,C00156,CAS 114-63-6,C-Source,carboxylic acid
+PM2A,E8,PM2A-E8,beta-Hydroxy Butyric Acid,beta-Hydroxy Butyric Acid,|CPD-335|,C01089,CAS 150-83-4,C-Source,carboxylic acid
+PM2A,E9,PM2A-E9,gamma-Hydroxy Butyric Acid,gamma-Hydroxy Butyric Acid,|4-HYDROXY-BUTYRATE|,C00989,CAS 502-85-2,C-Source,carboxylic acid
+PM2A,E10,PM2A-E10,alpha-Keto-Valeric Acid,alpha-Keto-Valeric Acid,|CPD-3618|,C00567,CAS 1821-02-9,C-Source,carboxylic acid
+PM2A,E11,PM2A-E11,Itaconic Acid,Itaconic Acid,|ITACONATE|,C00490,CAS 97-65-4,C-Source,carboxylic acid
+PM2A,E12,PM2A-E12,5-Keto-D-Gluconic Acid,5-Keto-D-Gluconic Acid,|5-DEHYDROGLUCONATE|,C01062,CAS 91446-96-7,C-Source,carboxylic acid
+PM2A,F1,PM2A-F1,D-Lactic Acid Methyl Ester,D-Lactic Acid Methyl Ester,|CPD-3621|,NA,CAS 17392-83-5,C-Source,ester
+PM2A,F2,PM2A-F2,Malonic Acid,Malonic Acid,|MALONATE|,C00383,CAS 26522-85-0,C-Source,carboxylic acid
+PM2A,F3,PM2A-F3,Melibionic Acid,Melibionic Acid,|CPD-3801|,NA,CAS 70803-54-2,C-Source,carbohydrate
+PM2A,F4,PM2A-F4,Oxalic Acid,Oxalic Acid,|OXALATE|,C00209,CAS 62-76-0,C-Source,carboxylic acid
+PM2A,F5,PM2A-F5,Oxalomalic Acid,Oxalomalic Acid,|CPD-628|,C01990,CAS 89304-26-7,C-Source,carboxylic acid
+PM2A,F6,PM2A-F6,Quinic Acid,Quinic Acid,|QUINATE|,C00296,CAS 77-95-2,C-Source,carboxylic acid
+PM2A,F7,PM2A-F7,"D-Ribono-1,4-Lactone","D-Ribono-1,4-Lactone",|CPD-13413|,NA,CAS 5336-08-3,C-Source,carboxylic acid
+PM2A,F8,PM2A-F8,Sebacic Acid,Sebacic Acid,|CPD-3623|,C08277,CAS 111-20-6,C-Source,carboxylic acid
+PM2A,F9,PM2A-F9,Sorbic Acid,Sorbic Acid,|CPD-3624|,NA,CAS 110-44-1,C-Source,carboxylic acid
+PM2A,F10,PM2A-F10,Succinamic Acid,Succinamic Acid,|CPD-8979|,NA,CAS 638-32-4,C-Source,carboxylic acid
+PM2A,F11,PM2A-F11,D-Tartaric Acid,D-Tartaric Acid,|D-TARTRATE|,C02107,CAS 57341-16-9,C-Source,carboxylic acid
+PM2A,F12,PM2A-F12,L-Tartaric Acid,L-Tartaric Acid,|TARTRATE|,C00898,CAS 6106-24-7,C-Source,carboxylic acid
+PM2A,G1,PM2A-G1,Acetamide,Acetamide,|ACETAMIDE|,C06244,CAS 60-35-5,C-Source,amide
+PM2A,G2,PM2A-G2,L-Alaninamide,L-Alaninamide,|CPD-11636|,NA,CAS 33208-99-0,C-Source,amide
+PM2A,G3,PM2A-G3,N-Acetyl-L-Glutamic Acid,N-Acetyl-L-Glutamic Acid,|ACETYL-GLU|,C00624,CAS 1188-37-0,C-Source,amino acid
+PM2A,G4,PM2A-G4,L-Arginine,L-Arginine,|ARG|,C00062,CAS 1119-34-2,C-Source,amino acid
+PM2A,G5,PM2A-G5,Glycine,Glycine,|GLY|,C00037,CAS 6000-43-7,C-Source,amino acid
+PM2A,G6,PM2A-G6,L-Histidine,L-Histidine,|HIS|,C00135,CAS 5934-29-2,C-Source,amino acid
+PM2A,G7,PM2A-G7,L-Homoserine,L-Homoserine,|HOMO-SER|,C00263,CAS 672-15-1,C-Source,amino acid
+PM2A,G8,PM2A-G8,Hydroxy-L-Proline,Hydroxy-L-Proline,|4-HYDROXY-L-PROLINE|,C01015,CAS 51-35-4,C-Source,amino acid
+PM2A,G9,PM2A-G9,L-Isoleucine,L-Isoleucine,|ILE|,C00407,CAS 73-32-5,C-Source,amino acid
+PM2A,G10,PM2A-G10,L-Leucine,L-Leucine,|LEU|,C00123,CAS 61-90-5,C-Source,amino acid
+PM2A,G11,PM2A-G11,L-Lysine,L-Lysine,|LYS|,C00047,CAS 657-27-2,C-Source,amino acid
+PM2A,G12,PM2A-G12,L-Methionine,L-Methionine,|MET|,C00073,CAS 63-68-3,C-Source,amino acid
+PM2A,H1,PM2A-H1,L-Ornithine,L-Ornithine,|L-ORNITHINE|,C00077,CAS 3184-13-2,C-Source,amino acid
+PM2A,H2,PM2A-H2,L-Phenylalanine,L-Phenylalanine,|PHE|,C00079,CAS 63-91-2,C-Source,amino acid
+PM2A,H3,PM2A-H3,L-Pyroglutamic Acid,L-Pyroglutamic Acid,|5-OXOPROLINE|,C02238,CAS 98-79-3,C-Source,amino acid
+PM2A,H4,PM2A-H4,L-Valine,L-Valine,|VAL|,C00183,CAS 72-18-4,C-Source,amino acid
+PM2A,H5,PM2A-H5,"D,L-Carnitine","D,L-Carnitine",|DL-CARNITINE|,C00487,CAS 461-05-2,C-Source,carboxylic acid
+PM2A,H6,PM2A-H6,Sec-Butylamine,Sec-Butylamine,|CPD-3627|,NA,CAS 13952-84-6,C-Source,amine
+PM2A,H7,PM2A-H7,"D,L-Octopamine","D,L-Octopamine",|CPD-58|,C04227,CAS 770-05-8,C-Source,amine
+PM2A,H8,PM2A-H8,Putrescine,Putrescine,|PUTRESCINE|,C00134,CAS 333-93-7,C-Source,amine
+PM2A,H9,PM2A-H9,Dihydroxy Acetone,Dihydroxy Acetone,|DIHYDROXYACETONE|,C00184,CAS 96-26-4,C-Source,alcohol
+PM2A,H10,PM2A-H10,"2,3-Butanediol","2,3-Butanediol",|BUTANEDIOL|,C03044,CAS 513-85-9,C-Source,alcohol
+PM2A,H11,PM2A-H11,"2,3-Butanone","2,3-Butanone",|DIACETYL|,C00741,CAS 431-03-8,C-Source,alcohol
+PM2A,H12,PM2A-H12,3-Hydroxy 2-Butanone,3-Hydroxy 2-Butanone,|ACETOIN|,C00466,CAS 513-86-0,C-Source,alcohol
+PM3B,A1,PM3B-A1,Negative Control,Negative Control_N,NA,NA,NA,N-Source,Negative control
+PM3B,A2,PM3B-A2,Ammonia,Ammonia,|AMMONIA|,C00014,CAS 540-69-2,N-Source,inorganic
+PM3B,A3,PM3B-A3,Nitrite,Nitrite,|NITRITE|,C00088,CAS 7632-00-0,N-Source,inorganic
+PM3B,A4,PM3B-A4,Nitrate,Nitrate,|NITRATE|,C00244,CAS 7631-99-4,N-Source,inorganic
+PM3B,A5,PM3B-A5,Urea,Urea,|UREA|,C00086,CAS 57-13-6,N-Source,other
+PM3B,A6,PM3B-A6,Biuret,Biuret,|CPD-809|,C06555,CAS 108-19-0,N-Source,other
+PM3B,A7,PM3B-A7,L-Alanine,L-Alanine_N,|L-ALPHA-ALANINE|,C00041,CAS 56-41-7,N-Source,amino acid
+PM3B,A8,PM3B-A8,L-Arginine,L-Arginine_N,|ARG|,C00062,CAS 1119-34-2,N-Source,amino acid
+PM3B,A9,PM3B-A9,L-Asparagine,L-Asparagine_N,|ASN|,C00152,CAS 70-47-3,N-Source,amino acid
+PM3B,A10,PM3B-A10,L-Aspartic Acid,L-Aspartic Acid_N,|L-ASPARTATE|,C00049,CAS 3792-50-5,N-Source,amino acid
+PM3B,A11,PM3B-A11,L-Cysteine,L-Cysteine_N,|CYS|,C00097,CAS 7048-04-6,N-Source,amino acid
+PM3B,A12,PM3B-A12,L-Glutamic Acid,L-Glutamic Acid_N,|GLT|,C00025,CAS 6106-04-3,N-Source,amino acid
+PM3B,B1,PM3B-B1,L-Glutamine,L-Glutamine_N,|GLN|,C00064,CAS 56-85-9,N-Source,amino acid
+PM3B,B2,PM3B-B2,Glycine,Glycine_N,|GLY|,C00037,CAS 6000-43-7,N-Source,amino acid
+PM3B,B3,PM3B-B3,L-Histidine,L-Histidine_N,|HIS|,C00135,CAS 5934-29-2,N-Source,amino acid
+PM3B,B4,PM3B-B4,L-Isoleucine,L-Isoleucine_N,|ILE|,C00407,CAS 73-32-5,N-Source,amino acid
+PM3B,B5,PM3B-B5,L-Leucine,L-Leucine_N,|LEU|,C00123,CAS 61-90-5,N-Source,amino acid
+PM3B,B6,PM3B-B6,L-Lysine,L-Lysine_N,|LYS|,C00047,CAS 657-27-2,N-Source,amino acid
+PM3B,B7,PM3B-B7,L-Methionine,L-Methionine_N,|MET|,C00073,CAS 63-68-3,N-Source,amino acid
+PM3B,B8,PM3B-B8,L-Phenylalanine,L-Phenylalanine_N,|PHE|,C00079,CAS 63-91-2,N-Source,amino acid
+PM3B,B9,PM3B-B9,L-Proline,L-Proline_N,|PRO|,C00148,CAS 147-85-3,N-Source,amino acid
+PM3B,B10,PM3B-B10,L-Serine,L-Serine_N,|SER|,C00065,CAS 56-45-1,N-Source,amino acid
+PM3B,B11,PM3B-B11,L-Threonine,L-Threonine_N,|THR|,C00188,CAS 72-19-5,N-Source,amino acid
+PM3B,B12,PM3B-B12,L-Tryptophan,L-Tryptophan_N,|TRP|,C00078,CAS 73-22-3,N-Source,amino acid
+PM3B,C1,PM3B-C1,L-Tyrosine,L-Tyrosine_N,|TYR|,C00082,CAS 69847-45-6,N-Source,amino acid
+PM3B,C2,PM3B-C2,L-Valine,L-Valine_N,|VAL|,C00183,CAS 72-18-4,N-Source,amino acid
+PM3B,C3,PM3B-C3,D-Alanine,D-Alanine_N,|D-ALANINE|,C00133,CAS 338-69-2,N-Source,amino acid
+PM3B,C4,PM3B-C4,D-Asparagine,D-Asparagine,|CPD-3633|,C01905,CAS 5794-24-1,N-Source,amino acid
+PM3B,C5,PM3B-C5,D-Aspartic Acid,D-Aspartic Acid_N,|CPD-302|,C00402,CAS 1783-96-6,N-Source,amino acid
+PM3B,C6,PM3B-C6,D-Glutamic Acid,D-Glutamic Acid,|D-GLT|,C00217,CAS 6893-26-1,N-Source,amino acid
+PM3B,C7,PM3B-C7,D-Lysine,D-Lysine,|CPD-219|,C00739,CAS 923-27-3,N-Source,amino acid
+PM3B,C8,PM3B-C8,D-Serine,D-Serine_N,|D-SERINE|,C00740,CAS 312-84-5,N-Source,amino acid
+PM3B,C9,PM3B-C9,D-Valine,D-Valine,|CPD-3642|,C06417,CAS 640-68-6,N-Source,amino acid
+PM3B,C10,PM3B-C10,L-Citrulline,L-Citrulline_N,|L-CITRULLINE|,C00327,CAS 372-75-8,N-Source,amino acid
+PM3B,C11,PM3B-C11,L-Homoserine,L-Homoserine_N,|HOMO-SER|,C00263,CAS 672-15-1,N-Source,amino acid
+PM3B,C12,PM3B-C12,L-Ornithine,L-Ornithine_N,|L-ORNITHINE|,C00077,CAS 3184-13-2,N-Source,amino acid
+PM3B,D1,PM3B-D1,N-Acetyl-L-Glutamic Acid,N-Acetyl-L-Glutamic Acid_N,|ACETYL-GLU|,C00624,CAS 1188-37-0,N-Source,amino acid
+PM3B,D2,PM3B-D2,N-Phthaloyl-L-Glutamic Acid,N-Phthaloyl-L-Glutamic Acid,|CPD-3662|,NA,CAS 340-90-9,N-Source,amino acid
+PM3B,D3,PM3B-D3,L-Pyroglutamic Acid,L-Pyroglutamic Acid_N,|5-OXOPROLINE|,C02238,CAS 98-79-3,N-Source,amino acid
+PM3B,D4,PM3B-D4,Hydroxylamine,Hydroxylamine,|HYDROXYLAMINE|,C00192,CAS 5470-11-1,N-Source,other
+PM3B,D5,PM3B-D5,Methylamine,Methylamine,|METHYLAMINE|,C00218,CAS 593-51-1,N-Source,other
+PM3B,D6,PM3B-D6,N-Amylamine,N-Amylamine,|CPD-3681|,NA,CAS 110-58-7,N-Source,other
+PM3B,D7,PM3B-D7,N-Butylamine,N-Butylamine,|BUTYLAMINE|,NA,CAS 109-73-9,N-Source,other
+PM3B,D8,PM3B-D8,Ethylamine,Ethylamine,|ETHANAMINE|,C00797,CAS 75-04-7,N-Source,other
+PM3B,D9,PM3B-D9,Ethanolamine,Ethanolamine,|ETHANOL-AMINE|,C00189,CAS 2002-24-6,N-Source,other
+PM3B,D10,PM3B-D10,Ethylenediamine,Ethylenediamine,|CPD-3682|,C12511,CAS 333-18-6,N-Source,other
+PM3B,D11,PM3B-D11,Putrescine,Putrescine_N,|PUTRESCINE|,C00134,CAS 333-93-7,N-Source,other
+PM3B,D12,PM3B-D12,Agmatine,Agmatine,|AGMATHINE|,C00179,CAS 2482-00-0,N-Source,other
+PM3B,E1,PM3B-E1,Histamine,Histamine,|HISTAMINE|,C00388,CAS 56-92-8,N-Source,other
+PM3B,E2,PM3B-E2,beta-Phenylethyl-amine,beta-Phenylethyl-amine,|PHENYLETHYLAMINE|,C05332,CAS 156-28-5,N-Source,other
+PM3B,E3,PM3B-E3,Tyramine,Tyramine_N,|TYRAMINE|,C00483,CAS 60-19-5,N-Source,other
+PM3B,E4,PM3B-E4,Acetamide,Acetamide_N,|ACETAMIDE|,C06244,CAS 60-35-5,N-Source,other
+PM3B,E5,PM3B-E5,Formamide,Formamide,|FORMAMIDE|,C00488,CAS 75-12-7,N-Source,other
+PM3B,E6,PM3B-E6,Glucuronamide,Glucuronamide_N,|CPD0-1656|,D01791,CAS 3789-97-7,N-Source,other
+PM3B,E7,PM3B-E7,"D,L-Lactamide","D,L-Lactamide",|CPD-13407|,NA,CAS 65144-02-7,N-Source,other
+PM3B,E8,PM3B-E8,D-Glucosamine,D-Glucosamine_N,|GLUCOSAMINE|,C00329,CAS 66-84-2,N-Source,other
+PM3B,E9,PM3B-E9,D-Galactosamine,D-Galactosamine,|GALACTOSAMINE|,C02262,CAS 1772-03-8,N-Source,other
+PM3B,E10,PM3B-E10,D-Mannosamine,D-Mannosamine,|D-Mannosamines|,C03570,CAS 5505-63-5,N-Source,other
+PM3B,E11,PM3B-E11,N-Acetyl-D-Glucosamine,N-Acetyl-D-Glucosamine_N,|N-acetyl-D-glucosamine|,C00140,CAS 7512-17-6,N-Source,other
+PM3B,E12,PM3B-E12,N-Acetyl-D-Galactosamine,N-Acetyl-D-Galactosamine,|N-acetyl-D-galactosamine|,C01074,CAS 14215-68-0,N-Source,other
+PM3B,F1,PM3B-F1,N-Acetyl-D-Mannosamine,N-Acetyl-D-Mannosamine,|N-ACETYL-D-MANNOSAMINE|,C00645,CAS 7772-94-3,N-Source,other
+PM3B,F2,PM3B-F2,Adenine,Adenine_N,|ADENINE|,C00147,CAS 6055-72-7,N-Source,other
+PM3B,F3,PM3B-F3,Adenosine,Adenosine_N,|ADENOSINE|,C00212,CAS 64503-27-1,N-Source,other
+PM3B,F4,PM3B-F4,Cytidine,Cytidine_N,|CYTIDINE|,C00475,CAS 6018-48-0,N-Source,other
+PM3B,F5,PM3B-F5,Cytosine,Cytosine_N,|CYTOSINE|,C00380,CAS 71-30-7,N-Source,other
+PM3B,F6,PM3B-F6,Guanine,Guanine_N,|GUANINE|,C00242,CAS 635-39-2,N-Source,other
+PM3B,F7,PM3B-F7,Guanosine,Guanosine_N,|GUANOSINE|,C00387,CAS 118-00-3,N-Source,other
+PM3B,F8,PM3B-F8,Thymine,Thymine_N,|THYMINE|,C00178,CAS 65-71-4,N-Source,other
+PM3B,F9,PM3B-F9,Thymidine,Thymidine_N,|THYMIDINE|,C00214,CAS 50-89-5,N-Source,other
+PM3B,F10,PM3B-F10,Uracil,Uracil_N,|URACIL|,C00106,CAS 66-22-8,N-Source,other
+PM3B,F11,PM3B-F11,Uridine,Uridine_N,|URIDINE|,C00299,CAS 58-96-8,N-Source,other
+PM3B,F12,PM3B-F12,Inosine,Inosine_N,|INOSINE|,C00294,CAS 58-63-9,N-Source,other
+PM3B,G1,PM3B-G1,Xanthine,Xanthine,|XANTHINE|,C00385,CAS 1196-43-6,N-Source,other
+PM3B,G2,PM3B-G2,Xanthosine,Xanthosine,|XANTHOSINE|,C01762,CAS 5968-90-1,N-Source,other
+PM3B,G3,PM3B-G3,Uric Acid,Uric Acid,|URATE|,C00366,CAS 1198-77-2,N-Source,other
+PM3B,G4,PM3B-G4,Alloxan,Alloxan,|CPD-3684|,C07599,CAS 2244-11-3,N-Source,other
+PM3B,G5,PM3B-G5,Allantoin,Allantoin,|ALLANTOIN|,C01551,CAS 97-59-6,N-Source,other
+PM3B,G6,PM3B-G6,Parabanic Acid,Parabanic Acid,|CPD-3685|,NA,CAS 120-89-8,N-Source,other
+PM3B,G7,PM3B-G7,"D,L-alpha-Amino-N-Butyric Acid","D,L-alpha-Amino-N-Butyric Acid",|2-Aminobutyrate|,C02261,CAS 2835-81-6,N-Source,other
+PM3B,G8,PM3B-G8,gamma-Amino-N-Butyric Acid,gamma-Amino-N-Butyric Acid,|4-AMINO-BUTYRATE|,C00334,CAS 56-12-2,N-Source,other
+PM3B,G9,PM3B-G9,epsilon-Amino-N-Caproic Acid,epsilon-Amino-N-Caproic Acid,|CPD-884|,C02378,CAS 60-32-2,N-Source,other
+PM3B,G10,PM3B-G10,"D,L-delta-Amino-Caprylic Acid","D,L-delta-Amino-Caprylic Acid",|CPD-3687|,NA,CAS 644-90-6,N-Source,other
+PM3B,G11,PM3B-G11,delta-Amino-N-Valeric Acid,delta-Amino-N-Valeric Acid,|5-AMINOPENTANOATE|,C00431,CAS 627-95-2,N-Source,other
+PM3B,G12,PM3B-G12,alpha-Amino-N-Valeric Acid,alpha-Amino-N-Valeric Acid,|L-2-AMINOPENTANOIC-ACID|,C01826,CAS 6600-40-4,N-Source,other
+PM3B,H1,PM3B-H1,Ala-Asp,Ala-Asp,|CPD-13404|,C02871,CAS 20727-65-5,N-Source,peptide
+PM3B,H2,PM3B-H2,Ala-Gln,Ala-Gln,|CPD-13403|,NA,CAS 39537-23-0,N-Source,peptide
+PM3B,H3,PM3B-H3,Ala-Glu,Ala-Glu,|CPD0-1445|,NA,CAS 13187-90-1,N-Source,peptide
+PM3B,H4,PM3B-H4,Ala-Gly,Ala-Gly,|ALA-GLY|,NA,CAS 687-69-4,N-Source,peptide
+PM3B,H5,PM3B-H5,Ala-His,Ala-His,|CPD-13401|,NA,CAS 3253-17-6,N-Source,peptide
+PM3B,H6,PM3B-H6,Ala-Leu,Ala-Leu,|CPD-13398|,C05035,CAS 3303-34-2,N-Source,peptide
+PM3B,H7,PM3B-H7,Ala-Thr,Ala-Thr,|CPD-13397|,NA,CAS 24032-50-6,N-Source,peptide
+PM3B,H8,PM3B-H8,Gly-Asn,Gly-Asn,|CPD-13395|,NA,CAS 1999-33-3,N-Source,peptide
+PM3B,H9,PM3B-H9,Gly-Gln,Gly-Gln,|CPD-13394|,NA,CAS 13115-71-4,N-Source,peptide
+PM3B,H10,PM3B-H10,Gly-Glu,Gly-Glu,|CPD-3569|,NA,CAS 7412-78-4,N-Source,peptide
+PM3B,H11,PM3B-H11,Gly-Met,Gly-Met,|CPD-13393|,NA,CAS 554-94-9,N-Source,peptide
+PM3B,H12,PM3B-H12,Met-Ala,Met-Ala,|CPD-13390|,NA,CAS 3061-96-9,N-Source,peptide
+PM4A,A1,PM4A-A1,Negative Control,Negative Control_P,|PYRUVATE|,NA,NA,P-Source,Negative control
+PM4A,A2,PM4A-A2,Phosphate,Phosphate,|Pi|,C00009,CAS 10049-21-5,P-Source,inorganic
+PM4A,A3,PM4A-A3,Pyrophosphate,Pyrophosphate,|PPI|,C00013,CAS 13472-36-1,P-Source,inorganic
+PM4A,A4,PM4A-A4,Trimetaphosphate,Trimetaphosphate,|CPD-610|,C02466,CAS 7785-84-4,P-Source,inorganic
+PM4A,A5,PM4A-A5,Tripolyphosphate,Tripolyphosphate,|P3I|,C00536,CAS 15091-98-2,P-Source,inorganic
+PM4A,A6,PM4A-A6,Triethyl Phosphate,Triethyl Phosphate,|CPD-3703|,NA,CAS 78-40-0,P-Source,organic
+PM4A,A7,PM4A-A7,Hypophosphite,Hypophosphite,|CPD-27|,NA,CAS 10039-56-2,P-Source,inorganic
+PM4A,A8,PM4A-A8,Adenosine-2'-monophosphate,Adenosine-2'-monophosphate,|CPD-3705|,C00946,NA,P-Source,organic
+PM4A,A9,PM4A-A9,Adenosine-3'-monophosphate,Adenosine-3'-monophosphate,|CPD-3706|,C01367,CAS 84-21-9,P-Source,organic
+PM4A,A10,PM4A-A10,Adenosine-5'-monophosphate,Adenosine-5'-monophosphate,|AMP|,C00020,CAS 18422-05-4,P-Source,organic
+PM4A,A11,PM4A-A11,"Adenosine-2',3'-cyclic monophosphate","Adenosine-2',3'-cyclic monophosphate",|CPD-3707|,NA,CAS 37063-35-7,P-Source,organic
+PM4A,A12,PM4A-A12,"Adenosine-3',5'-cyclic monophosphate","Adenosine-3',5'-cyclic monophosphate",|CAMP|,C00575,CAS 37839-81-9,P-Source,organic
+PM4A,B1,PM4A-B1,Thiophosphate,Thiophosphate_P,|CPD-3734|,NA,CAS 10489-48-2,P-Source,inorganic
+PM4A,B2,PM4A-B2,Dithiophosphate,Dithiophosphate_P,|CPD-3735|,NA,CAS 13473-25-1,P-Source,inorganic
+PM4A,B3,PM4A-B3,"D,L-alpha-Glycerol Phosphate","D,L-alpha-Glycerol Phosphate",|GLYCEROL-3P|,C00093,CAS 3325-00-6,P-Source,organic
+PM4A,B4,PM4A-B4,beta-Glycerol Phosphate,beta-Glycerol Phosphate,|CPD-536|,C02979,CAS 154804-51-0,P-Source,organic
+PM4A,B5,PM4A-B5,Carbamyl Phosphate,Carbamyl Phosphate,|CARBAMOYL-P|,C00169,CAS 72461-86-0,P-Source,organic
+PM4A,B6,PM4A-B6,D-2-Phospho-Glyceric Acid,D-2-Phospho-Glyceric Acid,|2-PG|,C00631,CAS 70195-25-4,P-Source,organic
+PM4A,B7,PM4A-B7,D-3-Phospho-Glyceric Acid,D-3-Phospho-Glyceric Acid,|G3P|,C00197,CAS 80731-10-8,P-Source,organic
+PM4A,B8,PM4A-B8,Guanosine-2'-monophosphate,Guanosine-2'-monophosphate,|CPD-13025|,NA,CAS 6027-83-4,P-Source,organic
+PM4A,B9,PM4A-B9,Guanosine-3'-monophosphate,Guanosine-3'-monophosphate,|CPD-3708|,C06193,NA,P-Source,organic
+PM4A,B10,PM4A-B10,Guanosine-5'-monophosphate,Guanosine-5'-monophosphate,|GMP|,C00144,CAS 5550-12-9,P-Source,organic
+PM4A,B11,PM4A-B11,"Guanosine-2',3'-cyclic monophosphate","Guanosine-2',3'-cyclic monophosphate",|CPD-3709|,NA,CAS 15718-49-7,P-Source,organic
+PM4A,B12,PM4A-B12,"Guanosine-3',5'-cyclic monophosphate","Guanosine-3',5'-cyclic monophosphate",|CGMP|,C00942,CAS 40732-48-7,P-Source,organic
+PM4A,C1,PM4A-C1,Phosphoenol Pyruvate,Phosphoenol Pyruvate,|PHOSPHO-ENOL-PYRUVATE|,C00074,CAS 5541-93-5,P-Source,organic
+PM4A,C2,PM4A-C2,Phospho-Glycolic Acid,Phospho-Glycolic Acid,|CPD-67|,C00988,NA,P-Source,organic
+PM4A,C3,PM4A-C3,D-Glucose-1-Phosphate,D-Glucose-1-Phosphate_P,|GLC-1-P|,C00103,CAS 56401-20-8,P-Source,organic
+PM4A,C4,PM4A-C4,D-Glucose-6-Phosphate,D-Glucose-6-Phosphate_P,|Glucose-6-phosphate|,C00092,CAS 3671-99-6,P-Source,organic
+PM4A,C5,PM4A-C5,2-Deoxy-D-Glucose 6-Phosphate,2-Deoxy-D-Glucose 6-Phosphate,|2-DEOXY-D-GLUCOSE-6-PHOSPHATE|,C06369,CAS 33068-19-8,P-Source,organic
+PM4A,C6,PM4A-C6,D-Glucosamine-6-Phosphate,D-Glucosamine-6-Phosphate,|D-GLUCOSAMINE-6-P|,C00352,CAS 70442-23-8,P-Source,organic
+PM4A,C7,PM4A-C7,6-Phospho-Gluconic Acid,6-Phospho-Gluconic Acid,|CPD-2961|,NA,CAS 53411-70-4,P-Source,organic
+PM4A,C8,PM4A-C8,Cytidine-2'-monophosphate,Cytidine-2'-monophosphate,|CPD-3710|,C03104,CAS 85-94-9,P-Source,organic
+PM4A,C9,PM4A-C9,Cytidine-3'-monophosphate,Cytidine-3'-monophosphate,|CPD-3711|,C05822,CAS 84-52-6,P-Source,organic
+PM4A,C10,PM4A-C10,Cytidine-5'-monophosphate,Cytidine-5'-monophosphate,|CMP|,C00055,CAS 6757-06-8,P-Source,organic
+PM4A,C11,PM4A-C11,"Cytidine- 2',3'-cyclic monophosphate","Cytidine- 2',3'-cyclic monophosphate",|CPD-3713|,NA,CAS 15718-51-1,P-Source,organic
+PM4A,C12,PM4A-C12,"Cytidine- 3',5'-cyclic monophosphate","Cytidine- 3',5'-cyclic monophosphate",|CPD-683|,C00941,CAS 3616-08-8,P-Source,organic
+PM4A,D1,PM4A-D1,D-Mannose-1-Phosphate,D-Mannose-1-Phosphate,|MANNOSE-1P|,C00636,CAS 99749-54-9,P-Source,organic
+PM4A,D2,PM4A-D2,D-Mannose-6-Phosphate,D-Mannose-6-Phosphate,|MANNOSE-6P|,C00275,CAS 33068-18-7,P-Source,organic
+PM4A,D3,PM4A-D3,Cysteamine-S-Phosphate,Cysteamine-S-Phosphate,|CPD-3721|,NA,CAS 3724-89-8,P-Source,organic
+PM4A,D4,PM4A-D4,Phospho-L-Arginine,Phospho-L-Arginine,|L-ARGININE-P|,C05945,CAS 108321-86-4,P-Source,organic
+PM4A,D5,PM4A-D5,O-Phospho-D-Serine,O-Phospho-D-Serine,|CPD-3722|,C02532,CAS 73913-63-0,P-Source,organic
+PM4A,D6,PM4A-D6,O-Phospho-L-Serine,O-Phospho-L-Serine,|3-P-SERINE|,C01005,CAS 407-41-0,P-Source,organic
+PM4A,D7,PM4A-D7,O-Phospho-L-Threonine,O-Phospho-L-Threonine,|L-THREONINE-O-3-PHOSPHATE|,NA,CAS 1114-81-4,P-Source,organic
+PM4A,D8,PM4A-D8,Uridine-2'-monophosphate,Uridine-2'-monophosphate,|CPD-3723|,C03031,CAS 56070-25-8,P-Source,organic
+PM4A,D9,PM4A-D9,Uridine-3'-monophosphate,Uridine-3'-monophosphate,|CPD-3724|,C01368,CAS 35170-03-7,P-Source,organic
+PM4A,D10,PM4A-D10,Uridine-5'-monophosphate,Uridine-5'-monophosphate,|UMP|,C00105,CAS 3387-36-8,P-Source,organic
+PM4A,D11,PM4A-D11,"Uridine-2',3'-cyclic-monophosphate","Uridine-2',3'-cyclic-monophosphate",|CPD-3725|,C02355,CAS 15718-50-0,P-Source,organic
+PM4A,D12,PM4A-D12,"Uridine-3',5'-cyclic-monophosphate","Uridine-3',5'-cyclic-monophosphate",|CPD-3727|,NA,CAS 56632-58-7,P-Source,organic
+PM4A,E1,PM4A-E1,O-Phospho-D-Tyrosine,O-Phospho-D-Tyrosine,|CPD-3729|,C06501,CAS 108321-25-1,P-Source,organic
+PM4A,E2,PM4A-E2,O-Phospho-L-Tyrosine,O-Phospho-L-Tyrosine,|CPD-3728|,C06501,CAS 21820-51-9,P-Source,organic
+PM4A,E3,PM4A-E3,Phosphocreatine,Phosphocreatine,|CREATINE-P|,C02305,CAS 19333-65-4,P-Source,organic
+PM4A,E4,PM4A-E4,Phosphoryl-Choline,Phosphoryl-Choline,|PHOSPHORYL-CHOLINE|,C00588,CAS 4826-71-5,P-Source,organic
+PM4A,E5,PM4A-E5,O-Phosphoryl Ethanolamine,O-Phosphoryl Ethanolamine,|PHOSPHORYL-ETHANOLAMINE|,C00346,CAS 1071-23-4,P-Source,organic
+PM4A,E6,PM4A-E6,Phosphono Acetic Acid,Phosphono Acetic Acid,|CPD-764|,C05682,CAS 4408-78-0,P-Source,organic
+PM4A,E7,PM4A-E7,2-Aminoethyl Phosphonic Acid,2-Aminoethyl Phosphonic Acid,|CPD-1106|,C03557,CAS 2041-14-7,P-Source,organic
+PM4A,E8,PM4A-E8,Methylene Diphosphonic Acid,Methylene Diphosphonic Acid,|CPD-3731|,NA,CAS 39478-93-8,P-Source,organic
+PM4A,E9,PM4A-E9,Thymidine-3'-monophosphate,Thymidine-3'-monophosphate,|CPD-3732|,NA,CAS 108320-91-8,P-Source,organic
+PM4A,E10,PM4A-E10,Thymidine-5'-monophosphate,Thymidine-5'-monophosphate,|TMP|,C00364,CAS 33430-62-5,P-Source,organic
+PM4A,E11,PM4A-E11,Inositol Hexaphosphate,Inositol Hexaphosphate,|MI-HEXAKISPHOSPHATE|,C01204,CAS 14306-25-3,P-Source,organic
+PM4A,E12,PM4A-E12,"Thymidine 3',5'-cyclic-monophosphate","Thymidine 3',5'-cyclic-monophosphate",|CPD-3733|,NA,CAS 76567-90-3,P-Source,organic
+PM4A,F1,PM4A-F1,Negative Control,Negative Control_S,|PYRUVATE|,NA,NA,S-Source,Negative control
+PM4A,F2,PM4A-F2,Sulfate,Sulfate,|SULFATE|,C00059,CAS 7727-73-3,S-Source,inorganic
+PM4A,F3,PM4A-F3,Thiosulfate,Thiosulfate,|S2O3|,C00320,CAS 10102-17-7,S-Source,inorganic
+PM4A,F4,PM4A-F4,Tetrathionate,Tetrathionate,|CPD-14|,C02084,CAS 13721-29-4,S-Source,inorganic
+PM4A,F5,PM4A-F5,Thiophosphate,Thiophosphate_S,|CPD-3734|,NA,CAS 10489-48-2,S-Source,inorganic
+PM4A,F6,PM4A-F6,Dithiophosphate,Dithiophosphate_S,|CPD-3735|,NA,CAS 13473-25-1,S-Source,inorganic
+PM4A,F7,PM4A-F7,L-Cysteine,L-Cysteine_S,|CYS|,C00097,CAS 7048-04-6,S-Source,organic
+PM4A,F8,PM4A-F8,D-Cysteine,D-Cysteine,|D-CYSTEINE|,C00793,CAS 207121-46-8,S-Source,organic
+PM4A,F9,PM4A-F9,L-Cysteinyl-Glycine,L-Cysteinyl-Glycine,|CYS-GLY|,NA,CAS 19246-18-5,S-Source,organic
+PM4A,F10,PM4A-F10,L-Cysteic Acid,L-Cysteic Acid,|L-CYSTEATE|,C00506,CAS 23537-25-9,S-Source,organic
+PM4A,F11,PM4A-F11,Cysteamine,Cysteamine,|CPD-239|,C01678,CAS 156-57-0,S-Source,organic
+PM4A,F12,PM4A-F12,L-Cysteine Sulfinic Acid,L-Cysteine Sulfinic Acid,|3-SULFINOALANINE|,C00606,CAS 1115-65-7,S-Source,organic
+PM4A,G1,PM4A-G1,N-Acetyl-L-Cysteine,N-Acetyl-L-Cysteine,|CPD-9175|,C06809,CAS 616-91-1,S-Source,organic
+PM4A,G2,PM4A-G2,S-Methyl-L-Cysteine,S-Methyl-L-Cysteine,|S-METHYL-L-CYSTEINE|,C03540,CAS 1187-84-4,S-Source,organic
+PM4A,G3,PM4A-G3,Cystathionine,Cystathionine,|L-CYSTATHIONINE|,C00542,CAS 535-34-2,S-Source,organic
+PM4A,G4,PM4A-G4,Lanthionine,Lanthionine,|CPD-3736|,NA,CAS 922-55-4,S-Source,organic
+PM4A,G5,PM4A-G5,Glutathione,Glutathione_S,|GLUTATHIONE|,C00051,CAS 70-18-8,S-Source,organic
+PM4A,G6,PM4A-G6,"D,L-Ethionine","D,L-Ethionine",|ETHIONINE|,C11227,CAS 67-21-0,S-Source,organic
+PM4A,G7,PM4A-G7,L-Methionine,L-Methionine_S,|MET|,C00073,CAS 63-68-3,S-Source,organic
+PM4A,G8,PM4A-G8,D-Methionine,D-Methionine,|CPD-218|,C00855,CAS 348-67-4,S-Source,organic
+PM4A,G9,PM4A-G9,Glycyl-L-Methionine,Glycyl-L-Methionine,|CPD-13393|,NA,CAS 554-94-9,S-Source,organic
+PM4A,G10,PM4A-G10,"N-Acetyl-D,L-Methionine","N-Acetyl-D,L-Methionine",|CPD-3738|,C02712,CAS 71463-44-0,S-Source,organic
+PM4A,G11,PM4A-G11,L-Methionine Sulfoxide,L-Methionine Sulfoxide,|L-Methionine-sulfoxides|,C02989,CAS 3226-65-1,S-Source,organic
+PM4A,G12,PM4A-G12,L-Methionine Sulfone,L-Methionine Sulfone,|CPD-3739|,NA,CAS 7314-32-1,S-Source,organic
+PM4A,H1,PM4A-H1,L-Djenkolic Acid,L-Djenkolic Acid,|CPD-3740|,C08275,CAS 28052-93-9,S-Source,organic
+PM4A,H2,PM4A-H2,Thiourea,Thiourea,|CPD-3741|,C14415,CAS 62-56-6,S-Source,organic
+PM4A,H3,PM4A-H3,1-Thio-beta-D-Glucose,1-Thio-beta-D-Glucose,|CPD-3742|,NA,CAS 10593-29-0,S-Source,organic
+PM4A,H4,PM4A-H4,"D,L-Lipoamide","D,L-Lipoamide",|LIPOAMIDE|,C00248,CAS 940-69-2,S-Source,organic
+PM4A,H5,PM4A-H5,Taurocholic Acid,Taurocholic Acid,|CPD-3743|,C05122,CAS 145-42-6,S-Source,organic
+PM4A,H6,PM4A-H6,Taurine,Taurine,|TAURINE|,C00245,CAS 107-35-7,S-Source,organic
+PM4A,H7,PM4A-H7,Hypotaurine,Hypotaurine,|HYPOTAURINE|,C00519,CAS 300-84-5,S-Source,organic
+PM4A,H8,PM4A-H8,p-Amino Benzene Sulfonic Acid,p-Amino Benzene Sulfonic Acid,|CPD-10427|,C00568,CAS 555-06-6,S-Source,organic
+PM4A,H9,PM4A-H9,Butane Sulfonic Acid,Butane Sulfonic Acid,|CPD-3744|,NA,CAS 2386-54-1,S-Source,organic
+PM4A,H10,PM4A-H10,2-Hydroxyethane Sulfonic Acid,2-Hydroxyethane Sulfonic Acid,|CPD-3745|,C05123,CAS 1562-00-1,S-Source,organic
+PM4A,H11,PM4A-H11,Methane Sulfonic Acid,Methane Sulfonic Acid,|CPD-3746|,C11145,CAS 75-75-2,S-Source,organic
+PM4A,H12,PM4A-H12,Tetramethylene Sulfone,Tetramethylene Sulfone,|CPD-3747|,NA,CAS 126-33-0,S-Source,organic
+PM5,A1,PM5-A1,Negative Control,Negative Control_Nutritional supplement,NA,NA,NA,Nutritional supplement,Negative control
+PM5,A2,PM5-A2,Positive Control,Positive Control,NA,NA,NA,Nutritional supplement,Positive control
+PM5,A3,PM5-A3,L-Alanine,L-Alanine_Nutritional supplement,NA,C00041,CAS 56-41-7,Nutritional supplement,NA
+PM5,A4,PM5-A4,L-Arginine,L-Arginine_Nutritional supplement,NA,C00062,CAS 1119-34-2,Nutritional supplement,NA
+PM5,A5,PM5-A5,L-Asparagine,L-Asparagine_Nutritional supplement,NA,C00152,CAS 70-47-3,Nutritional supplement,NA
+PM5,A6,PM5-A6,L-Aspartic acid,L-Aspartic acid,NA,C00049,CAS 3792-50-5,Nutritional supplement,NA
+PM5,A7,PM5-A7,L-Cysteine,L-Cysteine_Nutritional supplement,NA,C00097,CAS 7048-04-6,Nutritional supplement,NA
+PM5,A8,PM5-A8,L-Glutamic acid,L-Glutamic acid,NA,C00025,CAS 6106-04-3,Nutritional supplement,NA
+PM5,A9,PM5-A9,"Adenosine 3`,5`-Cyclic Monophosphate","Adenosine 3`,5`-Cyclic Monophosphate",NA,C00575,CAS 37839-81-9,Nutritional supplement,NA
+PM5,A10,PM5-A10,Adenine,Adenine_Nutritional supplement,NA,C00147,CAS 6055-72-7,Nutritional supplement,NA
+PM5,A11,PM5-A11,Adenosine,Adenosine_Nutritional supplement,NA,C00212,CAS 58-61-7,Nutritional supplement,NA
+PM5,A12,PM5-A12,2`-Deoxyadenosine,2`-Deoxyadenosine,NA,C00559,CAS 16373-93-6,Nutritional supplement,NA
+PM5,B1,PM5-B1,L-Glutamine,L-Glutamine_Nutritional supplement,NA,C00064,CAS 56-85-9,Nutritional supplement,NA
+PM5,B2,PM5-B2,Glycine,Glycine_Nutritional supplement,NA,C00037,CAS 56-40-6,Nutritional supplement,NA
+PM5,B3,PM5-B3,L-Histidine,L-Histidine_Nutritional supplement,NA,C00135,CAS 5934-29-2,Nutritional supplement,NA
+PM5,B4,PM5-B4,L-Isoleucine,L-Isoleucine_Nutritional supplement,NA,C00407,CAS 73-32-5,Nutritional supplement,NA
+PM5,B5,PM5-B5,L-Leucine,L-Leucine_Nutritional supplement,NA,C00123,CAS 61-90-5,Nutritional supplement,NA
+PM5,B6,PM5-B6,L-Lysine,L-Lysine_Nutritional supplement,NA,C00047,CAS 657-27-2,Nutritional supplement,NA
+PM5,B7,PM5-B7,L-Methionine,L-Methionine_Nutritional supplement,NA,C00073,CAS 63-68-3,Nutritional supplement,NA
+PM5,B8,PM5-B8,L-Phenylalanine,L-Phenylalanine_Nutritional supplement,NA,C00079,CAS 63-91-2,Nutritional supplement,NA
+PM5,B9,PM5-B9,"Guanosine 3`,5`-Cyclic Monophosphate","Guanosine 3`,5`-Cyclic Monophosphate",NA,C00942,CAS 40732-48-7,Nutritional supplement,NA
+PM5,B10,PM5-B10,Guanine,Guanine_Nutritional supplement,NA,C00242,CAS 10333-92-3,Nutritional supplement,NA
+PM5,B11,PM5-B11,Guanosine,Guanosine_Nutritional supplement,NA,C00387,CAS 118-00-3,Nutritional supplement,NA
+PM5,B12,PM5-B12,2`-Deoxyguanosine,2`-Deoxyguanosine,NA,C00330,CAS 961-07-9,Nutritional supplement,NA
+PM5,C1,PM5-C1,L-Proline,L-Proline_Nutritional supplement,NA,C00148,CAS 147-85-3,Nutritional supplement,NA
+PM5,C2,PM5-C2,L-Serine,L-Serine_Nutritional supplement,NA,C00065,CAS 56-45-1,Nutritional supplement,NA
+PM5,C3,PM5-C3,L-Threonine,L-Threonine_Nutritional supplement,NA,C00188,CAS 72-19-5,Nutritional supplement,NA
+PM5,C4,PM5-C4,L-Tryptophan,L-Tryptophan_Nutritional supplement,NA,C00078,CAS 73-22-3,Nutritional supplement,NA
+PM5,C5,PM5-C5,L-Tyrosine,L-Tyrosine_Nutritional supplement,NA,C00082,CAS 60-18-4,Nutritional supplement,NA
+PM5,C6,PM5-C6,L-Valine,L-Valine_Nutritional supplement,NA,C00183,CAS 72-18-4,Nutritional supplement,NA
+PM5,C7,PM5-C7,L-Isoleucine + L-Valine,L-Isoleucine + L-Valine,NA,NA,NA,Nutritional supplement,NA
+PM5,C8,PM5-C8,Hydroxy-L-Proline,Hydroxy-L-Proline_Nutritional supplement,NA,C01015,CAS 51-35-4,Nutritional supplement,NA
+PM5,C9,PM5-C9,(5) 4-Amino-Imidazole-4(5)-Carboxamide,(5) 4-Amino-Imidazole-4(5)-Carboxamide,NA,C04051,CAS 72-40-2,Nutritional supplement,NA
+PM5,C10,PM5-C10,Hypoxanthine,Hypoxanthine,NA,C00262,CAS 68-94-0,Nutritional supplement,NA
+PM5,C11,PM5-C11,Inosine,Inosine_Nutritional supplement,NA,C00294,CAS 58-63-9,Nutritional supplement,NA
+PM5,C12,PM5-C12,2`-Deoxyinosine,2`-Deoxyinosine,NA,C05512,CAS 890-38-0,Nutritional supplement,NA
+PM5,D1,PM5-D1,L-Ornithine,L-Ornithine_Nutritional supplement,NA,C00077,CAS 3184-13-2,Nutritional supplement,NA
+PM5,D2,PM5-D2,L-Citrulline,L-Citrulline_Nutritional supplement,NA,C00327,CAS 372-75-8,Nutritional supplement,NA
+PM5,D3,PM5-D3,Chorismic acid,Chorismic acid,NA,C00251,CAS 617-12-9,Nutritional supplement,NA
+PM5,D4,PM5-D4,(-)Shikimic acid,(-)Shikimic acid,NA,C00493,CAS 138-59-0,Nutritional supplement,NA
+PM5,D5,PM5-D5,L-Homoserine Lactone,L-Homoserine Lactone,NA,NA,CAS 2185-02-6,Nutritional supplement,NA
+PM5,D6,PM5-D6,D-Alanine,D-Alanine_Nutritional supplement,NA,C00133,CAS 338-69-2,Nutritional supplement,NA
+PM5,D7,PM5-D7,D-Aspartic acid,D-Aspartic acid,NA,C00402,CAS 1783-96-6,Nutritional supplement,NA
+PM5,D8,PM5-D8,D-Glutamic acid,D-Glutamic acid,NA,C00217,CAS 6893-26-1,Nutritional supplement,NA
+PM5,D9,PM5-D9,"DL-Diamino-a,e-Pimelic acid","DL-Diamino-a,e-Pimelic acid",NA,C00680,CAS 2577-62-0,Nutritional supplement,NA
+PM5,D10,PM5-D10,Cytosine,Cytosine_Nutritional supplement,NA,C00380,CAS 71-30-7,Nutritional supplement,NA
+PM5,D11,PM5-D11,Cytidine,Cytidine_Nutritional supplement,NA,C00475,CAS 6018-48-0,Nutritional supplement,NA
+PM5,D12,PM5-D12,2`-Deoxycytidine,2`-Deoxycytidine,NA,C00881,CAS 951-77-9,Nutritional supplement,NA
+PM5,E1,PM5-E1,Putrescine,Putrescine_Nutritional supplement,NA,C00134,CAS 333-93-7,Nutritional supplement,NA
+PM5,E2,PM5-E2,Spermidine,Spermidine,NA,C00315,CAS 334-50-9,Nutritional supplement,NA
+PM5,E3,PM5-E3,Spermine,Spermine,NA,C00750,CAS 306-67-2,Nutritional supplement,NA
+PM5,E4,PM5-E4,Pyridoxine,Pyridoxine,NA,C00314,CAS 58-56-0,Nutritional supplement,NA
+PM5,E5,PM5-E5,Pyridoxal,Pyridoxal,NA,C00250,CAS 65-22-5,Nutritional supplement,NA
+PM5,E6,PM5-E6,Pyridoxamine,Pyridoxamine,NA,C00534,CAS 524-36-7,Nutritional supplement,NA
+PM5,E7,PM5-E7,b-Alanine,b-Alanine,NA,C00099,CAS 107-95-9,Nutritional supplement,NA
+PM5,E8,PM5-E8,D-Pantothenic acid,D-Pantothenic acid,NA,C00864,CAS 137-08-6,Nutritional supplement,NA
+PM5,E9,PM5-E9,Orotic acid,Orotic acid,NA,C00295,CAS 154-85-8,Nutritional supplement,NA
+PM5,E10,PM5-E10,Uracil,Uracil_Nutritional supplement,NA,C00106,CAS 66-22-8,Nutritional supplement,NA
+PM5,E11,PM5-E11,Uridine,Uridine_Nutritional supplement,NA,C00299,CAS 58-96-8,Nutritional supplement,NA
+PM5,E12,PM5-E12,2`-Deoxyuridine,2`-Deoxyuridine,NA,C00526,CAS 951-78-0,Nutritional supplement,NA
+PM5,F1,PM5-F1,Quinolinic acid,Quinolinic acid,NA,C03722,CAS 89-00-9,Nutritional supplement,NA
+PM5,F2,PM5-F2,Nicotinic acid,Nicotinic acid,NA,C00253,CAS 59-67-6,Nutritional supplement,NA
+PM5,F3,PM5-F3,Nicotinamide,Nicotinamide,NA,C00153,CAS 98-92-0,Nutritional supplement,NA
+PM5,F4,PM5-F4,b-Nicotinamide Adenine Dinucleotide,b-Nicotinamide Adenine Dinucleotide,NA,C00003,CAS 53-84-9,Nutritional supplement,NA
+PM5,F5,PM5-F5,d-Amino-levulinic acid,d-Amino-levulinic acid,NA,C00431,CAS 627-95-2,Nutritional supplement,NA
+PM5,F6,PM5-F6,Hematin,Hematin,NA,NA,CAS 15489-90-4,Nutritional supplement,NA
+PM5,F7,PM5-F7,Deferoxamine,Deferoxamine,NA,C06940,CAS 138-14-7,Nutritional supplement,NA
+PM5,F8,PM5-F8,a-D-Glucose,a-D-Glucose,NA,C00031,CAS 50-99-7,Nutritional supplement,NA
+PM5,F9,PM5-F9,N-Acetyl-D-Glucosamine,N-Acetyl-D-Glucosamine_Nutritional supplement,NA,C00140,CAS 7512-17-6,Nutritional supplement,NA
+PM5,F10,PM5-F10,Thymine,Thymine_Nutritional supplement,NA,C00178,CAS 65-71-4,Nutritional supplement,NA
+PM5,F11,PM5-F11,Glutathione,Glutathione_Nutritional supplement,NA,C00051,CAS 70-18-8,Nutritional supplement,NA
+PM5,F12,PM5-F12,Thymidine,Thymidine_Nutritional supplement,NA,C00214,CAS 50-89-5,Nutritional supplement,NA
+PM5,G1,PM5-G1,Oxaloacetic acid,Oxaloacetic acid,NA,C00036,CAS 328-42-7,Nutritional supplement,NA
+PM5,G2,PM5-G2,D-Biotin,D-Biotin,NA,C00120,CAS 58-85-5,Nutritional supplement,NA
+PM5,G3,PM5-G3,Cyanocobalamin,Cyanocobalamin,NA,C02823,CAS 68-19-9,Nutritional supplement,NA
+PM5,G4,PM5-G4,p-Amino-Benzoic acid,p-Amino-Benzoic acid,NA,C00568,CAS 555-06-6,Nutritional supplement,NA
+PM5,G5,PM5-G5,Folic acid,Folic acid,NA,C00504,CAS 59-30-3,Nutritional supplement,NA
+PM5,G6,PM5-G6,Inosine + Thiamine,Inosine + Thiamine,NA,NA,NA,Nutritional supplement,NA
+PM5,G7,PM5-G7,Thiamine,Thiamine,NA,C00378,CAS 67-03-8,Nutritional supplement,NA
+PM5,G8,PM5-G8,Thiamine Pyrophosphate,Thiamine Pyrophosphate,NA,C00068,CAS 154-87-0,Nutritional supplement,NA
+PM5,G9,PM5-G9,Riboflavin,Riboflavin,NA,C00255,CAS 83-88-5,Nutritional supplement,NA
+PM5,G10,PM5-G10,Pyrrolo-Quinoline Quinone,Pyrrolo-Quinoline Quinone,NA,C00113,CAS 72909-34-3,Nutritional supplement,NA
+PM5,G11,PM5-G11,Menadione,Menadione,NA,C05377,CAS 57414-02-5,Nutritional supplement,NA
+PM5,G12,PM5-G12,m-Inositol,m-Inositol_Nutritional supplement,NA,C00137,CAS 87-89-8,Nutritional supplement,NA
+PM5,H1,PM5-H1,Butyric acid,Butyric acid,NA,C00246,CAS 156-54-7,Nutritional supplement,NA
+PM5,H2,PM5-H2,a-Hydroxybutyric acid,a-Hydroxybutyric acid,NA,C05984,CAS 19054-57-0,Nutritional supplement,NA
+PM5,H3,PM5-H3,a-Ketobutyric acid,a-Ketobutyric acid,NA,C00109,CAS 2013-26-5,Nutritional supplement,NA
+PM5,H4,PM5-H4,Caprylic acid,Caprylic acid,NA,C06423,CAS 1984-06-1,Nutritional supplement,NA
+PM5,H5,PM5-H5,DL-Thioctic acid,DL-Thioctic acid,NA,C00725,CAS 1077-28-7,Nutritional supplement,NA
+PM5,H6,PM5-H6,DL-Mevalonic acid Lactone,DL-Mevalonic acid Lactone,NA,C02104,CAS 674-26-0,Nutritional supplement,NA
+PM5,H7,PM5-H7,DL-Carnitine,DL-Carnitine,NA,C00487,CAS 461-05-2,Nutritional supplement,NA
+PM5,H8,PM5-H8,Choline,Choline,NA,C00114,CAS 77-91-8,Nutritional supplement,NA
+PM5,H9,PM5-H9,Tween 20,Tween 20_Nutritional supplement,NA,C11624,CAS 9005-64-5,Nutritional supplement,NA
+PM5,H10,PM5-H10,Tween 40,Tween 40_Nutritional supplement,NA,NA,CAS 9005-66-7,Nutritional supplement,NA
+PM5,H11,PM5-H11,Tween 60,Tween 60,NA,NA,CAS 9005-67-8,Nutritional supplement,NA
+PM5,H12,PM5-H12,Tween 80,Tween 80_Nutritional supplement,NA,C11625,CAS 9005-65-6,Nutritional supplement,NA

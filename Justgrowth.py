@@ -151,6 +151,7 @@ def main(argv=None):
     if 'Design' in ifile:
         print 'Reading experimental design information!'
         info,ilist,dlist=readinfo(ifile)
+        
         udlist=list(set(dlist))
         subs=[[]]*len(ilist)
         descriptors=readdesc(udlist)
@@ -170,7 +171,7 @@ def main(argv=None):
     #Support absolute links?
     odir=dircheck(odir)
 
-    data=collect(ilist)
+    data=collect(info)
     
     #Additional step to check if there are missing values?
     
@@ -551,16 +552,16 @@ def collect(info):
             if reader=='Tecan':
                 
                 if itp == 'xlsx':
-                    sheet = readxls(ifl)
+                    sheet = readxls_s(ifl)
                     data[ifl] = collect_Tecan(sheet)
                 elif itp in ['asc','txt']:
-                    sheet = readtxt(ifl)
+                    sheet = readtext(ifl)
                     data[ifl] = collect_Tecan(sheet)
                 else:
                     raise Exception('Unknown file format: {}!'.format(itp))
                     
             elif reader=='Biotek':
-                sheet=readtxt(ifl)
+                sheet=readtext(ifl)
                 data[ifl]=collect_Biotek(sheet)
 
             else:
@@ -571,10 +572,10 @@ def collect(info):
                 sheet=readxls(ifl)
                 data[ifl]=collect_Tecan(sheet)
             elif itp=='asc':
-                sheet=readtxt(ifl)
+                sheet=readtext(ifl)
                 data[ifl]=collect_Tecan(sheet)
             elif itp=='txt':
-                sheet=readtxt(ifl)
+                sheet=readtext(ifl)
                 data[ifl]=collect_Biotek(sheet)
             else:
                 raise Exception('Unknown file format: {}!'.format(itp))

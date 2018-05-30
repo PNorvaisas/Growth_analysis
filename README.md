@@ -56,8 +56,8 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
 
 ### Windows
 - Install [Anaconda](https://conda.io/docs/user-guide/install/windows.html)
--- Choose Anaconda instead of Miniconda (reduced functionality)
--- You need to add Anaconda to your PATH!
+    - Choose Anaconda instead of Miniconda (reduced functionality)
+    - You need to add Anaconda to your PATH!
 - Install [git](https://git-scm.com/download/win) for Windows
 - [Navigate](https://www.computerhope.com/issues/chusedos.htm) to a selected `<location>` using `Command Prompt`
 - Clone `Growth_analysis` GitHub repository into a selected `<location>`:

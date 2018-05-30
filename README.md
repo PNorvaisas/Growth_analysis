@@ -102,7 +102,7 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
     - **Pattern** - names of `Pattern` tables, which contain information about the variables investigated in a particular plate
     - **Reader** - name of the reader used to collect data: **Tecan** or **Biotek**
     - Any additional variables of interest which can be applied to the whole plate, like **Replicate**, **Date**, etc.
-- `Pattern` (template `Justgrowth_Pattern_template.xlsx`) file can be any **Excel** table (`.xls`, `.xlsx`) with multiple sheets, each of which describes different variable in the plate and particular values assigned to each well:
+- `Pattern` (template `Justgrowth_Pattern_template.xlsx`) file can be any **Excel** table (`.xls`, `.xlsx`) with multiple sheets, each of which describes different variable in the plate and particular value assigned to each well:
     - **Strain**, **Drug**, **Drug_conc**, etc.
 - As a rule of a thumb, experiment description in `Design` file should be as detailed as possible
 - `Design` file can be used to describe variables which are **shared** in the whole plate.
@@ -110,7 +110,7 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
 ### Runnig in MacOS, Unix
 - Navigate to the working directory (where your plate reader and `Design.xlsx` files are) in `Terminal` and run: 
     ```batch
-        Justgrowth.py -i Design.xlsx -o Output_dir
+    Justgrowth.py -i Design.xlsx -o Output_dir
     ```
 ### Windows
 - Copy `Justgrowth.py` to where your plate reader and `Design.xlsx` files are.

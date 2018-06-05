@@ -185,7 +185,7 @@ def main(argv=None):
             metabolites=pd.read_csv(dfile)
 
         else:
-            raise Exception("No database file specified!") 
+            raise Exception("No Biolog metabolites file specified!") 
 
 
     except Exception, e:

@@ -75,9 +75,9 @@ Flags:
 Arguments:
     -i <files>   Input file
     -p <file>    Plate arrangement
-    -o <dir>     Directory to write output to
+    -o <dir>     Directory to write the output to
 Options:
-    Full         Return additional figures and data columns
+    full         Return additional figures and data columns
 '''
 
 class Usage(Exception):
@@ -141,32 +141,50 @@ def main(argv=None):
         return 2
 
     #Check the input integrity
+    
+ 
+
+    try:
+        if os.path.isfile(ifile):
+            ipath, iname, itype = filename(ifile)
+            info=readinfo(ifile)
+            ilist=info['File'].values
+            dlist=info['Pattern'].values
+            udlist=list(set(dlist))
+            descriptors=readdesc(udlist)
+        else:
+            raise Exception("No design file specified!")
+
+    except Exception, e:
+        print e
+        #print "!!!-------------------------------------------!!!"
+        sys.exit(1)
 
     print '''\n\n---------------------------\n\n'''
 
 
     print optionsset %vars()
     #----------------------------
-
-    if 'Design' in ifile:
-        print 'Reading experimental design information!'
-        info,ilist,dlist=readinfo(ifile)
+    
+#     if 'Design' in ifile:
+#         print 'Reading experimental design information!'
+#         info,ilist,dlist=readinfo(ifile)
         
-        udlist=list(set(dlist))
-        subs=[[]]*len(ilist)
-        descriptors=readdesc(udlist)
-    else:
-        info={}
-        print 'Reading data files!'
-        print ifile
-        ilist=genlist(ifile)
-        #print ilist
-        if pfile!='':
-            dlist=genlist(pfile)
-            udlist=list(set(dlist))
-            descriptors=readdesc(udlist)
-        else:
-            descriptors={}
+#         udlist=list(set(dlist))
+#         subs=[[]]*len(ilist)
+#         descriptors=readdesc(udlist)
+#     else:
+#         info={}
+#         print 'Reading data files!'
+#         print ifile
+#         ilist=genlist(ifile)
+#         #print ilist
+#         if pfile!='':
+#             dlist=genlist(pfile)
+#             udlist=list(set(dlist))
+#             descriptors=readdesc(udlist)
+#         else:
+#             descriptors={}
 
     #Support absolute links?
     odir=dircheck(odir)
@@ -182,8 +200,6 @@ def main(argv=None):
     writesheets(sheets,odir)
 
     plot_comparison(data,odir,'all')
-
-    
 
 #-------------Functions------------
 
@@ -306,7 +322,13 @@ def readdesc(udlist):
     
     ddata=[]
     for din,dfile in enumerate(udlist):
-        book=xlrd.open_workbook(dfile,formatting_info=False)
+        
+        
+        try:
+            book=xlrd.open_workbook(dfile,formatting_info=False)
+        except Exception, e:
+            raise Exception('Cannot open file: {}'.format(dfile))
+            
         variables=book.sheet_names()
         
         varlist=[]
@@ -345,6 +367,7 @@ def readinfo(ifile):
     dlist=[]
     odirs=[]
     ipt, inm, itp = filename(ifile)
+    
     if itp in ['xlsx','xls']:
         data=readxls_s(ifile)
     elif itp=='csv':
@@ -356,22 +379,21 @@ def readinfo(ifile):
     nec=['File','Pattern']
 
     addhead=[key for key in headin.keys() if key not in nec]
-
+    
+    miss=[hd for hd in nec if hd not in headers]
+    
     if all(n in headers for n in nec):
         print 'Necessary headers found!'
     else:
-        print 'Missing essential headers (File, Pattern) in description file!'
-        print headers
-        sys.exit(0)
+        raise Exception('Missing essential headers in description file!\n{}'.format(miss))
      
     info=pd.DataFrame(data[1:],columns=headers)
-    ilist=info['File']
-    dlist=info['Pattern']
+    
+    info=info[info['File']!='']
     
     #info=info.set_index('File')
 
-    return info, ilist, dlist
-
+    return info
 
 
 
@@ -539,7 +561,7 @@ def collect(info):
     
     data=NestedDict()
     
-    ilist=info['File']
+    ilist=info['File'].values
     
     for index,row in info.iterrows():
         
@@ -1072,14 +1094,13 @@ def plot_comparison(data,dirn,figs):
             
 
             #Need to fix metabolites
-            plot=plot_2D('{} {}'.format(inm,fg),fgdata[fg],time_h,labels,gfitc,plsize)
+            plot=plot_2D(inm,fg,fgdata[fg],time_h,labels,gfitc,plsize)
             plot.savefig('{}/{}.pdf'.format(dirn,inm+'_'+fg))
             plot.close()
 
 
 
-def plot_2D(title,datac,time,labels,gfitc,plsize):
-    
+def plot_2D(plate,fg,datac,time,labels,gfitc,plsize):
     
     if plsize==96:
         minrow=1
@@ -1116,7 +1137,7 @@ def plot_2D(title,datac,time,labels,gfitc,plsize):
         cols=20
         rows=12
         
-    plate,fg=title.split()
+    title="{} {}".format(plate,fg)
     
     fig,axes=plt.subplots(nrows=rows, ncols=cols, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
     fig.suptitle(title)

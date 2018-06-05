@@ -113,8 +113,9 @@ Flags:
 Arguments:
     -i <files>   Design table
     -d <file>    Biolog_metabolites.csv
-    -o <dir>     directory to write output to
-
+    -o <dir>     directory to write the output to
+Options:
+    full         Return additional figures and data columns
 '''
 
 
@@ -133,15 +134,17 @@ Options:
       Files:    %(ifile)s
 Metabolites:    %(dfile)s
         Out:    %(odir)s
+       Full:    %(full)s
 <--------------------------------------------->
     '''
 
 def main(argv=None):
-
+    etype='Biolog'
     ifile=""
     dfile=""
     odir='Output'
-    etype='Biolog'
+    
+    full=False
     
     comparison=False
     integrals=''
@@ -165,6 +168,10 @@ def main(argv=None):
                 dfile=value
             if option in ("-o", "--out"):
                 odir=value
+                
+        for argument in args:        
+            if argument in ("full", "--full"):
+                full = True
             
     except Usage, err:
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
@@ -199,14 +206,14 @@ def main(argv=None):
     if odir!="":
         dirn=dircheck(odir)
 
-    ilist=info['File']
+    ilist=info['File'].values
     
     
     uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
     
     data=collect(info)
    
-    data=analyse(data)
+    data=analyse(data,full)
 
     sheets=makesheets(data,metabolites,info,etype)
     
@@ -807,9 +814,9 @@ def loggrowth(x,y,y0=np.power(2.0,-4),thres=-5):
             tmax=(maxy-c)/(a)
         except TypeError:
             #print 'Curve_fit encountered an error!'
-            a,c,t0,tmax=[0,0,float("inf"),float("inf")]
+            a,c,t0,tmax=[np.nan,np.nan,np.nan,np.nan]
     else:
-        a,c,t0,tmax=[0,0,float("inf"),float("inf")]
+        a,c,t0,tmax=[np.nan,np.nan,np.nan,np.nan]
 
         
         # for par,nm in IT.izip([a,c,t0],['a','c','t0']):
@@ -841,7 +848,7 @@ def absgrowth(xvars,y,margin=0.01):
         except (RuntimeError, ValueError, RuntimeWarning, UnboundLocalError) as e:
             #print e
             #print 'Curve_fit encountered an error in well {}!'.format(well)
-            A,lam,u=[0,np.inf,0]
+            A,lam,u=[0,np.nan,0]
 
         if A>0 and lam<np.inf and u>0:
             yreducedf = growth(xvars,*popt) - max(growth(xvars,*popt))*(1-margin) #maxg#
@@ -849,9 +856,9 @@ def absgrowth(xvars,y,margin=0.01):
             if len(freducedf.roots())>0:
                 tmaxf=freducedf.roots()[0]
             else:
-                tmaxf=np.inf
+                tmaxf=np.nan
         else:
-            tmaxf=np.inf
+            tmaxf=np.nan
 
         yreduced = growc - maxg*(1-margin)
         try:
@@ -859,21 +866,20 @@ def absgrowth(xvars,y,margin=0.01):
             if len(freduced.roots()>0):
                 tmax=freduced.roots()[0]
             else:
-                tmax=np.inf
+                tmax=np.nan
         except TypeError:
             #print 'Integration encountered an error in well {}!'.format(well)
-            tmax=np.inf
+            tmax=np.nan
     else:
-        A,lam,u=[0,np.inf,0]
-        tmaxf=np.inf
-        tmax=np.inf
+        A,lam,u=[0,np.nan,0]
+        tmaxf=np.nan
+        tmax=np.nan
 
     #data[plate]['Summary']['GrowthFit'][well]=[]
     return A,lam,u,tmax
 
 
-
-def analyse(data):
+def analyse(data,full):
 
     window_h=2
     thres=np.power(2.0,-5)
@@ -909,54 +915,77 @@ def analyse(data):
             rawdata=data[plate][wave]#[well]
 
             #Change windows size
-            nobagall=rawdata.apply(func=lambda row: pd.Series( setbar(row-np.mean(row[:window]) ,0.0),index=time),axis=1 )
+            nobagall=rawdata.apply( func=lambda row: pd.Series( setbar(row-np.mean(row[:window]) ,0.0),index=time),axis=1 )
+            
             wfilt=nobagall.apply( func=lambda row: pd.Series( Wiener(row,msize), index=time) ,axis=1)
             
-            logfilt=np.log2( wfilt )#.apply(lambda row: Wiener(row,msize),axis=1)
+            
+            logfilt=np.log2( wfilt )
+            #logfilt=logfilt.apply(func=lambda row: pd.Series(np.where(np.isinf(row), None, row),index=time), axis=1)
+            
             
             dtts=wfilt.apply(func=lambda row: pd.Series(ip.UnivariateSpline(time_h, row, s=0).derivative(1)(time_h),index=time),axis=1 )
             
-            logfiltdt=logfilt.apply( func=lambda row: pd.Series(ip.UnivariateSpline(time_h, row.replace(-np.inf, -5) ,s=0).derivative(1)(time_h) ,index=time),axis=1)
+            
+#             logfiltdt=logfilt.apply( func=lambda row: pd.Series(ip.UnivariateSpline(time_h, row.replace(-np.inf, -5) ,s=0).derivative(1)(time_h) ,index=time),axis=1)
             
             #dtfilt=dtts.apply( lambda row: Wiener(row,msize//2),axis=1)
+            
             
             data[plate][wave+'_b']=nobagall
             data[plate][wave+'_f']=wfilt
             data[plate][wave+'_log']=logfilt
             data[plate][wave+'_dt']=dtts
             #data[plate][wave+'_logdt']=logfiltdt
-
-            data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']#,wave+'_logdt'#,wave+'_dt'
+            
+            if full:
+                data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']
+            else:
+                data[plate]['Figures']=data[plate]['Figures']+[wave+'_f',wave+'_log']
             
         summary=pd.DataFrame([],index=wells)
             
         for fg in data[plate]['Figures']:
-            #print fg
+            summaries=[summary]
             fgdata=data[plate][fg]
             
-            maxs=pd.DataFrame({ '{}_Max'.format(fg) : fgdata.apply(max,axis=1) })
-            mins=pd.DataFrame({ '{}_Min'.format(fg) : fgdata.apply(min,axis=1) })
-            
-            #Growth fit still does not work
-            
-            summaries=[summary,maxs,mins]
-            
-            if '_f' in fg:
+           
+            if full:
+                maxs=pd.DataFrame({ '{}_Max'.format(fg) : fgdata.apply(max,axis=1) })
+                mins=pd.DataFrame({ '{}_Min'.format(fg) : fgdata.apply(min,axis=1) })
+                summaries.extend([maxs,mins])
+                
+            if re.findall('_f$',fg):
                 #print fgdata
-                ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC'.format(fg):ip.UnivariateSpline(time_h,x,s=0).integral(0, maxt)}),axis=1) 
+                ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC'.format(fg):ip.UnivariateSpline(time_h,x,s=0).integral(0, maxt)}),axis=1)
+                
                 logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC'.format(fg):'{}_logAUC'.format(fg)})
-                absgfit=fgdata.apply(lambda x: pd.Series( absgrowth(time_h,x), index=['{}_AG_A'.format(fg), '{}_AG_lamda'.format(fg), '{}_AG_u'.format(fg), '{}_AG_tmax'.format(fg)]),axis=1)
                 
-                summaries.extend([ints,logints,absgfit])
-            if '_log' in fg and not '_logdt' in fg:
-                #print fgdata
+                summaries.extend([ints,logints])
+                
+                
+                if full:
+                    absgfit=fgdata.apply(lambda x: pd.Series( absgrowth(time_h,x), index=['{}_AG_A'.format(fg), '{}_AG_lamda'.format(fg), '{}_AG_u'.format(fg), '{}_AG_tmax'.format(fg)]),axis=1)
+                    summaries.append(absgfit)
+                
+                
+            if re.findall('_log$',fg):
+
                 loggfit=fgdata.apply(lambda x: pd.Series( loggrowth(time_h,x), index=['{}_LG_a'.format(fg), '{}_LG_c'.format(fg), '{}_LG_t0'.format(fg), '{}_LG_tmax'.format(fg)]),axis=1)
-                summaries.append(loggfit)
                 
+                if full:
+                    summaries.append(loggfit)
+                else:
+                    summaries.append(loggfit[['{}_LG_a'.format(fg),'{}_LG_c'.format(fg)]])
+            
+            
             summary=pd.concat(summaries, axis=1)
 
         data[plate]['Summary']=summary
+        
     return data
+
+
 
 
 def makesheets(data,descriptors,info,etype):
@@ -1036,7 +1065,8 @@ def writesheets(sheets,odir):
         #print fig
         oname='{}/{}.csv'.format(odir,sheetname)        
         sheet=sheets[sheetname]
-        sheet.to_csv(oname,index=False)
+        sheet=sheet.replace([np.inf, -np.inf], np.nan)
+        sheet.to_csv(oname,index=False,float_format='%.4f')
         
         
     

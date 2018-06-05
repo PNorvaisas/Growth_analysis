@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Justgrowth.py
+Growth.py
 
 Created by Povilas Norvaisas on 2015-02-26.
-Copyright (c) 2015. All rights reserved.
+Copyright (c) 2018. All rights reserved.
 
 """
 
@@ -59,8 +59,14 @@ import unicodedata
 import numpy as np
 import itertools as IT
 import pandas as pd
+import textwrap as tw
+
+import matplotlib
+matplotlib.use("Agg")
 
 from matplotlib import pyplot as plt
+import matplotlib.lines as mlines
+
 from scipy import interpolate as ip
 from scipy import signal as sig
 from scipy.optimize import curve_fit
@@ -88,19 +94,30 @@ def usage():
     return
 
 
-optionsset='''
+Boptionsset='''
 Options:
 <--------------------------------------------->
       Files:    %(ifile)s
-    Pattern:    %(pfile)s
+Metabolites:    %(mfile)s
         Out:    %(odir)s
        Full:    %(full)s
 <--------------------------------------------->
-    '''
+'''
+
+
+Goptionsset='''
+Options:
+<--------------------------------------------->
+      Files:    %(ifile)s
+        Out:    %(odir)s
+       Full:    %(full)s
+<--------------------------------------------->
+'''
+
 
 def main(argv=None):
     ifile=""
-    pfile=""
+    mfile=""
     msize=20
     odir='Output'
     odirn=''
@@ -108,12 +125,13 @@ def main(argv=None):
     full=False
     subst=''
     comparison=False
+    mode='growth'
     
     if argv is None:
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hi:f:d:o:p:", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hi:m:o:", ["help"])
         except getopt.error, msg:
             raise Usage(msg)
 
@@ -124,8 +142,8 @@ def main(argv=None):
                 return    
             if option in ("-i", "--input"):
                 ifile=value
-            if option in ("-p", "--pattern"):
-                pfile=value
+            if option in ("-m", "--metabolites"):
+                mfile=value
             if option in ("-o", "--out"):
                 odir=value
     
@@ -133,6 +151,10 @@ def main(argv=None):
         for argument in args:        
             if argument in ("full", "--full"):
                 full = True
+            if argument in ("biolog", "--biolog"):
+                mode = 'biolog'
+            if argument in ("growth", "--growth"):
+                mode = 'growth'
 
     except Usage, err:
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
@@ -141,18 +163,40 @@ def main(argv=None):
 
     #Check the input integrity
     
- 
-
     try:
+        
         if os.path.isfile(ifile):
             ipath, iname, itype = filename(ifile)
-            info=readinfo(ifile)
-            ilist=info['File'].values
-            dlist=info['Pattern'].values
-            udlist=list(set(dlist))
-            descriptors=readdesc(udlist)
         else:
-            raise Exception("No design file specified!")
+            raise Exception("No design file specified or it cannot be found!")
+        
+        
+        if mode=='growth':
+            print Goptionsset %vars()
+            
+            
+            nec=['File','Pattern']
+            info=readinfo(ifile,nec)
+            dlist=list(set(info['Pattern'].values))
+            descriptors=readdesc(dlist)
+            
+        elif mode=='biolog':
+            print Boptionsset %vars()
+            
+            nec=['File','Plate','Type']
+            info=readinfo(ifile,nec)
+            
+            uniques=uniquecomb(info,['Plate','Strain','Sugar_20mM','Inoculum','Uracil_uM'],'Type')
+            
+            try:
+                mpath, mname, mtype = filename(mfile)
+                descriptors=pd.read_csv(mfile)
+            except Exception, e:
+                raise Exception("No Biolog metabolites file specified!")
+
+
+        else:
+            raise Exception("Unknown mode! {}\n Possible choices: biolog/growth".format(mode))
 
     except Exception, e:
         print e
@@ -161,48 +205,26 @@ def main(argv=None):
 
     print '''\n\n---------------------------\n\n'''
 
-
-    print optionsset %vars()
     #----------------------------
     
-#     if 'Design' in ifile:
-#         print 'Reading experimental design information!'
-#         info,ilist,dlist=readinfo(ifile)
-        
-#         udlist=list(set(dlist))
-#         subs=[[]]*len(ilist)
-#         descriptors=readdesc(udlist)
-#     else:
-#         info={}
-#         print 'Reading data files!'
-#         print ifile
-#         ilist=genlist(ifile)
-#         #print ilist
-#         if pfile!='':
-#             dlist=genlist(pfile)
-#             udlist=list(set(dlist))
-#             descriptors=readdesc(udlist)
-#         else:
-#             descriptors={}
-
-    #Support absolute links?
     odir=dircheck(odir)
-
-    data=collect(info)
     
+    data=collect(info)
     #Additional step to check if there are missing values?
     
     data=analyse(data,full)
 
-    sheets=makesheets(data,descriptors,info)
-    
+    sheets=makesheets(data,descriptors,info,mode)
+
     writesheets(sheets,odir)
+    
+    if mode=='growth':
+        Gplot_comparison(data,odir,'all')
+    else:
+        Bplot_comparison(data,descriptors,odir,'all',info,uniques)
 
-    plot_comparison(data,odir,'all')
-
+        
 #-------------Functions------------
-
-
 
 
 def runcmd(cmd):
@@ -257,6 +279,7 @@ def filename(ifile):
         itype=ifile.split('.')[1]
     return ipat, iname, itype
 
+
 def dircheck(somedir):
     while True:       
         if os.path.exists(somedir):
@@ -279,15 +302,38 @@ def dircheck(somedir):
     return somedir
 
 
+#Biolog specific
 def readxls(ifile):
     book=xlrd.open_workbook(ifile,formatting_info=False)
-    data=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm][0])
+    data=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm or 'RAW data'][0])
     sheet=[]    
     for r in range(0,data.nrows):
         if len(data.row_values(r))>200:
             #print set(data.row_values(r))
             sheet.append(data.row_values(r))
     return sheet
+
+def readxls_s(ifile):
+    book=xlrd.open_workbook(ifile,formatting_info=False)
+    data=book.sheet_by_name(book.sheet_names()[0]) #Use first sheet
+    sheet=[]
+    for r in range(0,data.nrows):
+        #print set(data.row_values(r))
+        sheet.append(data.row_values(r))
+    return sheet
+
+
+# def readxls(ifile):
+#     book=xlrd.open_workbook(ifile,formatting_info=False)
+#     data=book.sheet_by_name([nm for nm in book.sheet_names() if 'Magellan' in nm or 'RAW data' in nm][0])
+#     sheet=[]    
+#     for r in range(0,data.nrows):
+#         if len(data.row_values(r))>200:
+#             #print set(data.row_values(r))
+#             sheet.append(data.row_values(r))
+#     return sheet
+
+
 
 
 def readtext(ifile):
@@ -300,14 +346,6 @@ def readtext(ifile):
     f.close()
     return sheet
 
-def readxls_s(ifile):
-    book=xlrd.open_workbook(ifile,formatting_info=False)
-    data=book.sheet_by_name(book.sheet_names()[0]) #Use first sheet
-    sheet=[]
-    for r in range(0,data.nrows):
-        #print set(data.row_values(r))
-        sheet.append(data.row_values(r))
-    return sheet
 
 def readcsv(ifile):
     f=open(ifile,'r')
@@ -359,8 +397,9 @@ def readdesc(udlist):
     return descriptors
 
 
-def readinfo(ifile):
-    print ifile
+
+def readinfo(ifile, nec):
+
     info=NestedDict()
     ilist=[]
     dlist=[]
@@ -375,7 +414,7 @@ def readinfo(ifile):
     
     #Automatically find variables
     headin={ hd : headers.index(hd) for hd in headers}
-    nec=['File','Pattern']
+    #nec=['File','Pattern']
 
     addhead=[key for key in headin.keys() if key not in nec]
     
@@ -390,18 +429,66 @@ def readinfo(ifile):
     
     info=info[info['File']!='']
     
-    #info=info.set_index('File')
 
     return info
 
 
 
+
+def uniquecomb(info,sortby,compareby):
+    summ=[]
+    uns=NestedDict()
+    
+    preskeys=info.columns.values
+    
+    inkeys=[k for k in sortby if k in preskeys]
+    
+    missing=[k for k in sortby if k not in preskeys]
+    
+    if len(inkeys)>0:
+        
+        if len(inkeys)==len(sortby):
+            print 'All defined keys have been found!'
+        else:
+            print 'Some keys were found!\n{}'.format(inkeys)
+            #print 'Keys for unique sets have not been found in Design file!\n{}'.format(missing)
+        
+        for index,row in info.iterrows():
+            #Collect values?
+            summ.append(row[inkeys].values)
+            
+        #print summ
+        uniqs=[list(i) for i in set(tuple(i) for i in summ)]
+        for unl in uniqs:
+            unin='|'.join(unl)
+            uns[unin]['Unique-keys']=inkeys
+            uns[unin]['Unique-values']=unl
+            uns[unin]['Compare-by']=compareby
+            uns[unin]['Compare-by-values']=[]
+            
+            for index,row in info.iterrows():
+                # print sortby
+                # print unl
+                # print type(unl)
+                check=[row[uk]==uv for uk,uv in IT.izip(inkeys,unl)]
+                # print check
+                #print compareby
+                if all(check):
+                    if row[compareby] in uns[unin].keys():
+                        uns[unin][row[compareby]]=uns[unin][row[compareby]]+[row['File']]
+                    else:
+                        uns[unin]['Compare-by-values']=uns[unin]['Compare-by-values']+[row[compareby]]
+                        uns[unin][row[compareby]]=[row['File']]
+    
+    else:
+        raise Exception('None of the defined sorting keys have been found in Design file!\n{}'.format(missing))
+
+    return uns
+
+
+
 def myround(a, decimals=1):
      return np.around(a-10**(-(decimals+5)), decimals=decimals)
-
-# def growth(x,a,c):
-#     y=x*a+c
-#     return y
 
 def Wiener(y, n):
     wi = sig.wiener(y, mysize=n)
@@ -546,7 +633,8 @@ def collect(info):
             if reader=='Tecan':
                 
                 if itp == 'xlsx':
-                    sheet = readxls_s(ifl)
+                    #sheet = readxls_s(ifl)
+                    sheet = readxls(ifl)
                     data[ifl] = collect_Tecan(sheet)
                 elif itp in ['asc','txt']:
                     sheet = readtext(ifl)
@@ -917,7 +1005,7 @@ def analyse(data,full):
             if full:
                 data[plate]['Figures']=data[plate]['Figures']+[wave+'_b',wave+'_f',wave+'_log',wave+'_dt']
             else:
-                data[plate]['Figures']=data[plate]['Figures']+[wave+'_f',wave+'_log']
+                data[plate]['Figures']=data[plate]['Figures']+[wave+'_f',wave+'_log',wave+'_dt']
             
         summary=pd.DataFrame([],index=wells)
             
@@ -925,11 +1013,13 @@ def analyse(data,full):
             summaries=[summary]
             fgdata=data[plate][fg]
             
-           
+            maxs=pd.DataFrame({ '{}_Max'.format(fg) : fgdata.apply(max,axis=1) })
+            mins=pd.DataFrame({ '{}_Min'.format(fg) : fgdata.apply(min,axis=1) })
+            
             if full:
-                maxs=pd.DataFrame({ '{}_Max'.format(fg) : fgdata.apply(max,axis=1) })
-                mins=pd.DataFrame({ '{}_Min'.format(fg) : fgdata.apply(min,axis=1) })
                 summaries.extend([maxs,mins])
+            elif re.findall('_dt$',fg):
+                summaries.extend([maxs])
                 
             if re.findall('_f$',fg):
                 #print fgdata
@@ -962,8 +1052,7 @@ def analyse(data,full):
     return data
 
 
-
-def makesheets(data,descriptors,info):
+def makesheets(data,descriptors,info,mode):
 
     header_temp=['File','Well','Data']
     
@@ -981,10 +1070,6 @@ def makesheets(data,descriptors,info):
             desckeys=sorted(descriptors[hasdesc[0]].keys())
             header+=desckeys
             
-    #allsumhead = ['590nm_f_Max', '590nm_log_Max','590nm_f_AUC', '590nm_f_logAUC'] # +\
-                #['A', 'lamda', 'u', 'tmax','tmaxf'] + \
-                 #['a_log', 'c_log', 't0_log', 'tmax_log'] + \
-
     allsummary=[]
     alldatats=[]
 
@@ -1011,9 +1096,14 @@ def makesheets(data,descriptors,info):
     allsummaryDF['Well']=allsummaryDF.index
     alldatatsDF['Well']=alldatatsDF.index
     
-    allinfo=pd.merge(info,descriptors,on='Pattern')
-    
-    mainhead=['File','Pattern','Data','Well']
+    if mode=='biolog':
+        allinfo=pd.merge(info,descriptors,on='Plate')
+        mainhead=['File','Plate','Data','Well']
+        smainhead=['File','Plate','Well']
+    else:
+        allinfo=pd.merge(info,descriptors,on='Pattern')
+        mainhead=['File','Pattern','Data','Well']
+        smainhead=['File','Pattern','Well']
     
     allsummaryH=[ col for col in allsummaryDF.columns.values if col not in mainhead]
     alldatatsH=[col for col in alldatatsDF.columns.values if col not in mainhead]
@@ -1026,7 +1116,7 @@ def makesheets(data,descriptors,info):
     #Reorder DF
     allsummaryDF=allsummaryDF[mainhead+allinfoH+allsummaryH]
     alldatatsDF=alldatatsDF[mainhead+allinfoH+alldatatsH]
-    allinfo=allinfo[['File','Pattern','Well']+allinfoH]
+    allinfo=allinfo[smainhead+allinfoH]
 
     sheets={'Summary':allsummaryDF,'Timeseries':alldatatsDF,'Allinfo':allinfo}
 
@@ -1041,7 +1131,25 @@ def writesheets(sheets,odir):
         sheet=sheet.replace([np.inf, -np.inf], np.nan)
         sheet.to_csv(oname,index=False,float_format='%.4f')
         
-def plot_comparison(data,dirn,figs):
+        
+def greek_check(text,slen):
+    text=unicode(text)
+    greek_alphabet ={'alpha':u'\u03B1','beta':u'\u03B2','gamma':u'\u03B3','delta':u'\u03B4','epsilon':u'\u03B5'}
+    greek_alphabet2 ={'alpha':u'α','beta':u'β','gamma':u'γ','delta':u'δ','epsilon':u'ε'}    
+    tex_alphabet ={u'α':u'$α$',u'β':u'$β$',u'γ':u'$γ$',u'δ':u'$δ$',u'ε':u'$ε$'}
+    uni_alphabet ={'alpha':u'α','beta':u'β','gamma':u'γ','delta':u'δ','epsilon':u'ε'}
+    for k in uni_alphabet.keys():
+        if k in text:
+            text=text.replace(k,uni_alphabet[k])
+    text='\n'.join(tw.wrap(text,slen))
+    for k in tex_alphabet.keys():
+        if k in text:
+            text=text.replace(k,tex_alphabet[k])
+    return text
+
+
+        
+def Gplot_comparison(data,dirn,figs):
 
     for plate in sorted(data.keys()):
         
@@ -1090,13 +1198,13 @@ def plot_comparison(data,dirn,figs):
             
 
             #Need to fix metabolites
-            plot=plot_2D(inm,fg,fgdata[fg],time_h,labels,gfitc,plsize)
+            plot=Gplot_2D(inm,fg,fgdata[fg],time_h,labels,gfitc,plsize)
             plot.savefig('{}/{}.pdf'.format(dirn,inm+'_'+fg))
             plot.close()
 
 
 
-def plot_2D(plate,fg,datac,time,labels,gfitc,plsize):
+def Gplot_2D(plate,fg,datac,time,labels,gfitc,plsize):
     
     if plsize==96:
         minrow=1
@@ -1243,6 +1351,330 @@ def plot_2D(plate,fg,datac,time,labels,gfitc,plsize):
                 plt.plot(time,yfitc,'r-',alpha=0.5)
 
     return plt
+
+def Bplot_comparison(data,metabolites,dirn,figs,info,uniques):
+
+    for uk in sorted(uniques.keys()):
+        comvalues=uniques[uk]['Compare-by-values']
+        comname=uniques[uk]['Compare-by']
+        unks=uniques[uk]['Unique-keys']
+        unval=uniques[uk]['Unique-values']
+        #print unks,unval
+
+        combmap={ uc:unks.index(uc) for uc in unks}
+
+        if 'Plate' in unks and 'Strain' in unks:
+            strain=unval[combmap['Strain']]
+            bplate=unval[combmap['Plate']]
+        else:
+            print 'No data provided on used strain and plate ID!'
+            strain='Unknown strain'
+            bplate='Unknown plate'
+
+        print 'Plot unique combinations of: {}'.format(unks)
+        print 'Combination: {}'.format(unval)
+        print 'Compare by {}: {}'.format(comname,comvalues)
+        #sys.exit(1)
+
+
+        controls=0
+        treatments=0
+
+        if all([cvt in ['Control', 'Treatment'] for cvt in comvalues]):
+            #print comvalues
+            for cv in comvalues:
+                if cv=='Control':
+                    controls=controls+1
+                    cgroup=uniques[uk][cv]
+                elif cv=='Treatment':
+                    treatments=treatments+1
+                    egroup=uniques[uk][cv]
+        else:
+            print 'Unknown types found as descriptors: {}'.format([cvt for cvt in comvalues if cvt not in ['Control', 'Treatment']])
+            print 'Currently supported descriptors: {}'.format(['Control', 'Treatment'])
+
+            
+        if controls<1:
+            cgroup=[]
+        if treatments<1:
+            egroup=[]
+            
+        #print cgroup
+        
+        figures_temp=data[cgroup[0]]['Figures']
+        
+        
+
+        if figs=='all':
+            figures=figures_temp
+
+        elif isinstance(figs, list):
+            figs_ch=[f for f in figs if f in figures_temp]
+            figures=figs_ch
+            if len(figs_ch)!=len(figs):
+                print 'Figures {} not found'.format([f for f in figs if f not in figures_temp])
+        elif isinstance(figs, str) or isinstance(figs, unicode):
+            if figs in figures_temp:
+                figures=[figs]
+            else:
+                print 'Figures {} not found'.format(figs)
+                figures=[]
+
+        for fg in figures:
+            lbl=''
+            for unk in unks:
+                if unks.index(unk)==0:
+                    sep=''
+                else:
+                    sep='_'
+                if unk=='Sugar_20mM':
+                    lbl=lbl+sep+'Sugar20mM-{}'
+                elif unk=='Uracil_uM':
+                    lbl=lbl+sep+'Uracil{}uM'
+                elif unk=='Replicate':
+                    lbl=lbl+sep+'Rep{}'
+                elif unk=='Metformin_mM':
+                    lbl=lbl+sep+'Metf{}'
+                else:
+                    lbl=lbl+sep+'{}'
+            lbl=lbl.format(*unval)
+            ttl=lbl.replace('_',' ')
+            
+            
+            metsel=metabolites[metabolites['Plate']==bplate]
+
+            print "Plotting: "+ttl+' '+fg
+            #Need to fix metabolites
+            plot=Bplot_2D(ttl,fg,bplate,data,cgroup,egroup,metsel,info)
+            plot.savefig('{}/{}.pdf'.format(dirn,'{}_{}'.format(lbl,fg)))
+            plot.close()
+
+
+def Bplot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
+    
+    integrals=''
+
+    markers={'1':'-','2':'--','3':'-.','4':':'}
+    metfc={'0':'r','25':'c','50':'b','75':'k','100':'k'}
+    drugplates=['PM11C','PM12B','PM13B','PM14A','PM15B', 'PM16A', 'PM17A', 'PM18C',
+                'PM19', 'PM20B', 'PM21D', 'PM22D', 'PM23A', 'PM24C', 'PM25D']
+    
+#     if bplate in drugplates:
+#         metin='Name'
+#     else:
+#         metin='Metabolite'
+        
+    plate_size=96
+    #print title
+
+    #Time chose base on first plate?
+    
+    
+    labels=data[cgroup[0]]['Labels']
+    
+    
+    time=data[cgroup[0]]['Time']
+    time_h=time/3600.0
+    #fig=plt.figure(figsize=(11.69,8.27), dpi=100)
+
+    title='{} {}'.format(ttl,fg)
+    #title='{} {} {}'.format(bplate,strain,fg)
+
+    fig,axes=plt.subplots(nrows=8, ncols=12, sharex=True, sharey=True,figsize=(11.69,8.27), dpi=100)
+    fig.suptitle(title)
+    plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.05)
+
+
+    rnd=0.1
+    
+    #Range
+    totalmin=0
+    xmax=24
+
+    ticks=3
+    xlabel='Time, h'
+    ylabel=''
+    decimals=1
+
+
+
+    if re.findall('_f$',fg):
+        totalmax=1
+        totalmin=0
+        ticks=3
+        ylabel='OD'
+        decimals=1
+
+
+    if re.findall('_log$',fg ) :
+        totalmax=0
+        totalmin=-6
+        ticks=4
+        ylabel='log2 OD'
+        decimals=1
+
+    if re.findall('_dt$',fg ):
+        totalmax=0.25
+        totalmin=0
+        ticks=3
+        ylabel='dOD/dt'
+        decimals=2
+
+    if '590nm' in fg and '_log' not in fg and '_dt' not in fg :
+        totalmax=2
+        ticks=3
+        ylabel='OD'
+        decimals=1
+
+    if '750nm' in fg and '_log' not in fg and '_dt' not in fg :
+        if bplate in ['PM1','PM2A','PM3B','PM4A']:
+            totalmax = 1
+            
+        elif bplate=='PM5':
+            totalmax = 1
+        else:
+            totalmax = 2
+        totalmin=0
+        ticks=3
+        ylabel='OD'
+        decimals=1
+
+
+    ymin=totalmin
+    fig.text(0.5, 0.04, xlabel, ha='center')
+    fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
+
+    repmax=1
+    metconcs=[]
+    for v,l in IT.izip(range(plate_size),labels):
+        row=string.uppercase.index(l[0])+1
+        col=int(l.replace(l[0],''))
+        #print (row,col)
+        if divmod(float(v)/12,1)[1]==0:
+            sh_y=l
+        #print sh_y
+        v=v+1
+    
+
+        plt.sca(axes[row-1,col-1])
+        ax=axes[row-1,col-1]
+        
+        if col==12:
+            ax.yaxis.set_label_position("right")
+            plt.ylabel(l[0],rotation='horizontal')
+        if row==1:
+            plt.title(col)                    
+
+        if col>1 and row<11:
+            plt.setp(ax.get_yticklabels(), visible=False)
+
+        plt.xticks(np.linspace(0, xmax, 3),['']+list(np.linspace(0, xmax, 3).astype(int)[1:]), rotation='vertical')    
+        plt.yticks(np.linspace(ymin, totalmax, ticks),['']+list(myround(np.linspace(totalmin, totalmax, ticks),decimals)[1:]))
+
+        plt.ylim([totalmin,totalmax])
+        
+        metlbl=metabolites[metabolites['Well']==l]['Metabolite'].values[0]
+        label=greek_check(metlbl,12)
+        plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
+
+        linx=np.array([0,2])
+        #Need to unify coloring in universal way
+        for grp,mrkc in IT.izip([cgroup,egroup],['r','b']):
+            for gdata in grp:
+                #print gdata
+                #Needs further refinement
+                fgsummary=data[gdata]['Summary']
+                
+                time=data[gdata]['Time']
+                time_h=time/3600.0
+                
+                if 'Metformin_mM' in info.columns.values: # and info[gdata]['Metformin_mM']!='50'
+                    metval=str(int(info[info['File']==gdata]['Metformin_mM'].values[0]))
+                    mrkc=metfc[metval]
+                    metconcs.append(metval)
+                    
+                if 'Replicate' in info.columns.values:
+                    repval=str(int(info[info['File']==gdata]['Replicate'].values[0]))
+                    mrk=mrkc+markers[repval] if int(repval)<5 else mrkc+markers['4']
+                    if int(repval)>repmax:
+                        repmax=int(repval)
+                else:
+                    mrk=mrkc+'-'
+                    
+                if fg in data[gdata].keys():
+                    y=data[gdata][fg].loc[l,:]
+                    #print len(x),len(y)
+                    plt.plot(time_h,y,mrk)
+                
+                if re.findall('_log$',fg) and '{}_LG_a'.format(fg) in fgsummary.columns.values:
+                    a,c=fgsummary.loc[l,:][['{}_LG_a'.format(fg),'{}_LG_c'.format(fg)]].values
+                    if a>0:
+                        yfit=time_h*a+c
+                        plt.plot(time_h,yfit,mrk,alpha=0.5)
+                        
+#                 if fg=='750nm_f' and integrals=='integrals':
+#                     A,lam,u,tmax,tmaxf=data[gdata]['Summary']['GrowthFit'][l]
+#                     if 0<tmaxf<=24:
+#                         plt.fill_between(x, 0,y,where=x<=tmaxf, facecolor='red' if mrkc=='r' else 'blue',alpha=0.1)#, interpolate=True
+#                     if A>0 and lam<np.inf and u>0:
+#                         yfit=growth(x,A,lam,u)
+#                         plt.plot(x,yfit,mrk.replace('-','-.'),alpha=0.5)
+#                 if fg=='750nm_f' and integrals=='fullintegrals':
+#                         plt.fill_between(x, 0,y,where=x<=24, facecolor='red' if mrkc=='r' else 'blue',alpha=0.1)
+        # if fg in ['Growth_abolished','Respiration_abolished']:
+        #     ye[ye<thres]=thres
+        #     yc[yc<thres]=thres
+        #     yd=(ye*100/yc)-100
+        #     plt.plot(x,yd,'k-')
+        #     plt.fill_between(x, 0, yd, where=yd>=0, facecolor='blue', interpolate=True)
+        #     plt.fill_between(x, 0, yd, where=yd<=0, facecolor='red', interpolate=True)
+        #
+
+        #     elif fg=='Resp&Growth':
+        #         rc=gfitc[l]
+        #         re=gfite[l]
+        #         #print '{}: {} {} {}'.format(fg,len(x),len(yc),len(ye))
+        #         plt.plot(x,rc,'r-',alpha=0.5)
+        #         plt.plot(x,re,'b-',alpha=0.5)
+    typelines=[]
+    typelabels=[]
+    if len(metconcs)>0:
+        if '0' in metconcs:
+            typelines.append(mlines.Line2D([], [], color='red', label='Control'))
+            typelabels.append('Control')
+        if '25' in metconcs:
+            typelines.append(mlines.Line2D([], [], color='cyan', label='Metformin 25mM'))
+            typelabels.append('Metformin 25mM')
+        if '50' in metconcs:
+            typelines.append(mlines.Line2D([], [], color='blue', label='Metformin 50mM'))
+            typelabels.append('Metformin 50mM')
+        if '75' in metconcs:
+            typelines.append(mlines.Line2D([], [], color='blue', label='Metformin 75mM'))
+            typelabels.append('Metformin 75mM')
+
+    else:
+        blue_line = mlines.Line2D([], [], color='blue', label='Treatment')
+        red_line = mlines.Line2D([], [], color='red', label='Control')
+        typelines=[red_line,blue_line]
+        typelabels=['Control','Treatment']
+
+    replines=[]
+    replabels=[]
+
+    for rep in range(1,repmax+1):
+        replines.append( mlines.Line2D([], [],linestyle=markers[str(rep)] if rep<5  else ':', color='black', label='Replicate {}'.format(rep)))
+        replabels.append('Replicate {}'.format(rep))
+
+    plt.figlegend(typelines,typelabels,'upper right',prop={'size':7})#
+    plt.figlegend(replines,replabels,'upper left',prop={'size':7})#
+
+    return plt
+
+
+
+
+
+
 
 #----------------------------------
 

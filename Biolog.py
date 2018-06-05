@@ -75,34 +75,6 @@ from scipy.optimize import curve_fit
 
 
 
-#import matplotlib.lines as mlines
-#import matplotlib.ticker as ticker
-#from matplotlib import rc
-
-#
-
-
-# try:
-#     import itertools as IT
-# except ImportError, e:
-#     print "Module itertools not found"
-
-
-
-#from scipy.fftpack import rfft, irfft, fftfreq
-
-# from collections import OrderedDict
-# from collections import defaultdict
-# from collections import Counter
-
-
-
-#from operator import itemgetter
-#from itertools import groupby
-#import textwrap as tw
-
-#compare = lambda x, y: Counter(x) == Counter(y)
-
 
 help_message = '''
 Biolog data preparation
@@ -128,7 +100,6 @@ def usage():
     return
 
 optionsset='''
-
 Options:
 <--------------------------------------------->
       Files:    %(ifile)s
@@ -139,7 +110,7 @@ Metabolites:    %(dfile)s
     '''
 
 def main(argv=None):
-    etype='Biolog'
+    mode='biolog'
     ifile=""
     dfile=""
     odir='Output'
@@ -215,10 +186,12 @@ def main(argv=None):
    
     data=analyse(data,full)
 
-    sheets=makesheets(data,metabolites,info,etype)
+    sheets=makesheets(data,metabolites,info,mode)
     
     writesheets(sheets,odir)
 
+    
+    
     plot_comparison(data,metabolites,odir,'all',info,uniques)
                                            
 
@@ -435,8 +408,6 @@ def uniquecomb(info,sortby,compareby):
         raise Exception('None of the defined sorting keys have been found in Design file!\n{}'.format(missing))
 
     return uns
-
-
 
 
 def collect(info):
@@ -718,11 +689,6 @@ def setbar(x,bar):
     x2=np.array(x2)
     return x2
 
-# def interp_integ(x,y,t2):
-#     intgr=ip.UnivariateSpline(x, y, s=5,k=5).integral(0,t2)
-#     #intgr=spln
-#     return intgr
-
 def cut(x, y, a,b,equalize=False):
     x2=[]
     y2=[]
@@ -988,7 +954,7 @@ def analyse(data,full):
 
 
 
-def makesheets(data,descriptors,info,etype):
+def makesheets(data,descriptors,info,mode):
 
     header_temp=['File','Well','Data']
     
@@ -1032,7 +998,7 @@ def makesheets(data,descriptors,info,etype):
     allsummaryDF['Well']=allsummaryDF.index
     alldatatsDF['Well']=alldatatsDF.index
     
-    if etype=='Biolog':
+    if mode=='biolog':
         allinfo=pd.merge(info,descriptors,on='Plate')
         mainhead=['File','Plate','Data','Well']
         smainhead=['File','Plate','Well']

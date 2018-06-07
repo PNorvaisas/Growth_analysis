@@ -1150,6 +1150,28 @@ def greek_check(text,slen):
     return text
 
 
+def findfigures(figures_temp,figs):
+    
+    figures=[]
+    
+    if figs=='all':
+        figures=figures_temp
+    elif isinstance(figs, list):
+        figs_ch=[f for f in figs if f in figures_temp]
+        figures=figs_ch
+        figmiss=[f for f in figs if f not in figures_temp]
+        if len(figs_ch)!=len(figs):
+            print 'Figures {} not found'.format(figmiss)
+            
+    elif isinstance(figs, str) or isinstance(figs, unicode):
+        figures=[ f for f in figures_temp if re.findall(figs,f) ]
+        if len(figures)==0:
+            print 'Figures {} not found'.format(figmiss)
+    else:
+        print 'Figures {} not found'.format(figs)
+        figures=[]
+
+    return figures
         
 def Gplot_comparison(data,dirn,figs):
 
@@ -1169,35 +1191,17 @@ def Gplot_comparison(data,dirn,figs):
         
         figures_temp=data[plate]['Figures']
         
-        if figs=='all':
-            figures=figures_temp
-            
-        elif isinstance(figs, list):
-            figs_ch=[f for f in figs if f in figures_temp]
-            if len(figs_ch)>0:
-                figures=figs_ch
-            else:
-                print 'Figures {} not found'.format(figs)
-        elif isinstance(figs, str) or isinstance(figs, unicode):
-            if figs in figures_temp:
-                figures=[figs]
-            else:
-                figures=[fg for fg in figure_temp if figs in fg]
-                if not figures:
-                    print 'Figures {} not found'.format(figs)
+        figures=findfigures(figures_temp,figs)
 
         #print figures
         print 'File: {}'.format(plate)
         for fg in figures:
             if re.findall('_log$',fg) and '{}_LG_a'.format(fg) in fgsummary.columns.values:
-                
                 gfitc=fgsummary[['{}_LG_a'.format(fg),'{}_LG_c'.format(fg)]]
             else:
                 gfitc=pd.DataFrame()
 
             print "\tPlotting {}...".format(fg)
-            
-            
 
             #Need to fix metabolites
             plot=Gplot_2D(inm,fg,fgdata[fg],time_h,labels,gfitc,plsize)
@@ -1402,25 +1406,10 @@ def Bplot_comparison(data,metabolites,dirn,figs,info,uniques):
             egroup=[]
             
         #print cgroup
-        
         figures_temp=data[cgroup[0]]['Figures']
-        
-        
 
-        if figs=='all':
-            figures=figures_temp
-
-        elif isinstance(figs, list):
-            figs_ch=[f for f in figs if f in figures_temp]
-            figures=figs_ch
-            if len(figs_ch)!=len(figs):
-                print 'Figures {} not found'.format([f for f in figs if f not in figures_temp])
-        elif isinstance(figs, str) or isinstance(figs, unicode):
-            if figs in figures_temp:
-                figures=[figs]
-            else:
-                print 'Figures {} not found'.format(figs)
-                figures=[]
+        figures=findfigures(figures_temp,figs)
+            
 
         for fg in figures:
             lbl=''

@@ -432,9 +432,6 @@ def readinfo(ifile, nec):
 
     return info
 
-
-
-
 def uniquecomb(info,sortby,compareby):
     summ=[]
     uns=NestedDict()
@@ -455,11 +452,16 @@ def uniquecomb(info,sortby,compareby):
         
         for index,row in info.iterrows():
             #Collect values?
-            summ.append(row[inkeys].values)
-            
+            summ.append( [str(v ) for v in row[inkeys].values ] )
+        
         #print summ
-        uniqs=[list(i) for i in set(tuple(i) for i in summ)]
+        uniqs=[list(i) for i in set( tuple(i) for i in summ )]
+        
+        
+        #print uniqs
         for unl in uniqs:
+            #print unl
+            
             unin='|'.join(unl)
             uns[unin]['Unique-keys']=inkeys
             uns[unin]['Unique-values']=unl
@@ -470,7 +472,7 @@ def uniquecomb(info,sortby,compareby):
                 # print sortby
                 # print unl
                 # print type(unl)
-                check=[row[uk]==uv for uk,uv in IT.izip(inkeys,unl)]
+                check=[ str(row[uk])==uv for uk,uv in IT.izip(inkeys,unl) ]
                 # print check
                 #print compareby
                 if all(check):
@@ -1573,7 +1575,11 @@ def Bplot_2D(ttl,fg,bplate,data,cgroup,egroup,metabolites,info):
 
         plt.ylim([totalmin,totalmax])
         
-        metlbl=metabolites[metabolites['Well']==l]['Metabolite'].values[0]
+        if bplate in drugplates:
+            metlbl=metabolites[metabolites['Well']==l]['MetaboliteU'].values[0]
+        else:
+            metlbl=metabolites[metabolites['Well']==l]['Metabolite'].values[0]
+        
         label=greek_check(metlbl,12)
         plt.text(0.05, 0.9, label, fontsize=7,verticalalignment='top',transform=ax.transAxes)
 

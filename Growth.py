@@ -80,8 +80,11 @@ Flags:
     -v  Verbose output
 Arguments:
     -i <files>   Input file
-    -o <dir>     Directory to write the output to
+    -f <string>  Figures to generate. Can be figure names joined by ";", or regex expression. DEFAULT: all
+    -m <table>   Biolog_metabolites.csv - Only in biolog mode
+    -o <dir>     Output directory. DEFAULT: Output
 Options:
+biolog/growth    Mode. DEFAULT: growth
     full         Return additional figures and data columns
 '''
 
@@ -99,6 +102,7 @@ Options:
 <--------------------------------------------->
       Files:    %(ifile)s
 Metabolites:    %(mfile)s
+    Figures:    %(figsel)s
         Out:    %(odir)s
        Full:    %(full)s
 <--------------------------------------------->
@@ -109,6 +113,7 @@ Goptionsset='''
 Options:
 <--------------------------------------------->
       Files:    %(ifile)s
+    Figures:    %(figsel)s
         Out:    %(odir)s
        Full:    %(full)s
 <--------------------------------------------->
@@ -121,6 +126,7 @@ def main(argv=None):
     msize=20
     odir='Output'
     odirn=''
+    figsel='all'
     load=False
     full=False
     subst=''
@@ -131,7 +137,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hi:m:o:", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hi:m:f:o:", ["help"])
         except getopt.error, msg:
             raise Usage(msg)
 
@@ -144,6 +150,9 @@ def main(argv=None):
                 ifile=value
             if option in ("-m", "--metabolites"):
                 mfile=value
+                mode='biolog'
+            if option in ("-f", "--figures"):
+                figsel=value
             if option in ("-o", "--out"):
                 odir=value
     
@@ -219,9 +228,9 @@ def main(argv=None):
     writesheets(sheets,odir)
     
     if mode=='growth':
-        Gplot_comparison(data,odir,'all')
+        Gplot_comparison(data,odir,figsel)
     else:
-        Bplot_comparison(data,descriptors,odir,'all',info,uniques)
+        Bplot_comparison(data,descriptors,odir,figsel,info,uniques)
 
         
 #-------------Functions------------
@@ -569,37 +578,6 @@ def time_to_sec(tstr):
     h,m,s=tstr.split(':')
     seconds=int(s)+60*int(m)+3600*int(h)
     return seconds
-
-
-# def genlist(ifile):
-#     #Generates list of input files, checks their existance
-#     ilist=[]
-#     if ',' in ifile:
-#         ifiles=ifile.split(',')
-#         for ifl in ifiles:
-#             ilist.extend(genlist(ifl))
-#     else:
-#         ipath, iname, itype=filename(ifile)
-#         if itype in ['xls','xlsx','asc','txt'] and os.path.isfile(ifile):
-#             ilist.append(ifile)
-#         # elif itype in [''] and os.path.isfile(ifile):#'txt',
-#         #     ifl=open(ifile,'r')
-#         #     idata=ifl.read().split('\n')
-#         #     idata=[fl.strip() for fl in idata if fl!='']
-#         #     for fld in idata:
-#         #         ilist.extend(genlist(fld))
-
-#         elif iname=='' and itype in ['xls','xlsx','asc','txt']:
-#             if itype in ['xls','xlsx']:
-#                 ffiles=glob.glob('*.%(itype)s' % vars())
-#                 #print ffiles
-#                 ilist.extend(ffiles)
-#             elif itype=='txt':
-#                 for tfile in glob.glob('*.%(itype)s' % vars()):
-#                     ilist.extend(genlist(tfile))
-#             else:
-#                 print "Bad file type %(inp)s!" % vars()    
-#     return ilist
 
 
 def tableout(inp):
@@ -1156,15 +1134,22 @@ def findfigures(figures_temp,figs):
     
     if figs=='all':
         figures=figures_temp
-    elif isinstance(figs, list):
-        figs_ch=[f for f in figs if f in figures_temp]
-        figures=figs_ch
-        figmiss=[f for f in figs if f not in figures_temp]
-        if len(figs_ch)!=len(figs):
+    elif (isinstance(figs, str) or isinstance(figs, unicode)) and ';' in figs:
+        
+        figsl=figs.split(';')
+        figures=[f for f in figsl if f in figures_temp]
+        
+        figmiss=[f for f in figsl if f not in figures_temp]
+        
+        if len(figures)!=len(figsl):
             print 'Figures {} not found'.format(figmiss)
+    
             
     elif isinstance(figs, str) or isinstance(figs, unicode):
+        
         figures=[ f for f in figures_temp if re.findall(figs,f) ]
+        figmiss=[ f for f in figures if f not in figures_temp ]
+        
         if len(figures)==0:
             print 'Figures {} not found'.format(figmiss)
     else:

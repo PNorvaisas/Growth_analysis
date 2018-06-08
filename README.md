@@ -73,7 +73,7 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
 - If everything is correct, scripts should automatically check for missing packages and install them.
 ---
 ## Biolog.py
-- `Biolog.py` uses `Design.xlsx` and `Biolog_metabolites_EcoCycU.csv` tables to generate output to a selected folder (defaults to `Output`). 
+- `Biolog.py` uses `Design.xlsx` and `Biolog_metabolites.csv` tables to generate output to a selected folder (defaults to `Output`). 
 - `Design` (template: `Biolog_Design_template.xlsx`) file can be any table (`.xls`, `.xlsx`, `.csv`) that contains columns:
     - **File** - name of the plate reader file.
     - **Plate** - name of the Biolog plate as present in the `Biolog_metabolites_EcoCycU.csv` table.
@@ -88,11 +88,19 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
     ```bash
     Biolog.py -i Design.xlsx -d Biolog_metabolites_EcoCycU.csv -o Output_dir
     ```
+- To get information about input arguments:
+    ```batch
+    Biolog.py -h
+    ```
 ### Running in Windows
 - Copy both `Biolog.py` and `Biolog_metabolites_EcoCycU.csv` to where your plate reader and `Design.xlsx` files are.
 - [Navigate](https://www.computerhope.com/issues/chusedos.htm) to the working directory (where your plate reader and `Design.xlsx` files are) in `Command Prompt` and run: 
     ```batch
     python Biolog.py -i Design.xlsx -d Biolog_metabolites_EcoCycU.csv -o Output_dir
+    ```
+- To get information about input arguments:
+    ```batch
+    python Biolog.py -h
     ```
 ---
 ## Justgrowth.py
@@ -112,14 +120,71 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
     ```batch
     Justgrowth.py -i Design.xlsx -o Output_dir
     ```
+- To get information about input arguments:
+    ```batch
+    Justrowth.py -h
+    ```
 ### Windows
 - Copy `Justgrowth.py` to where your plate reader and `Design.xlsx` files are.
 - [Navigate](https://www.computerhope.com/issues/chusedos.htm) to the working directory (where your plate reader and `Design.xlsx` files are) in `Command Prompt` and run: 
     ```batch
     python Justgrowth.py -i Design.xlsx -o Output_dir
     ```
+- To get information about input arguments:
+    ```batch
+    python Justgrowth.py -h
+    ```
+---
+## Growth.py
+- `Growth.py` is a script that combines the functionality of both `Justgrowth.py` and `Biolog.py`. It **uses the same input files** as the previous scripts and **generates the same output**. Given that most of the functions are shared between `Justgrowth.py` and `Biolog.py`, it only makes sense to join them into one, more consistent framework.
+- `Growth.py` uses `growth` or `biolog` flags at the end of the command argument to choose `Justgrowth.py` or `Biolog.py` functionality correspondingly.
+- `Growth.py` also has `full` flag, which generates more extensive output in terms of data tables and figures.
+### Runnig in MacOS, Unix
+- Navigate to the working directory (where your plate reader and `Design.xlsx` files are) in `Terminal`: 
+-  For **regular reads** which are used with `Pattern` files (like `Justgrowth.py`):
+    ```batch
+    Growth.py -i Design.xlsx -o Output_dir growth
+    ```
+    For more extensive output:
+    ```batch
+    Growth.py -i Design.xlsx -o Output_dir growth full
+    ```
+-  For **Biolog** reads which are used with `Biolog_meabolites.csv` table (like `Biolog.py`):
+    ```batch
+    Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir biolog
+    ```
+    For more extensive output:
+    ```batch
+    Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir biolog full
+    ```
+- To get information about input arguments:
+    ```batch
+    Growth.py -h
+    ```
+### Windows
+- Copy `Growth.py` to where your plate reader and `Design.xlsx` files are.
+- [Navigate](https://www.computerhope.com/issues/chusedos.htm) to the working directory (where your plate reader and `Design.xlsx` files are) in `Command Prompt`: 
+-  For **regular reads** which are used with `Pattern` files (like `Justgrowth.py`):
+    ```batch
+    python Growth.py -i Design.xlsx -o Output_dir growth
+    ```
+    For more extensive output:
+    ```batch
+    python Growth.py -i Design.xlsx -o Output_dir growth full
+    ```
+-  For **Biolog** reads which are used with `Biolog_meabolites.csv` table (like `Biolog.py`):
+    ```batch
+    python Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir biolog
+    ```
+    For more extensive output:
+    ```batch
+    python Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir biolog full
+    ```
+- To get information about input arguments:
+    ```batch
+    python Growth.py -h
+    ```
 ---
 # Output
 - Description to be added..
-
 

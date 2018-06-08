@@ -155,7 +155,7 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
     ```
     For more extensive output:
     ```batch
-    Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir biolog full
+    Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir <biolog/growth> full
     ```
 - To get information about input arguments:
     ```batch
@@ -178,7 +178,7 @@ Scripts for Biolog (`Biolog.py`) and other bacterial growth (`Justgrowth.py`) ex
     ```
     For more extensive output:
     ```batch
-    python Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir biolog full
+    python Growth.py -i Design.xlsx -m Biolog_metabolites.csv -o Output_dir <biolog/growth> full
     ```
 - To get information about input arguments:
     ```batch

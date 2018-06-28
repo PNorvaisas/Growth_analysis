@@ -81,6 +81,7 @@ Flags:
 Arguments:
     -i <files>   Input file
     -f <string>  Figures to generate. Can be figure names joined by ";", or regex expression. DEFAULT: all
+    -t <integer> Growth curve integral (AUC) upper bound in hours
     -m <table>   Biolog_metabolites.csv - Only in biolog mode
     -o <dir>     Output directory. DEFAULT: Output
 Options:
@@ -132,6 +133,7 @@ def main(argv=None):
     subst=''
     comparison=False
     mode='growth'
+    t=0
     
     if argv is None:
         argv = sys.argv
@@ -153,6 +155,8 @@ def main(argv=None):
                 mode='biolog'
             if option in ("-f", "--figures"):
                 figsel=value
+            if option in ("-t", "--time"):
+                t=value
             if option in ("-o", "--out"):
                 odir=value
     
@@ -221,7 +225,7 @@ def main(argv=None):
     data=collect(info)
     #Additional step to check if there are missing values?
     
-    data=analyse(data,full)
+    data=analyse(data,full,t)
 
     sheets=makesheets(data,descriptors,info,mode)
 
@@ -922,7 +926,7 @@ def absgrowth(xvars,y,margin=0.01):
     return A,lam,u,tmax
 
 
-def analyse(data,full):
+def analyse(data, full, t):
     
     window_h=2
     thres=np.power(2.0,-5)
@@ -933,11 +937,18 @@ def analyse(data,full):
         
         msize=len(time)//10
         
-        maxt=max(time_h)
-        if full:
-            inttimes=[ intt for intt in [16,18,20,24] if intt <maxt ]+[maxt]
+        
+        
+        if t==0:
+            maxt=max(time_h)
         else:
-            inttimes=[maxt]
+            maxt=min(max(time_h),t)
+        
+        if full:
+            
+            inttimes=[ intt for intt in [16, 18, 20, 24] if intt < maxt ]+[ maxt ]
+        else:
+            inttimes=[ maxt ]
         
         dt=time[1]-time[0]
         wells=data[plate]['Labels']

@@ -406,7 +406,6 @@ def readdesc(udlist):
     return descriptors
 
 
-
 def readinfo(ifile, nec):
 
     info=NestedDict()
@@ -924,7 +923,7 @@ def absgrowth(xvars,y,margin=0.01):
 
 
 def analyse(data,full):
-
+    
     window_h=2
     thres=np.power(2.0,-5)
     
@@ -935,6 +934,11 @@ def analyse(data,full):
         msize=len(time)//10
         
         maxt=max(time_h)
+        if full:
+            inttimes=[ intt for intt in [16,18,20,24] if intt <maxt ]+[maxt]
+        else:
+            inttimes=[maxt]
+        
         dt=time[1]-time[0]
         wells=data[plate]['Labels']
         
@@ -996,20 +1000,25 @@ def analyse(data,full):
             maxs=pd.DataFrame({ '{}_Max'.format(fg) : fgdata.apply(max,axis=1) })
             mins=pd.DataFrame({ '{}_Min'.format(fg) : fgdata.apply(min,axis=1) })
             
-            if full:
-                summaries.extend([maxs,mins])
-            elif re.findall('_dt$',fg):
+            
+            #First necessary values
+            if re.findall('_dt$|_log$|_f$',fg):
                 summaries.extend([maxs])
+            else:
+                if full:
+                    summaries.extend([maxs,mins])
+                
                 
             if re.findall('_f$',fg):
-                #print fgdata
-                ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC'.format(fg):ip.UnivariateSpline(time_h,x,s=0).integral(0, maxt)}),axis=1)
+                for intt in inttimes:
+                    intlbl=str(intt) if intt<maxt else ''
+
+                    ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC{}'.format(fg,intlbl):ip.UnivariateSpline(time_h,x,s=0).integral(0, intt)}),axis=1)
+                    logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC{}'.format(fg,intlbl):'{}_logAUC{}'.format(fg,intlbl)})
+
+                    summaries.extend([ints,logints])
                 
-                logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC'.format(fg):'{}_logAUC'.format(fg)})
-                
-                summaries.extend([ints,logints])
-                
-                
+
                 if full:
                     absgfit=fgdata.apply(lambda x: pd.Series( absgrowth(time_h,x), index=['{}_AG_A'.format(fg), '{}_AG_lamda'.format(fg), '{}_AG_u'.format(fg), '{}_AG_tmax'.format(fg)]),axis=1)
                     summaries.append(absgfit)

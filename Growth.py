@@ -139,7 +139,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hi:m:f:o:", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hi:m:f:o:t:", ["help"])
         except getopt.error, msg:
             raise Usage(msg)
 
@@ -156,7 +156,7 @@ def main(argv=None):
             if option in ("-f", "--figures"):
                 figsel=value
             if option in ("-t", "--time"):
-                t=value
+                t=float(value)
             if option in ("-o", "--out"):
                 odir=value
     
@@ -934,21 +934,20 @@ def analyse(data, full, t):
     for plate in sorted(data.keys()):
         time=data[plate]['Time']
         time_h=time/3600.0
-        
         msize=len(time)//10
-        
-        
         
         if t==0:
             maxt=max(time_h)
         else:
             maxt=min(max(time_h),t)
         
+        
         if full:
-            
             inttimes=[ intt for intt in [16, 18, 20, 24] if intt < maxt ]+[ maxt ]
         else:
             inttimes=[ maxt ]
+            
+        #print inttimes
         
         dt=time[1]-time[0]
         wells=data[plate]['Labels']
@@ -1022,7 +1021,8 @@ def analyse(data, full, t):
                 
             if re.findall('_f$',fg):
                 for intt in inttimes:
-                    intlbl=str(intt) if intt<maxt else ''
+                    #print intt, maxt, t, float(t)==intt
+                    intlbl=str(int(intt)) if intt==float(t) or intt<maxt else ''
 
                     ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC{}'.format(fg,intlbl):ip.UnivariateSpline(time_h,x,s=0).integral(0, intt)}),axis=1)
                     logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC{}'.format(fg,intlbl):'{}_logAUC{}'.format(fg,intlbl)})

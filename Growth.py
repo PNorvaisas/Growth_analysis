@@ -937,17 +937,16 @@ def analyse(data, full, t):
         msize=len(time)//10
         
         if t==0:
-            maxt=max(time_h)
+            maxt=float(max(time_h))
         else:
-            maxt=min(max(time_h),t)
-        
+            maxt=float(min(max(time_h),t))
         
         if full:
-            inttimes=[ intt for intt in [16, 18, 20, 24] if intt < maxt ]+[ maxt ]
+            inttimes=[ intt for intt in [16.0, 18.0, 20.0, 24.0] if intt < maxt ]+[ maxt ]
         else:
             inttimes=[ maxt ]
             
-        #print inttimes
+        print inttimes
         
         dt=time[1]-time[0]
         wells=data[plate]['Labels']
@@ -1022,7 +1021,14 @@ def analyse(data, full, t):
             if re.findall('_f$',fg):
                 for intt in inttimes:
                     #print intt, maxt, t, float(t)==intt
-                    intlbl=str(int(intt)) if intt==float(t) or intt<maxt else ''
+                    
+                    if full or (intt==float(t) or intt<maxt):
+                        intlbl=str(int(intt)) if (intt).is_integer() else str(intt)
+                    else:
+                        intlbl=''
+                        
+                    
+                    
 
                     ints=fgdata.apply( lambda x: pd.Series({ '{}_AUC{}'.format(fg,intlbl):ip.UnivariateSpline(time_h,x,s=0).integral(0, intt)}),axis=1)
                     logints=np.log2(ints.copy(deep=True)).rename(columns={'{}_AUC{}'.format(fg,intlbl):'{}_logAUC{}'.format(fg,intlbl)})

@@ -946,7 +946,7 @@ def analyse(data, full, t):
         else:
             inttimes=[ maxt ]
             
-        print inttimes
+        #print inttimes
         
         dt=time[1]-time[0]
         wells=data[plate]['Labels']
